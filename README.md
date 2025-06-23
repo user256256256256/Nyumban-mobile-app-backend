@@ -1,4 +1,3 @@
--- ============================================================================
 ****NPS Backend - Nyumban Property Solutions ****  
 --  © 2025 Nyumban Property Solutions (NPS). All rights reserved.  
 --
@@ -11,12 +10,13 @@
 --  Author: Eng Ibn Muzamir  
 --  Audiences: Backend Developers, QA Engineers, DevOps
 
--- ============================================================================
-
 ## 🖥️ Project Overview
 
 This is the backend service powering **Nyumban Property Solutions**, built using [**Node.js**](https://nodejs.org/) with [**Express.js**](https://expressjs.com/) and [**Prisma ORM**](https://www.prisma.io/).  
-It handles authentication, property data, user roles, rent tracking, and integration with mobile money providers (e.g. Flutterwave, MTN, Airtel).
+It handles authentication, property data, user roles, rent tracking, and integration with payment providers (e.g. Flutterwave, MTN, Airtel).
+
+> ✅ **Architecture Note**: This codebase follows a **modular architecture**, where features are organized into isolated modules (`auth`, `users`, `properties`, etc.).  
+> This improves scalability, maintainability, and developer productivity.
 
 ---
 
@@ -135,3 +135,19 @@ yarn dev
 
 ---
 
+## 🗂️ Project File Structure
+
+```
+/src
+  /modules          ← ✅ All feature modules live here (auth, properties, rent, etc.)
+  /common           ← Shared logic: constants, schemas, error handling, helpers
+  /generated        ← Prisma client output (auto-generated)
+  /middlewares      ← Global/custom middleware (e.g., auth checks)
+  /routes           ← Legacy routing (gradually being migrated to modules)
+  /services         ← Old service logic (being modularized)
+  /utils            ← Common utilities (can be moved into /common)
+  index.js          ← Server entry point
+```
+
+
+// Update the database modeling schema with is_onboarding_complete 

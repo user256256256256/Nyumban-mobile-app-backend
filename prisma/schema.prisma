@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -12,4 +6,461 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model account_verification_requests {
+  id                                                     String               @id @db.Uuid
+  user_id                                                String?              @db.Uuid
+  payment_id                                             String?              @db.Uuid
+  verified_by                                            String?              @db.Uuid
+  status                                                 verification_status?
+  verification_date                                      DateTime?            @db.Date
+  comment                                                String?
+  proof_of_ownership_file_path                           String?
+  created_at                                             DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at                                             DateTime?            @db.Timestamp(6)
+  deleted_at                                             DateTime?            @db.Timestamp(6)
+  is_deleted                                             Boolean?             @default(false)
+  payments                                               payments?            @relation(fields: [payment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_avr_payment")
+  users_account_verification_requests_user_idTousers     users?               @relation("account_verification_requests_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_avr_user")
+  users_account_verification_requests_verified_byTousers users?               @relation("account_verification_requests_verified_byTousers", fields: [verified_by], references: [id], onUpdate: NoAction, map: "fk_avr_verified_by")
+}
+
+model landlord_profiles {
+  id            String  @id @db.Uuid
+  user_id       String? @unique @db.Uuid
+  landlord_code String? @unique
+  full_names    String?
+  users         users?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lp_user")
+}
+
+model notifications {
+  id         String             @id @db.Uuid
+  user_id    String?            @db.Uuid
+  type       notification_type?
+  title      String?
+  body       String?
+  is_read    Boolean?           @default(false)
+  sent_at    DateTime?          @db.Timestamp(6)
+  read_at    DateTime?          @db.Timestamp(6)
+  deleted_at DateTime?          @db.Timestamp(6)
+  is_deleted Boolean?           @default(false)
+  users      users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notifications_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model payments {
+  id                            String                          @id @db.Uuid
+  payment_date                  DateTime?                       @default(now()) @db.Timestamp(6)
+  status                        payment_status?
+  method                        payment_method?
+  amount                        Decimal?                        @db.Decimal
+  payment_type                  String?
+  reference_id                  String?                         @db.Uuid
+  transaction_id                String?
+  currency                      String?
+  metadata                      Json?                           @db.Json
+  created_at                    DateTime?                       @default(now()) @db.Timestamp(6)
+  deleted_at                    DateTime?                       @db.Timestamp(6)
+  is_deleted                    Boolean?                        @default(false)
+  account_verification_requests account_verification_requests[]
+  property_promotions           property_promotions[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model promotion_plans {
+  id            String    @id @db.Uuid
+  plan_id       String    @unique
+  duration_days Int
+  price         Decimal   @db.Decimal
+  currency      String?   @default("UGX")
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  updated_at    DateTime? @db.Timestamp(6)
+  deleted_at    DateTime? @db.Timestamp(6)
+  is_deleted    Boolean?  @default(false)
+}
+
+model properties {
+  id                         String                   @id @db.Uuid
+  owner_id                   String?                  @db.Uuid
+  property_name              String
+  property_type              String?
+  property_code              String?                  @unique
+  property_website           String?
+  likes                      Int?
+  saves                      Int?
+  ownership_file_path        String?
+  has_units                  Boolean?                 @default(false)
+  is_promoted                Boolean?                 @default(false)
+  is_verified                Boolean?                 @default(false)
+  has_agreement              Boolean?                 @default(false)
+  country                    String?
+  address                    String?
+  price                      Decimal?                 @db.Decimal
+  currency                   String?
+  bedrooms                   Int?
+  bathrooms                  Int?
+  year_built                 Int?
+  parking_spaces             Int?
+  thumbnail_image_path       String?
+  energy_efficiency_features String?
+  amenities                  String?
+  tour_3d_url                String?
+  status                     property_status?
+  open_house_dates           String?
+  description                String?
+  pet_policy                 String?
+  smoking_policy             String?
+  created_at                 DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at                 DateTime?                @db.Timestamp(6)
+  deleted_at                 DateTime?                @db.Timestamp(6)
+  is_deleted                 Boolean?                 @default(false)
+  users                      users?                   @relation(fields: [owner_id], references: [id], onUpdate: NoAction, map: "fk_properties_owner")
+  property_applications      property_applications[]
+  property_images            property_images[]
+  property_promotions        property_promotions[]
+  property_tour_requests     property_tour_requests[]
+  property_units             property_units[]
+  rent_payments              rent_payments[]
+  rental_agreements          rental_agreements[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model property_applications {
+  id                                             String              @id @db.Uuid
+  property_id                                    String?             @db.Uuid
+  unit_id                                        String?             @db.Uuid
+  user_id                                        String?             @db.Uuid
+  landlord_id                                    String?             @db.Uuid
+  status                                         application_status?
+  tenant_message                                 String?
+  landlord_message                               String?
+  submitted_at                                   DateTime?           @default(now()) @db.Timestamp(6)
+  reviewed_at                                    DateTime?           @db.Timestamp(6)
+  deleted_at                                     DateTime?           @db.Timestamp(6)
+  is_deleted                                     Boolean?            @default(false)
+  users_property_applications_landlord_idTousers users?              @relation("property_applications_landlord_idTousers", fields: [landlord_id], references: [id], onUpdate: NoAction, map: "fk_pa_landlord")
+  properties                                     properties?         @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pa_property")
+  property_units                                 property_units?     @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "fk_pa_unit")
+  users_property_applications_user_idTousers     users?              @relation("property_applications_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction, map: "fk_pa_user")
+}
+
+model property_images {
+  id          String      @id @db.Uuid
+  property_id String?     @db.Uuid
+  image_url   String?
+  caption     String?
+  created_at  DateTime?   @db.Timestamp(6)
+  properties  properties? @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_property_images_property")
+}
+
+model property_promotions {
+  id          String                     @id @db.Uuid
+  payment_id  String?                    @db.Uuid
+  user_id     String?                    @db.Uuid
+  property_id String?                    @db.Uuid
+  start_date  DateTime?                  @db.Date
+  end_date    DateTime?                  @db.Date
+  status      property_promotion_status?
+  price       Decimal?                   @db.Decimal
+  duration    String?
+  created_at  DateTime?                  @default(now()) @db.Timestamp(6)
+  updated_at  DateTime?                  @db.Timestamp(6)
+  deleted_at  DateTime?                  @db.Timestamp(6)
+  is_deleted  Boolean?                   @default(false)
+  payments    payments?                  @relation(fields: [payment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pp_payment")
+  properties  properties?                @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pp_property")
+  users       users?                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pp_user")
+}
+
+model property_tour_requests {
+  id                                               String       @id @db.Uuid
+  property_id                                      String?      @db.Uuid
+  requester_id                                     String?      @db.Uuid
+  owner_id                                         String?      @db.Uuid
+  status                                           tour_status?
+  message                                          String?
+  created_at                                       DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at                                       DateTime?    @db.Timestamp(6)
+  deleted_at                                       DateTime?    @db.Timestamp(6)
+  is_deleted                                       Boolean?     @default(false)
+  users_property_tour_requests_owner_idTousers     users?       @relation("property_tour_requests_owner_idTousers", fields: [owner_id], references: [id], onUpdate: NoAction, map: "fk_ptr_owner")
+  properties                                       properties?  @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ptr_property")
+  users_property_tour_requests_requester_idTousers users?       @relation("property_tour_requests_requester_idTousers", fields: [requester_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ptr_requester")
+}
+
+model property_units {
+  id                    String                  @id @db.Uuid
+  property_id           String?                 @db.Uuid
+  unit_number           String?
+  status                unit_status?
+  price                 Decimal?                @db.Decimal
+  bedrooms              Int?
+  bathrooms             Int?
+  created_at            DateTime?               @default(now()) @db.Timestamp(6)
+  updated_at            DateTime?               @db.Timestamp(6)
+  deleted_at            DateTime?               @db.Timestamp(6)
+  is_deleted            Boolean?                @default(false)
+  property_applications property_applications[]
+  properties            properties?             @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_property_units_property")
+  rent_payments         rent_payments[]
+  rental_agreements     rental_agreements[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model rent_payments {
+  id                  String               @id @db.Uuid
+  rental_agreement_id String?              @db.Uuid
+  tenant_id           String?              @db.Uuid
+  unit_id             String?              @db.Uuid
+  property_id         String?              @db.Uuid
+  due_date            DateTime?            @db.Date
+  due_amount          Decimal?             @db.Decimal
+  payment_date        DateTime?            @db.Timestamp(6)
+  amount_paid         Decimal?             @db.Decimal
+  status              rent_payment_status?
+  method              payment_method?
+  period_covered      String?
+  transaction_id      String?
+  notes               String?
+  created_at          DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?            @db.Timestamp(6)
+  deleted_at          DateTime?            @db.Timestamp(6)
+  is_deleted          Boolean?             @default(false)
+  properties          properties?          @relation(fields: [property_id], references: [id], onUpdate: NoAction, map: "fk_rp_property")
+  rental_agreements   rental_agreements?   @relation(fields: [rental_agreement_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rp_rental_agreement")
+  users               users?               @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rp_tenant")
+  property_units      property_units?      @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "fk_rp_unit")
+}
+
+model rental_agreement_templates {
+  id                String              @id @db.Uuid
+  name              String?
+  template_html     String?
+  created_at        DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?           @db.Timestamp(6)
+  rental_agreements rental_agreements[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model rental_agreements {
+  id                                       String                      @id @db.Uuid
+  template_id                              String?                     @db.Uuid
+  property_id                              String?                     @db.Uuid
+  unit_id                                  String?                     @db.Uuid
+  owner_id                                 String?                     @db.Uuid
+  tenant_id                                String?                     @db.Uuid
+  status                                   agreement_status?
+  file_path                                String?
+  tenant_accepted_agreement                Boolean?                    @default(false)
+  start_date                               DateTime?                   @db.Date
+  end_date                                 DateTime?                   @db.Date
+  created_at                               DateTime?                   @default(now()) @db.Timestamp(6)
+  updated_at                               DateTime?                   @db.Timestamp(6)
+  deleted_at                               DateTime?                   @db.Timestamp(6)
+  is_deleted                               Boolean?                    @default(false)
+  rent_payments                            rent_payments[]
+  users_rental_agreements_owner_idTousers  users?                      @relation("rental_agreements_owner_idTousers", fields: [owner_id], references: [id], onUpdate: NoAction, map: "fk_ra_owner")
+  properties                               properties?                 @relation(fields: [property_id], references: [id], onUpdate: NoAction, map: "fk_ra_property")
+  rental_agreement_templates               rental_agreement_templates? @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ra_template")
+  users_rental_agreements_tenant_idTousers users?                      @relation("rental_agreements_tenant_idTousers", fields: [tenant_id], references: [id], onUpdate: NoAction, map: "fk_ra_tenant")
+  property_units                           property_units?             @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "fk_ra_unit")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model reviews {
+  id          String              @id @db.Uuid
+  rating      Int?
+  review_type review_type?
+  user_id     String?             @db.Uuid
+  target_id   String?             @db.Uuid
+  target_type review_target_type?
+  comment     String?
+  created_at  DateTime?           @default(now()) @db.Timestamp(6)
+  deleted_at  DateTime?           @db.Timestamp(6)
+  is_deleted  Boolean?            @default(false)
+  users       users?              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_reviews_user")
+}
+
+model slide_role_assignments {
+  id          String      @id @db.Uuid
+  slide_id    String?     @db.Uuid
+  role_id     String?     @db.Uuid
+  assigned_at DateTime?   @default(now()) @db.Timestamp(6)
+  user_roles  user_roles? @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sra_role")
+  slides      slides?     @relation(fields: [slide_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sra_slide")
+}
+
+model slides {
+  id                     String                   @id @db.Uuid
+  title                  String
+  description            String?
+  image_url              String?
+  created_at             DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at             DateTime?                @db.Timestamp(6)
+  is_active              Boolean?                 @default(true)
+  deleted_at             DateTime?                @db.Timestamp(6)
+  is_deleted             Boolean?                 @default(false)
+  slide_role_assignments slide_role_assignments[]
+}
+
+model tenant_profiles {
+  id                      String             @id @db.Uuid
+  user_id                 String?            @unique @db.Uuid
+  tenant_code             String?            @unique
+  full_names              String?
+  employment_status       employment_status?
+  emergency_contact_phone String?
+  emergency_contact_name  String?
+  occupation              String?
+  monthly_income          String?
+  status                  tenant_status?
+  created_at              DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at              DateTime?          @db.Timestamp(6)
+  deleted_at              DateTime?          @db.Timestamp(6)
+  is_deleted              Boolean?           @default(false)
+  users                   users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_tp_user")
+}
+
+model user_role_assignments {
+  id          String      @id @db.Uuid
+  user_id     String?     @db.Uuid
+  role_id     String?     @db.Uuid
+  assigned_at DateTime?   @default(now()) @db.Timestamp(6)
+  user_roles  user_roles? @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ura_role")
+  users       users?      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ura_user")
+}
+
+model user_roles {
+  id                     String                   @id @db.Uuid
+  role                   String?
+  slide_role_assignments slide_role_assignments[]
+  user_role_assignments  user_role_assignments[]
+}
+
+model users {
+  id                                                                             String                          @id @db.Uuid
+  username                                                                       String
+  email                                                                          String                          @unique
+  phone_number                                                                   String                          @unique
+  is_email_confirmed                                                             Boolean?                        @default(false)
+  is_phone_number_confirmed                                                      Boolean?                        @default(false)
+  is_profile_complete                                                            Boolean?                        @default(false)
+  profile_picture_path                                                           String?
+  created_at                                                                     DateTime?                       @default(now()) @db.Timestamp(6)
+  updated_at                                                                     DateTime?                       @db.Timestamp(6)
+  deleted_at                                                                     DateTime?                       @db.Timestamp(6)
+  is_deleted                                                                     Boolean?                        @default(false)
+  notify_system_updates                                                          Boolean?                        @default(true)
+  notify_payment_sms                                                             Boolean?                        @default(true)
+  active_role                                                                    String?
+  account_verification_requests_account_verification_requests_user_idTousers     account_verification_requests[] @relation("account_verification_requests_user_idTousers")
+  account_verification_requests_account_verification_requests_verified_byTousers account_verification_requests[] @relation("account_verification_requests_verified_byTousers")
+  landlord_profiles                                                              landlord_profiles?
+  notifications                                                                  notifications[]
+  properties                                                                     properties[]
+  property_applications_property_applications_landlord_idTousers                 property_applications[]         @relation("property_applications_landlord_idTousers")
+  property_applications_property_applications_user_idTousers                     property_applications[]         @relation("property_applications_user_idTousers")
+  property_promotions                                                            property_promotions[]
+  property_tour_requests_property_tour_requests_owner_idTousers                  property_tour_requests[]        @relation("property_tour_requests_owner_idTousers")
+  property_tour_requests_property_tour_requests_requester_idTousers              property_tour_requests[]        @relation("property_tour_requests_requester_idTousers")
+  rent_payments                                                                  rent_payments[]
+  rental_agreements_rental_agreements_owner_idTousers                            rental_agreements[]             @relation("rental_agreements_owner_idTousers")
+  rental_agreements_rental_agreements_tenant_idTousers                           rental_agreements[]             @relation("rental_agreements_tenant_idTousers")
+  reviews                                                                        reviews[]
+  tenant_profiles                                                                tenant_profiles?
+  user_role_assignments                                                          user_role_assignments[]
+  is_onboarding_complete                                                         Boolean?                        @default(false)
+}
+
+enum agreement_status {
+  active
+  completed
+  cancelled
+  terminated
+  draft
+  ready
+}
+
+enum application_status {
+  pending
+  approved
+  rejected
+}
+
+enum employment_status {
+  employed
+  unemployed
+}
+
+enum notification_type {
+  system
+  user
+}
+
+enum payment_method {
+  MTN
+  Airtel
+  Cash
+}
+
+enum payment_status {
+  pending
+  successful
+  failed
+}
+
+enum property_promotion_status {
+  not_promoted
+  scheduled
+  active
+  expired
+}
+
+enum property_status {
+  available
+  occupied
+  archived
+}
+
+enum rent_payment_status {
+  pending
+  completed
+  overdued
+}
+
+enum review_target_type {
+  property
+  user
+  system
+}
+
+enum review_type {
+  property
+  user
+  system
+}
+
+enum tenant_status {
+  active
+  suspended
+  terminated
+}
+
+enum tour_status {
+  pending
+  accepted
+  declined
+}
+
+enum unit_status {
+  available
+  occupied
+}
+
+enum verification_status {
+  pending
+  approved
+  rejected
 }
