@@ -340,10 +340,10 @@ model user_roles {
 }
 
 model users {
-  id                                                                             String                          @id @db.Uuid
-  username                                                                       String
-  email                                                                          String                          @unique
-  phone_number                                                                   String                          @unique
+  id                                                                             String                          @id @default(uuid()) @db.Uuid
+  username                                                                       String?
+  email                                                                          String?                         @unique
+  phone_number                                                                   String?                         @unique
   is_email_confirmed                                                             Boolean?                        @default(false)
   is_phone_number_confirmed                                                      Boolean?                        @default(false)
   is_profile_complete                                                            Boolean?                        @default(false)

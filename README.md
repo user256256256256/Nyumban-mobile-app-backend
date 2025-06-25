@@ -134,20 +134,3 @@ yarn dev
 * [Flutterwave API](https://developer.flutterwave.com/)
 
 ---
-
-## 🗂️ Project File Structure
-
-```
-/src
-  /modules          ← ✅ All feature modules live here (auth, properties, rent, etc.)
-  /common           ← Shared logic: constants, schemas, error handling, helpers
-  /generated        ← Prisma client output (auto-generated)
-  /middlewares      ← Global/custom middleware (e.g., auth checks)
-  /routes           ← Legacy routing (gradually being migrated to modules)
-  /services         ← Old service logic (being modularized)
-  /utils            ← Common utilities (can be moved into /common)
-  index.js          ← Server entry point
-```
-
-
-// Update the database modeling schema with is_onboarding_complete 

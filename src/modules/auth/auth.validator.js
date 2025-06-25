@@ -14,5 +14,12 @@ export const verifyOtpSchema = Joi.object({
 });
 
 export const submitRoleSchema = Joi.object({
-    role: Joi.string().valid('tenant', 'landlord').required()
-  });
+  role: Joi.string().valid('tenant', 'landlord').required()
+});
+
+export const completeProfileSchema = Joi.object({
+  user_name: Joi.string().required().messages({
+    'string.empty': 'Name is required',
+  }),
+  profile_picture: Joi.any(), 
+})
