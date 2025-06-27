@@ -9,11 +9,14 @@ import {
   checkProfileStatusHandler,
   completeProfileHandler,
   getSliderHandler,
-  completeOnboardingHandler
+  completeOnboardingHandler,
+  getRolesHandler,
+  switchRoleHandler,
+  addRoleHandler,
 } from './auth.controller.js';
 
 import { validate } from '../../common/middleware/validate.js';
-import { requestOtpSchema, verifyOtpSchema, submitRoleSchema, completeProfileSchema } from './auth.validator.js';
+import { requestOtpSchema, verifyOtpSchema, submitRoleSchema, completeProfileSchema, switchRoleSchema, addRoleSchema } from './auth.validator.js';
 
 const router = express.Router();
 const upload = multer();
@@ -30,6 +33,11 @@ router.post('/profile/complete', authenticate, upload.single('profile_picture'),
 // Onboarding 
 router.get('/slides', authenticate, getSliderHandler);
 router.post('/complete/onboarding', authenticate, completeOnboardingHandler);
+
+// Role Handling & Switching
+router.get('/roles', authenticate, getRolesHandler);
+router.post('/roles/switch', authenticate, validate(switchRoleSchema), switchRoleHandler)
+router.post('/roles/add', authenticate, validate(addRoleSchema), addRoleHandler)
 
 export default router;
 

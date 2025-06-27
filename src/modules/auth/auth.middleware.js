@@ -18,6 +18,6 @@ export const authenticate = (req, res, next) => {
     });
   }
 
-  req.user = decoded; // Makes user.id and user.role available in the route
+  req.user = decoded; 
   next();
 };
