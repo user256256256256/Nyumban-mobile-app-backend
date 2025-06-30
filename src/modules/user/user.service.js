@@ -10,7 +10,6 @@ import {
     ForbiddenError,
     ServerError,
 } from '../../common/services/errors.js';
-import { verifyOtp } from '../auth/auth.service.js';
 
 export const updateUsername = async (userId, username) => {
     const user = await prisma.users.update({

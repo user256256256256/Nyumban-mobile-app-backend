@@ -1,5 +1,6 @@
-import { success } from '../../common/utils/response.js';
+import { success } from '../../common/utils/responseBuilder.js';
 import AuthService from './auth.service.js';
+import { EmailService } from '../../common/services/email.service.js';
 import { handleControllerError } from '../../common/utils/handleControllerError.js';
 
 // Request OTP
@@ -104,9 +105,11 @@ export const completeOnboardingHandler = async (req, res) => {
     }
 
     const role = await AuthService.completeOnboarding(userId);
+
     return success(res, {
       redirect_to: `/dashboard/${role}`
     }, 'Onboarding completed successfully');
+
   } catch (err) {
     return handleControllerError(res, err, 'SERVER_ERROR', 'Failed to complete onboarding');
   }

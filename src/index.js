@@ -6,6 +6,8 @@ import cors from 'cors';
 
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js'
+import supportRoutes from './modules/support/support.route.js'
+import notificationRoutes from './modules/notifications/notification.routes.js'
 
 const app = express();
 app.use(cors());
@@ -21,6 +23,8 @@ app.post('/test', (req, res) => {
 
 app.use(`${BASE_ROUTE}/auth`, authRoutes);
 app.use(`${BASE_ROUTE}/user`, userRoutes);
+app.use(`${BASE_ROUTE}/support`, supportRoutes);
+app.use(`${BASE_ROUTE}/notification`, notificationRoutes);
 
 app.get('/', (req, res) => {
   res.send('NPS Backend API is running ✅');

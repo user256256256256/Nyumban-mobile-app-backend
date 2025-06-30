@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { error } from '../utils/response.js'; 
+import { error } from '../utils/responseBuilder.js'; 
 
 export const validate = (schema, property = 'body') => {
   return (req, res, next) => {

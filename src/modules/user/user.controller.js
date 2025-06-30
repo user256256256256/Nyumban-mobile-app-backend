@@ -1,5 +1,5 @@
 import UserService from './user.service.js'
-import { success } from '../../common/utils/response.js'
+import { success } from '../../common/utils/responseBuilder.js'
 import { handleControllerError } from '../../common/utils/handleControllerError.js'
 
 export const updateUsername = async (req, res) => {

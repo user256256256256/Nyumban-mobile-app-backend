@@ -1,4 +1,4 @@
-import { error as errorResponse } from './response.js';
+import { error as errorResponse } from './responseBuilder.js';
 
 /**
  * Centralized error handler for controllers.

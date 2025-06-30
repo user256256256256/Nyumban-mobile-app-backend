@@ -3,6 +3,7 @@ import OTPService from './otp.service.js';
 import { generateToken } from '../../common/utils/jwt.js';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadToStorage } from '../../common/services/s3.service.js';
+import { EmailService } from '../../common/services/email.service.js';
 import { isEmail } from '../../common/utils/checkUserIdentifier.js'
 import {
   ValidationError,
@@ -160,6 +161,18 @@ export const completeOnboarding = async (userId) => {
     include: { user_role_assignments: { include: { user_roles: true } } },
   });
 
+  if(!user) throw new ServerError('Failed to complete Onboarding');
+
+  try {
+    await EmailService.sendWelcomeEmail({
+      email: user.email,
+      username: user.username,
+    })
+  } catch (error) {
+    // Log error but don't block onboarding
+    console.error('Welcome email failed:', error);
+  }
+  
   return user.user_role_assignments?.[0]?.user_roles?.role || 'tenant';
 };
 
@@ -168,7 +181,7 @@ export const getLinkedRoles = async (userId) => {
     where: { id: userId },
     include: { user_role_assignments: { include: { user_roles: true } } },
   });
-  if (!user) throw new NotFoundError('User not found');
+  if (!user) throw new NotFoundError('User not found', { field: 'user_id' });
 
   const roles = user.user_role_assignments.map((a) => a.user_roles.role);
   return {
