@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticate } from '../auth/auth.middleware.js'; 
-import { upload } from '../../common/middleware/upload.middleware.js'
+import { uploadImage } from '../../common/middleware/upload.middleware.js'
 import {
     updateUsername,
     requestEmailOtpHandler,
@@ -25,7 +25,7 @@ router.post('/profile/phone/otp-request', authenticate, validate(requestPhoneOtp
 router.post('/profile/phone', authenticate, validate(updatePhoneSchema), confirmPhoneOtpAndUpdateHandler)
 router.post('/profile/contact/otp-request', authenticate, validate(requestContactOtpSchema), requestContactOtpHandler)
 router.put('/profile/contact', authenticate, validate(addContactSchema), addContactHandler);
-router.put('/profile/photo', authenticate, upload.single('profile_picture'), updateProfilePicture)
+router.put('/profile/photo', authenticate, uploadImage.single('profile_picture'), updateProfilePicture)
 router.delete('/account/delete', authenticate, validate(deleteAccountSchema), deleteAccountHandler)
 
 

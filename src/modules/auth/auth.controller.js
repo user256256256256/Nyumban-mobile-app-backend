@@ -1,6 +1,5 @@
 import { success } from '../../common/utils/responseBuilder.js';
 import AuthService from './auth.service.js';
-import { EmailService } from '../../common/services/email.service.js';
 import { handleControllerError } from '../../common/utils/handleControllerError.js';
 
 // Request OTP

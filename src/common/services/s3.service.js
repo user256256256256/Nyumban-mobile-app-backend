@@ -20,5 +20,16 @@ export const uploadToStorage = async (fileBuffer, originalName) => {
     await fs.writeFile(localPath, fileBuffer); // 🔄 replace with S3.upload()
     const url = `https://mock-storage.local/${filename}`; // 🔄 replace with S3 URL
     */
-
 }
+
+// Upload multiple images
+export const uploadMultipleImages = async (files) => {
+    const uploadPromises = files.map(file => uploadToStorage(file.buffer, file.originalname));
+    return Promise.all(uploadPromises);
+};
+  
+// Upload single 3D tour
+export const upload3DTourFile = async (file) => {
+    return uploadToStorage(file.buffer, file.originalname);
+};
+  

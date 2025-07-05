@@ -130,7 +130,7 @@ export const addContact = async (userId, otp, identifier) => {
     });
   
     return updateUser;
-  };
+};
   
 
 export const sendOtpToContact = async (identifier) => {

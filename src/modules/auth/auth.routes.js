@@ -1,6 +1,6 @@
 import express from 'express';
-import multer from 'multer';
 import { authenticate } from './auth.middleware.js'; 
+import { uploadImage } from '../../common/middleware/upload.middleware.js'
 
 import {
   requestOtpHandler,
@@ -19,7 +19,6 @@ import { validate } from '../../common/middleware/validate.js';
 import { requestOtpSchema, verifyOtpSchema, submitRoleSchema, completeProfileSchema, switchRoleSchema, addRoleSchema } from './auth.validator.js';
 
 const router = express.Router();
-const upload = multer();
 
 // Sign-up
 router.post('/request-otp', validate(requestOtpSchema), requestOtpHandler);
@@ -28,7 +27,7 @@ router.post('/submit-role', authenticate, validate(submitRoleSchema), submitRole
 
 // Profile Completion
 router.get('/profile/status', authenticate, checkProfileStatusHandler);
-router.post('/profile/complete', authenticate, upload.single('profile_picture'), validate(completeProfileSchema), completeProfileHandler);
+router.post('/profile/complete', authenticate, uploadImage.single('profile_picture'), validate(completeProfileSchema), completeProfileHandler);
 
 // Onboarding 
 router.get('/slides', authenticate, getSliderHandler);

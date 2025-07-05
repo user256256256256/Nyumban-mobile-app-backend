@@ -5,6 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { uploadToStorage } from '../../common/services/s3.service.js';
 import { EmailService } from '../../common/services/email.service.js';
 import { isEmail } from '../../common/utils/checkUserIdentifier.js'
+import { generateUniqueLandlordCode, generateUniqueTenantCode } from '../../common/utils/user-code-generator.js';
+
 import {
   ValidationError,
   NotFoundError,
@@ -100,6 +102,9 @@ export const setUserRole = async (userId, roleInput) => {
   });
 
   await prisma.$transaction([...createAssignments, updateUserActiveRole]);
+
+  if (roles.includes('landlord')) await createLandlordProfile(userId);
+  if (roles.includes('tenant')) await createTenantProfile(userId);
 
   const token = generateToken({ id: userId, role: roles[0] });
 
@@ -220,6 +225,7 @@ export const addRole = async (userId, newRole) => {
   const exists = await prisma.user_role_assignments.findFirst({
     where: { user_id: userId, role_id: roleRecord.id },
   });
+
   if (exists) {
     throw new ValidationError('This role is already linked to your account', { field: 'new_role' });
   }
@@ -227,6 +233,12 @@ export const addRole = async (userId, newRole) => {
   await prisma.user_role_assignments.create({
     data: { id: uuidv4(), user_id: userId, role_id: roleRecord.id },
   });
+
+  if (newRole === 'landlord') {
+    await createLandlordProfile(userId);
+  } else if (newRole === 'tenant') {
+    await createTenantProfile(userId);
+  }
 
   return {
     message: 'New role added successfully',
@@ -237,11 +249,50 @@ export const addRole = async (userId, newRole) => {
 export const checkProfileStatus = async (userId) => {
   const user = await prisma.users.findUnique({
     where: { id: userId },
-    select: { is_profile_complete: true },
+    select: { is_profile_complete: true, active_role: true },
   });
+
   if (!user) throw new NotFoundError('User not found');
-  return { profile_complete: user.is_profile_complete };
+
+  if (!user.is_profile_complete) {
+    return { profile_complete: false };
+  }
+
+  return {
+    profile_complete: true,
+    redirect_to: `dashboard/${user.active_role}`,
+  };
 };
+
+const createLandlordProfile = async (userId) => {
+  const existing = await prisma.landlord_profiles.findUnique({ where: { user_id: userId } });
+  if (existing) return;
+
+  const landlordCode = await generateUniqueLandlordCode();
+  await prisma.landlord_profiles.create({
+    data: {
+      id: uuidv4(),
+      user_id: userId,
+      landlord_code: landlordCode,
+    },
+  });
+};
+
+const createTenantProfile = async (userId) => {
+  const existing = await prisma.tenant_profiles.findUnique({ where: { user_id: userId } });
+  if (existing) return;
+
+  const tenantCode = await generateUniqueTenantCode();
+  await prisma.tenant_profiles.create({
+    data: {
+      id: uuidv4(),
+      user_id: userId,
+      tenant_code: tenantCode,
+    },
+  });
+};
+
+
 
 export default {
   handleOtpRequest,

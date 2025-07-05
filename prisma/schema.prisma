@@ -31,6 +31,7 @@ model landlord_profiles {
   id            String  @id @db.Uuid
   user_id       String? @unique @db.Uuid
   landlord_code String? @unique
+  is_verified                Boolean?                 @default(false)
   full_names    String?
   users         users?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lp_user")
 }
@@ -91,7 +92,7 @@ model promotion_plans {
 }
 
 model properties {
-  id                         String                   @id @db.Uuid
+  id                         String                   @id @default(uuid()) @db.Uuid
   owner_id                   String?                  @db.Uuid
   property_name              String
   property_type              String?
@@ -113,11 +114,11 @@ model properties {
   year_built                 Int?
   parking_spaces             Int?
   thumbnail_image_path       String?
-  energy_efficiency_features String?
-  amenities                  String?
+  energy_efficiency_features String[]
+  amenities                  String[]
   tour_3d_url                String?
   status                     property_status?
-  open_house_dates           String?
+  open_house_dates           String[]
   description                String?
   pet_policy                 String?
   smoking_policy             String?
@@ -207,6 +208,7 @@ model property_units {
   price                 Decimal?                @db.Decimal
   bedrooms              Int?
   bathrooms             Int?
+  description           String?                 
   created_at            DateTime?               @default(now()) @db.Timestamp(6)
   updated_at            DateTime?               @db.Timestamp(6)
   deleted_at            DateTime?               @db.Timestamp(6)
