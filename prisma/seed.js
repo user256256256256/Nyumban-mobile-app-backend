@@ -1,24 +1,52 @@
 import prisma from '../src/prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
+import { Decimal } from '@prisma/client/runtime/library';
 
 /* 
+To execute the seed file:
+- Uncomment the seed codes if applicabel
+- Cmd: node prisma/seed.js
 
-To Execute the seed.js file run in terminal
-  Cmd: node prisma/seed.js. 
-
-  Ensure this exists in package.json: 
-  "prisma": {
-    "seed": "node prisma/seed.js"
-  },
-
+Ensure package.json includes:
+"prisma": {
+  "seed": "node prisma/seed.js"
+}
 */
 
 async function main() {
-  // Insert roles if not exist (assuming roles already seeded)
+
+  /*
+
+  // === Seed of user_roles === //
+  const userRoles = [
+    {
+      id: '6ffd6c3f-edc4-49b2-95ed-16afd487dc83',
+      role: 'tenant'
+    },
+    {
+      id: 'fea4ae77-2828-405c-9485-1d9eed1c15cb',
+      role: 'landlord'
+    },
+  ]
+
+  for (const role of userRoles) {
+    await prisma.user_roles.upsert({
+      where: { id: role.id },
+      update: {},
+      create: {
+        id: role.id,
+        role: role.role,
+      }
+    })
+  }
+
+  console.log('✅ Seeded user roles');
+  
+  // === Existing Slide & Role Logic ===
+
   const tenantRoleId = '6ffd6c3f-edc4-49b2-95ed-16afd487dc83';
   const landlordRoleId = 'fea4ae77-2828-405c-9485-1d9eed1c15cb';
 
-  // Slide data
   const slides = [
     {
       id: uuidv4(),
@@ -58,7 +86,6 @@ async function main() {
   ];
 
   for (const slide of slides) {
-    // Upsert slide
     await prisma.slides.upsert({
       where: { id: slide.id },
       update: {},
@@ -72,12 +99,10 @@ async function main() {
       },
     });
 
-    // Delete existing role assignments for this slide to avoid duplicates
     await prisma.slide_role_assignments.deleteMany({
       where: { slide_id: slide.id },
     });
 
-    // Insert slide_role_assignments
     for (const role of slide.roles) {
       const roleId = role === 'tenant' ? tenantRoleId : landlordRoleId;
       await prisma.slide_role_assignments.create({
@@ -92,6 +117,56 @@ async function main() {
   }
 
   console.log('✅ Seeded slides and role assignments');
+
+  // === Seed of Property Promotions === //
+  const promotionPlans = [
+    {
+      plan_id: 'promo_7d',
+      duration_days: 7,
+      price: new Decimal(5000),
+      currency: 'UGX',
+    },
+    {
+      plan_id: 'promo_14d',
+      duration_days: 14,
+      price: new Decimal(9000),
+      currency: 'UGX',
+    },
+    {
+      plan_id: 'promo_30d',
+      duration_days: 30,
+      price: new Decimal(17000),
+      currency: 'UGX',
+    },
+  ];
+
+  for (const plan of promotionPlans) {
+    await prisma.promotion_plans.upsert({
+      where: { plan_id: plan.plan_id },
+      update: {
+        duration_days: plan.duration_days,
+        price: plan.price,
+        currency: plan.currency,
+        is_deleted: false,
+        updated_at: new Date(),
+      },
+      create: {
+        id: uuidv4(),
+        plan_id: plan.plan_id,
+        duration_days: plan.duration_days,
+        price: plan.price,
+        currency: plan.currency,
+        is_deleted: false,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    });
+  }
+
+  console.log('✅ Seeded promotion plans');
+
+  */
+
 }
 
 main()
@@ -101,4 +176,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  });
+});

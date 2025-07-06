@@ -3,6 +3,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import './cron/scheduler.js';
 
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js'
@@ -11,6 +12,7 @@ import notificationRoutes from './modules/notifications/notification.routes.js'
 import addPropertyRoutes from './modules/add-property/add-propery.routes.js'
 import propertyMngtRoutes from './modules/property-management/property-mngt.routes.js'
 import propertyPromotionRoutes from './modules/promote-property/property-promotion.routes.js'
+import accountVerificationRoutes from './modules/account-verification/account-verification.routes.js'
 
 const app = express();
 app.use(cors());
@@ -31,6 +33,7 @@ app.use(`${BASE_ROUTE_VERSION_1}/notification`, notificationRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/add-property`, addPropertyRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-mngt`, propertyMngtRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/promote-property`, propertyPromotionRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/account-verification`, accountVerificationRoutes);
 
 
 app.get('/', (req, res) => {

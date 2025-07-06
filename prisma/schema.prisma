@@ -416,6 +416,7 @@ enum payment_method {
   MTN
   Airtel
   Cash
+  Flutterwave
 }
 
 enum payment_status {
