@@ -1,6 +1,6 @@
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
-import { simulateFlutterwavePayment } from '../../common/services/flutterwave.service.js';
+import { simulateFlutterwavePropertyPromotionPayment } from '../../common/services/flutterwave.service.js';
 
 import {
     ValidationError,
@@ -53,7 +53,7 @@ export const promoteProperty = async  (userId, propertyId, planId, paymentMethod
   if (!property.is_verified) throw new ForbiddenError('Property must be verified before promotion.');
 
   // Simulate payment and get plan details first
-  const { payment, plan } = await simulateFlutterwavePayment({
+  const { payment, plan } = await simulateFlutterwavePropertyPromotionPayment({
     userId,
     planId,
     phoneNumber,

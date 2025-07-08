@@ -165,6 +165,43 @@ async function main() {
 
   console.log('✅ Seeded promotion plans');
 
+    const adminRoleId = uuidv4();
+  const adminUserId = uuidv4();
+
+   // 1. Create "admin" role
+   await prisma.user_roles.create({
+    data: {
+      id: adminRoleId,
+      role: 'admin',
+    },
+  });
+
+  // 2. Create user "Asia Hasny"
+  await prisma.users.create({
+    data: {
+      id: adminUserId,
+      username: 'asia hasny',
+      email: 'asiahasny@example.com',
+      phone_number: '+256709487467',
+      is_email_confirmed: true,
+      is_phone_number_confirmed: true,
+      is_profile_complete: true,
+      created_at: new Date(),
+      active_role: 'admin',
+    },
+  });
+
+    // 3. Assign "admin" role to Asia Hasny
+    await prisma.user_role_assignments.create({
+      data: {
+        id: uuidv4(),
+        user_id: adminUserId,
+        role_id: adminRoleId,
+      },
+    });
+    
+    console.log('✅ Seeded admin role and user');
+
   */
 
 }

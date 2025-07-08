@@ -4,3 +4,4 @@ prisma/.*
 src/generated/prisma/
 bin.md
 .todo
+.test-scripts.js
