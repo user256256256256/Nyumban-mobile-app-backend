@@ -46,6 +46,6 @@ export async function getPropertyPromotionStatusHandler(req, res) {
     const result = await PropertyPromotionService.getPropertyPromotionStatus(userId, propertyId);
     return success(res, result, 'Property promotion status retrieved successfully');
   } catch (error) {
-    return handleControllerError(res, err, 'GET_PROMOTION_STATUS_ERROR', 'Failed to get property promotion status');
+    return handleControllerError(res, error, 'GET_PROMOTION_STATUS_ERROR', 'Failed to get property promotion status');
   }
 }

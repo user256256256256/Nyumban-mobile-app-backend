@@ -19,6 +19,6 @@ router.get('/status', authenticate, getLandlordAccountStatusHandler)
 router.post('/verification-request', authenticate, uploadProofDocument.single('proof_of_ownership_docs'), validate(verificationRequestSchema), submitVerificationRequestHandler)
 router.get('/properties/:propertyId/status', authenticate, getPropertyVerificationStatusHandler)
 router.patch('/admin/:requestId', authenticate, validate(adminVerificationRequestResponseSchema), reviewVerificationRequestHandler)
-router.post('/lanlords/verification-payment', authenticate, validate(verificationBadgePaymentSchema), submitVerificationBadgePaymentHandler)
+router.post('/landlords/verification-payment', authenticate, validate(verificationBadgePaymentSchema), submitVerificationBadgePaymentHandler)
 
 export default router;

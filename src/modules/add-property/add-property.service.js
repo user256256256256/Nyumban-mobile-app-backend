@@ -55,8 +55,48 @@ export const addOwnershipInfo = async ({ userId, data }) => {
     },
   });
 
+  // STEP 2: Check if landlord is verified
+  const landlord = await prisma.landlord_profiles.findUnique({
+    where: { user_id: userId },
+    select: { is_verified: true },
+  });
+
+  if (landlord?.is_verified) {
+    // STEP 3: Invalidate landlord verification
+    await prisma.landlord_profiles.update({
+      where: { user_id: userId },
+      data: { is_verified: false },
+    });
+
+    // Step 4: Check if a pending verification request already exists
+    const existingPending = await prisma.account_verification_requests.findFirst({
+      where: {
+        user_id: userId,
+        status: 'pending',
+        is_deleted: false
+      },
+    });
+
+    // STEP 5: Create new pending verification request
+    if (!existingPending) {
+      await prisma.account_verification_requests.create({
+        data: {
+          id: uuidv4(),
+          user_id: userId,
+          status: 'pending',
+          is_deleted: false,
+          created_at: new Date(),
+          // comment and proof_of_ownership_file_path left null until submitted
+        },
+      });
+    }
+
+    // (Optional: queue/send notification to landlord here)
+  }
+
   return created;
 };
+
 
 export const addPhysicalAttributes = async ({ userId, propertyId, data }) => {
   const {

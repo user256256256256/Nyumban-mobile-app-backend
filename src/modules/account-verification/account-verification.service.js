@@ -119,10 +119,12 @@ export const reviewVerificationRequest = async ({ requestId, status, review_note
 };
 
 export const submitVerificationBadgePayment = async ({ userId, phone_number, amount, currency }) => {
+  
   const payment = await simulateFlutterwaveVerificationBadgePayment({ userId, payment_type: 'ACCOUNT_VERIFICATION', amount, currency, metadata: { phone_number }, });
 
   const request = await prisma.account_verification_requests.findFirst({
     where: { user_id: userId, status: 'approved', payment_id: null, is_deleted: false, },
+    orderBy: { created_at: 'desc' },
   });
 
   if (!request) throw new NotFoundError('Approved verification request not found for this user.', { field: request });
