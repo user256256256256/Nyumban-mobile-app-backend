@@ -400,11 +400,13 @@ enum application_status {
   pending
   approved
   rejected
+  cancelled
 }
 
 enum employment_status {
   employed
   unemployed
+  student
 }
 
 enum notification_type {
@@ -466,6 +468,7 @@ enum tour_status {
   pending
   accepted
   declined
+  cancelled
 }
 
 enum unit_status {
