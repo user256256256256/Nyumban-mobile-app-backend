@@ -1,0 +1,91 @@
+<!-- agreement-template.html (to be stored in DB as a string) -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rental Agreement</title>
+    <style>
+      body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+      h1, h2, h3 { color: #1c1c1c; }
+      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+      .logo, .badge { height: 60px; }
+      .section { margin-bottom: 2rem; }
+    </style>
+  </head>
+  <body>
+
+    <div class="header">
+      <img src="{{ugandan_badge_url}}" alt="Ugandan Badge" class="badge" />
+      <div>
+        <img src="{{nps_logo_url}}" alt="NPS Logo" class="logo" />
+        <p>Nyumban Property Solutions (NPS)</p>
+        <p>www.nyumban.com</p>
+      </div>
+    </div>
+
+    <h1>Rental Agreement</h1>
+    <p>This Rental Agreement (“Agreement”) is made on {{agreement_signed_date}} between:</p>
+
+    <h2>Landlord</h2>
+    <p><strong>Name:</strong> {{landlord_name}}</p>
+    <p><strong>Contact:</strong> {{landlord_contact}}</p>
+
+    <h2>Tenant</h2>
+    <p><strong>Name:</strong> {{tenant_name}}</p>
+    <p><strong>Contact:</strong> {{tenant_contact}}</p>
+    <p><strong>Emergency Contact:</strong> {{emergency_contact_name}} - {{emergency_contact_phone}}</p>
+    <p><strong>Occupation:</strong> {{tenant_occupation}}</p>
+    <p><strong>Employment Status:</strong> {{tenant_employment_status}}</p>
+
+    <h2>Lease Terms</h2>
+    <ul>
+      <li>Lease Duration: {{lease_duration}} starting {{date_rented}}</li>
+      <li>Monthly Rent:  {{monthly_rent}}</li>
+      <li>Security Deposit:  {{security_deposit}}</li>
+      <li>Payment Method: Nyumban or landlord-accepted options</li>
+      <li>Rent Due: By 4th day of the period</li>
+      <li>Late Policy: Termination after 15 days, eviction by day 28</li>
+    </ul>
+
+    <h2>Utilities</h2>
+    <p>{{utility_responsibility}}</p>
+
+    <h2>Policies</h2>
+    <p><strong>Pet Policy:</strong> {{pet_policy}}</p>
+    <p><strong>Smoking Policy:</strong> {{smoking_policy}}</p>
+
+    <h2>Tenant Obligations</h2>
+    <ul>
+      <li>Pay rent on time</li>
+      <li>Use property for residential purposes only</li>
+      <li>No subletting without written consent</li>
+      <li>Maintain cleanliness and order</li>
+      <li>Allow inspections by landlord/NPS</li>
+      <li>Follow estate rules</li>
+      <li>Vacate peacefully upon termination</li>
+    </ul>
+
+    <h2>Termination & Repossession</h2>
+    <p>
+      Agreement can be terminated with 2 weeks' notice. In breach cases or rent default, landlord (or NPS) may lock premises, retain belongings, and discard after 14 days.
+    </p>
+
+    <h2>Signatures</h2>
+    <p>Signed on {{agreement_signed_date}} at {{agreement_signed_time}}</p>
+
+    <h3>Landlord</h3>
+    <p>{{landlord_name}}</p>
+
+    <h3>Tenant</h3>
+    <p>{{tenant_name}}</p>
+
+    <h3>Witness – NPS</h3>
+    <p>System Generated – {{agreement_signed_timestamp}}</p>
+
+    <footer>
+      <hr />
+      <p>© 2025 Nyumban Property Solutions (NPS). All rights reserved.</p>
+    </footer>
+
+  </body>
+</html>

@@ -1,4 +1,6 @@
 import prisma from '../src/prisma-client.js';
+import fs from 'fs'
+import path from 'path'
 import { v4 as uuidv4 } from 'uuid';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -14,8 +16,23 @@ Ensure package.json includes:
 */
 
 async function main() {
-
+  
   /*
+
+  const templatePath = path.resolve('./prisma/agreement-template.html')
+  const templateHtml = fs.readFileSync(templatePath, 'utf-8')
+
+  await prisma.rental_agreement_templates.upsert({
+    where: { id: uuidv4() }, 
+    update: {},
+    create: {
+      id: uuidv4(),
+      name: 'Default Ugandan Rental Agreement Template',
+      template_html: templateHtml,
+    }
+  })
+
+  console.log('✅ Agreement template seeded successfully')
 
   // === Seed of user_roles === //
   const userRoles = [

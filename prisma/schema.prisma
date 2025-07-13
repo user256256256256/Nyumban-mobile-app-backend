@@ -263,6 +263,8 @@ model rental_agreements {
   owner_id                                 String?                     @db.Uuid
   tenant_id                                String?                     @db.Uuid
   status                                   agreement_status?
+  security_deposit                         String? 
+  utility_responsibilities                         String? 
   file_path                                String?
   tenant_accepted_agreement                Boolean?                    @default(false)
   start_date                               DateTime?                   @db.Date
