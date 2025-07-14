@@ -71,7 +71,7 @@ export const getLandlordProperties = async ({ landlordId, sortBy: sort_by, order
     });
 };
 
-export const getPropertyDetails = async (propertyId, landlordId) => {
+export const getPropertyDetails = async (propertyId) => {
   const property = await prisma.properties.findUnique({
     where: { id: propertyId },
     include: {
@@ -83,8 +83,6 @@ export const getPropertyDetails = async (propertyId, landlordId) => {
   });
 
   if (!property) throw new NotFoundError('Property not found');
-  if(property.owner_id !== landlordId) throw new ForbiddenError('You do not own this property')
-
   const hasUnits = property.has_units;
 
   const applications = property.property_applications || [];

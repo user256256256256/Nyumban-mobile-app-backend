@@ -17,9 +17,8 @@ export const getLandlordPropertiesHandler = async (req, res) => {
 export const getPropertyDetailsHandler = async (req, res) => {
   try {
     const { propertyId } = req.params;
-    const landlordId = req.user.id;
 
-    const result = await PropertyManagementService.getPropertyDetails( propertyId, landlordId );
+    const result = await PropertyManagementService.getPropertyDetails( propertyId );
     return success(res, result, 'Property details fetched successfully');
   } catch (error) {
     return handleControllerError(res, error, 'FETCH_PROPERTY_DETAILS_FAILED', 'Failed to fetch property details');

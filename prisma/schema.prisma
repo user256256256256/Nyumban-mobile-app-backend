@@ -134,7 +134,26 @@ model properties {
   property_units             property_units[]
   rent_payments              rent_payments[]
   rental_agreements          rental_agreements[]
+  property_engagements       property_engagements[]
+
 }
+
+model property_engagements {
+  id          String   @id @default(uuid()) @db.Uuid
+  user_id     String   @db.Uuid
+  property_id String   @db.Uuid
+  liked       Boolean  @default(false)
+  saved       Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @updatedAt @db.Timestamp(6)
+
+  user       users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  property   properties @relation(fields: [property_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, property_id], name: "user_id_property_id")
+}
+
+
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model property_applications {
@@ -386,7 +405,8 @@ model users {
   user_role_assignments                                                          user_role_assignments[]
   is_onboarding_complete                                                         Boolean?                        @default(false)
   notification_preferences user_notification_preferences?
- 
+  property_engagements                                                           property_engagements[]
+
 }
 
 enum agreement_status {
