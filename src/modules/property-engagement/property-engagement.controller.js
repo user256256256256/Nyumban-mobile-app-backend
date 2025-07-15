@@ -73,3 +73,13 @@ export const getSavedPropertiesHandler = async (req, res) => {
     return handleControllerError(res, error, 'FETCH_SAVED_PROPERTIES_FAILED', 'Failed to fetch saved properties');
   }
 };
+
+export const getDistanceToPropertyHandler = async (req, res) => {
+  try {
+    const { property_id, user_latitude, user_longitude } = req.body;
+    const result = await PropertyEngagementService.getDistanceToProperty( property_id, user_latitude, user_longitude );
+    return success(res, result, 'Distance calculated successfully')
+  } catch (error) {
+    return handleControllerError(res, error, 'DISTANCE_CALCULATION_FAILED', 'Failed to calculate distance');
+  }
+}

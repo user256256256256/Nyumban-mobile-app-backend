@@ -1,4 +1,5 @@
 import prisma from '../../prisma-client.js';
+import { calculateDistaceService } from './calculate-distance.service.js'
 import { NotFoundError, ValidationError } from '../../common/services/errors.js';
 
 const getPropertyOrThrow = async (propertyId) => {
@@ -166,10 +167,47 @@ export const getUserEngagedProperties = async (userId, type, offset, limit) => {
   return engagements.map(e => e.property);
 };
 
+export const getDistanceToProperty = async (propertyId, userLat, userLon) => {
+  const property = await prisma.properties.findUnique({
+    where: { id: propertyId },
+    select: {
+      id: true,
+      // latitude: true,
+      // longitude: true
+    }
+  });
+
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property Id'})
+  
+  // if (!property.latitude || !property.longitude) {
+  //   throw new NotFoundError('Property location not available');
+  // }
+
+  // ⛳ Temporary fallback coordinates (e.g., Nairobi CBD)
+  const fallbackLat = -1.28333;
+  const fallbackLon = 36.81667;
+
+  const propertyLat = property.latitude ?? fallbackLat;
+  const propertyLon = property.longitude ?? fallbackLon;
+
+  const distanceKm = calculateDistaceService(
+    userLat, userLon,
+    propertyLat, propertyLon
+  );
+
+  return {
+    property_id: propertyId,
+    distance_km: parseFloat(distanceKm.toFixed(2)),
+    formatted: `${distanceKm.toFixed(1)} km away from your current location`
+  };
+
+}
+
 export default {
   likeProperty,
   unlikeProperty,
   saveProperty,
   unsaveProperty,
-  getUserEngagedProperties
+  getUserEngagedProperties,
+  getDistanceToProperty,
 };
