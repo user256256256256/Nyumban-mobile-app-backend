@@ -1,6 +1,6 @@
 import prisma from '../../prisma-client.js';
 import { calculateDistaceService } from './calculate-distance.service.js'
-import { NotFoundError, ValidationError } from '../../common/services/errors.js';
+import { AuthError, NotFoundError } from '../../common/services/errors.js';
 
 const getPropertyOrThrow = async (propertyId) => {
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });
@@ -52,7 +52,7 @@ export const unlikeProperty = async (userId, propertyId) => {
     where: { user_id_property_id: { user_id: userId, property_id: propertyId } }
   });
 
-  if (!existing || !existing.liked) throw new ValidationError('Property is not liked yet');
+  if (!existing || !existing.liked) throw new AuthError('Property is not liked yet');
 
   const result = await prisma.$transaction([
     prisma.property_engagements.update({
@@ -103,7 +103,7 @@ export const unsaveProperty = async (userId, propertyId) => {
     where: { user_id_property_id: { user_id: userId, property_id: propertyId } }
   });
 
-  if (!existing || !existing.saved) throw new ValidationError('Property is not saved yet');
+  if (!existing || !existing.saved) throw new AuthError('Property is not saved yet');
 
   const result = await prisma.$transaction([
     prisma.property_engagements.update({

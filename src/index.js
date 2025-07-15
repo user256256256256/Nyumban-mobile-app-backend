@@ -11,8 +11,10 @@ import supportRoutes from './modules/support/support.route.js'
 import tourRequestRoutes from './modules/tour-request/tour-request.route.js'
 import notificationRoutes from './modules/notifications/notification.routes.js'
 import addPropertyRoutes from './modules/add-property/add-propery.routes.js'
+import tenantProfileRoutes from './modules/tenant-profile/tenant-profile.routes.js'
 import propertyMngtRoutes from './modules/property-management/property-mngt.routes.js'
 import propertySearchRoutes from './modules/property-search/property-search.routes.js'
+import landlordProfileRoutes from './modules/landlord-profile/landlord-profile.routes.js'
 import propertyPromotionRoutes from './modules/promote-property/property-promotion.routes.js'
 import propertyEngagementRoutes from './modules/property-engagement/property-engagement.routes.js'
 import applicationRequestRoutes from './modules/application-request/application-request.routes.js'
@@ -40,7 +42,9 @@ app.use(`${BASE_ROUTE_VERSION_1}/tour-request`, tourRequestRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/notification`, notificationRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/add-property`, addPropertyRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-mngt`, propertyMngtRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/tenant-profile`, tenantProfileRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-search`, propertySearchRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/landlord-profile`, landlordProfileRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/promote-property`, propertyPromotionRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-engagement`, propertyEngagementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/application-request`, applicationRequestRoutes);
