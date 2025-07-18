@@ -38,3 +38,29 @@ export const simulateFlutterwaveVerificationBadgePayment = async ({userId, payme
 
   return payment;
 };
+
+export const simulateFlutterwaveRentPayment = async ({
+  userId,
+  agreementId,
+  amount,
+  currency = 'UGX',
+  metadata = {},
+}) => {
+  const payment = await prisma.payments.create({
+    data: {
+      id: uuidv4(),
+      method: 'Flutterwave',
+      status: 'successful',
+      amount,
+      payment_type: 'RENT_PAYMENT',
+      transaction_id: `FW_RENT_${Date.now()}`,
+      currency,
+      metadata: {
+        agreementId,
+        ...metadata,
+      },
+    },
+  });
+
+  return payment;
+};

@@ -135,7 +135,6 @@ model properties {
   rent_payments              rent_payments[]
   rental_agreements          rental_agreements[]
   property_engagements       property_engagements[]
-
 }
 
 model property_engagements {
@@ -283,7 +282,7 @@ model rental_agreements {
   tenant_id                                String?                     @db.Uuid
   status                                   agreement_status?
   security_deposit                         String? 
-  utility_responsibilities                         String? 
+  utility_responsibilities                 String? 
   file_path                                String?
   tenant_accepted_agreement                Boolean?                    @default(false)
   start_date                               DateTime?                   @db.Date
