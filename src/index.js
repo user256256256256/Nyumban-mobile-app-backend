@@ -9,8 +9,9 @@ import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js'
 import supportRoutes from './modules/support/support.route.js'
 import tourRequestRoutes from './modules/tour-request/tour-request.route.js'
-import notificationRoutes from './modules/notifications/notification.routes.js'
 import addPropertyRoutes from './modules/add-property/add-propery.routes.js'
+import evictTenantRoutes from './modules/evict-tenant/evict-tenant.routes.js'
+import notificationRoutes from './modules/notifications/notification.routes.js'
 import tenantProfileRoutes from './modules/tenant-profile/tenant-profile.routes.js'
 import rentManagementRoutes from './modules/rent-management/rent-management.routes.js'
 import propertyMngtRoutes from './modules/property-management/property-mngt.routes.js'
@@ -20,10 +21,13 @@ import agreementSigningRoutes from './modules/agreement-signing/agreement-signin
 import propertyPromotionRoutes from './modules/promote-property/property-promotion.routes.js'
 import propertyEngagementRoutes from './modules/property-engagement/property-engagement.routes.js'
 import applicationRequestRoutes from './modules/application-request/application-request.routes.js'
+import reviewAndFeedbackRoutes from './modules/reviews-and-feedback/reviews-and-feedback.routes.js'
+import manualRentPaymentRoutes from './modules/manual-rent-payments/manual-rent-payments.routes.js'
 import accountVerificationRoutes from './modules/account-verification/account-verification.routes.js'
-import agreementManagementRoutes from './modules/agreement-management/agreement-management.routes.js'
 import tourRequestResolutionRoutes from './modules/tour-request-resolution/tour-request-resolution.routes.js'
+import agreementManagementTenantRoutes from './modules/agreement-management-tenant/agreement-management-tenant.routes.js'
 import draftingRentalAgreementRoutes from './modules/drafting-rental-agreement/drafting-rental-agreement.routes.js'
+import agreementManagementLandlordRoutes from './modules/agreement-management-landlord/agreement-management-landlord.routes.js'
 import applicationRequestResolutionRoutes from './modules/application-request-resolution/application-request-resolution.routes.js'
 
 // agreement-management
@@ -45,6 +49,7 @@ app.use(`${BASE_ROUTE_VERSION_1}/support`, supportRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/tour-request`, tourRequestRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/notification`, notificationRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/add-property`, addPropertyRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/evict-tenant`, evictTenantRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-mngt`, propertyMngtRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/tenant-profile`, tenantProfileRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/rent-management`, rentManagementRoutes);
@@ -54,11 +59,15 @@ app.use(`${BASE_ROUTE_VERSION_1}/agreement-signing`, agreementSigningRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/promote-property`, propertyPromotionRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-engagement`, propertyEngagementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/application-request`, applicationRequestRoutes);
-app.use(`${BASE_ROUTE_VERSION_1}/agreement-management`, agreementManagementRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/reviews-and-feedback`, reviewAndFeedbackRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/manual-rent-payments`, manualRentPaymentRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/account-verification`, accountVerificationRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/tour-request-resolution`, tourRequestResolutionRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/drafting-rental-agreement`, draftingRentalAgreementRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/agreement-management-tenant`, agreementManagementTenantRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/agreement-management-landlord`, agreementManagementLandlordRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/application-request-resolution`, applicationRequestResolutionRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('NPS Backend API is running ✅');

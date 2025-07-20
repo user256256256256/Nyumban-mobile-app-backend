@@ -1,5 +1,5 @@
 import { success } from '../../common/utils/responseBuilder.js';
-import AgreementManagementService from './agreement-management.service.js';
+import AgreementManagementService from './agreement-management-tenant.service.js';
 import { handleControllerError } from '../../common/utils/handleControllerError.js';
 
 export const getLeaseAgreementHandler = async (req, res) => {

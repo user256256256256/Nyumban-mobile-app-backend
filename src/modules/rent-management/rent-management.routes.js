@@ -4,7 +4,9 @@ import { authenticate } from '../auth/auth.middleware.js';
 import {
     getCurrentRentalDetailsHandler,
     initiateRentPaymentHandler,
-    getPaymentHistoryHandler
+    getPaymentHistoryHandler,
+    getRentStatusHandler,
+    checkAdvanceEligibilityHandler
 } from './rent-management.controller.js';
 
 import { validate } from '../../common/middleware/validate.js';
@@ -15,6 +17,7 @@ const router = express.Router();
 router.get('/payments', authenticate, getPaymentHistoryHandler);
 router.get('/properties/:propertyId', authenticate, getCurrentRentalDetailsHandler);
 router.post('/pay', authenticate, validate(initiateRentPaymentSchema), initiateRentPaymentHandler)
-
+router.get('/status', authenticate, getRentStatusHandler);
+router.get('/advance/check/:propertyId', authenticate, checkAdvanceEligibilityHandler);
 
 export default router;

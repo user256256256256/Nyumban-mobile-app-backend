@@ -21,16 +21,22 @@ export const getCurrentRentalDetailsHandler = async (req, res) => {
 };
 
 export const initiateRentPaymentHandler = async (req, res) => {
-    try {
-      const userId = req.user.id;
-      const { payment_method } = req.body;
-  
-      const result = await RentManagementService.initiateRentPayment({ userId, payment_method, });
-      return success(res, result, 'Rent payment made successful');
-    } catch (error) {
-      handleControllerError(res, error, 'MAKE_PAYMENT_ERROR', 'Failed to make rent payment');
-    }
+  try {
+    const userId = req.user.id;
+    const { payment_method, amount } = req.body;
+
+    const result = await RentManagementService.initiateRentPayment({
+      userId,
+      payment_method,
+      amount,
+    });
+
+    return success(res, result, 'Rent payment made successfully');
+  } catch (error) {
+    handleControllerError(res, error, 'MAKE_PAYMENT_ERROR', 'Failed to make rent payment');
+  }
 };
+
 
 export const getPaymentHistoryHandler = async (req, res) => {
   try {
@@ -41,3 +47,25 @@ export const getPaymentHistoryHandler = async (req, res) => {
     handleControllerError(res, error, 'GET_PAYMENTS_ERROR', 'Failed to ger payments history');
   }
 }
+
+export const getRentStatusHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await RentManagementService.getRentStatus({ userId });
+    return success(res, result, 'Rent status fetched successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'GET_RENT_STATUS_ERROR', 'Failed to fetch rent status');
+  }
+}
+
+export const checkAdvanceEligibilityHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { propertyId } = req.params;
+
+    const result = await RentManagementService.checkAdvanceEligibility({ userId, propertyId });
+    return success(res, result, 'Advance eligibility fetched');
+  } catch (error) {
+    return handleControllerError(res, error, 'ADVANCE_ELIGIBILITY_ERROR', 'Failed to fetch advance eligibility');
+  }
+};

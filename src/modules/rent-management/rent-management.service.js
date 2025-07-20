@@ -86,78 +86,122 @@ export const getCurrentRentalDetails = async ( { userId, propertyId, unitId} ) =
 
 };
 
-export const initiateRentPayment = async ({ userId, payment_method }) => {
-  const duePayment = await prisma.rent_payments.findFirst({
-    where: { 
+export const initiateRentPayment = async ({ userId, payment_method, amount }) => {
+  const duePayments = await prisma.rent_payments.findMany({
+    where: {
       tenant_id: userId,
       status: { in: ['pending', 'overdued'] },
       is_deleted: false,
     },
     orderBy: { due_date: 'asc' },
-  })
+  });
 
-  if (!duePayment) throw new NotFoundError('No due rent payment found');
+  if (!duePayments.length) throw new NotFoundError('No due rent payments found');
+
   const agreement = await prisma.rental_agreements.findUnique({
-    where: { id: duePayment.rental_agreement_id },
+    where: { id: duePayments[0].rental_agreement_id },
     include: { properties: true },
   });
 
-  if (!agreement) throw new NotFoundError('Associated agreement not found');
-  if (agreement.tenant_id !== userId) throw new AuthError('Unauthorized payment attempt');
+  if (!agreement || agreement.tenant_id !== userId) {
+    throw new AuthError('Unauthorized payment attempt');
+  }
 
-  const rentAmount = parseFloat(duePayment.due_amount);
-  if (!rentAmount) throw new ServerError('Invalid rent amount');
+  const monthlyRent = parseFloat(duePayments[0].due_amount);
+  const totalDue = duePayments.reduce((acc, p) => acc + parseFloat(p.due_amount || 0) - parseFloat(p.amount_paid || 0), 0);
+
+  let paymentType = 'partial';
+  let monthsCovered = 0;
+
+  if (amount >= totalDue) {
+    // Advance payment
+    paymentType = 'advance';
+    monthsCovered = Math.floor(amount / monthlyRent);
+  } else if (amount >= monthlyRent) {
+    // Full payment of at least one due period
+    paymentType = 'paid';
+    monthsCovered = Math.floor(amount / monthlyRent);
+  } else {
+    // Partial
+    monthsCovered = 0;
+    paymentType = 'partially_paid';
+  }
 
   const payment = await simulateFlutterwaveRentPayment({
     userId,
     agreementId: agreement.id,
-    amount: rentAmount,
+    amount,
     metadata: {
-      propertyId: duePayment.property_id,
-      unitId: duePayment.unit_id,
+      propertyId: agreement.property_id,
+      unitId: agreement.unit_id,
     },
   });
 
-  await prisma.rent_payments.update({
-    where: { id: duePayment.id },
-    data: {
-      payment_date: new Date(),
-      amount_paid: rentAmount,
-      method: payment_method,
-      transaction_id: payment.transaction_id,
-      status: 'completed',
-      updated_at: new Date(),
-    },
-  });
+  const now = new Date();
+  let remainingAmount = amount;
 
-  const nextDueDate = dayjs(duePayment.due_date).add(1, 'month').toDate();
-  const nextPeriod = generatePeriodCovered(nextDueDate);
+  // Pay off current due payments first
+  for (const paymentDue of duePayments) {
+    const due = parseFloat(paymentDue.due_amount);
+    const alreadyPaid = parseFloat(paymentDue.amount_paid || 0);
+    const balance = due - alreadyPaid;
 
-  await prisma.rent_payments.create({
-    data: {
-      id: uuidv4(),
-      rental_agreement_id: agreement.id,
-      tenant_id: userId,
-      property_id: agreement.property_id,
-      unit_id: agreement.unit_id,
-      due_date: nextDueDate,
-      due_amount: rentAmount,
-      amount_paid: 0,
-      method: null,
-      transaction_id: null,
-      period_covered: nextPeriod,
-      status: 'pending',
-      is_deleted: false,
-      created_at: new Date(),
-      updated_at: new Date(),
-    },
-  });
+    if (remainingAmount <= 0) break;
+
+    const payNow = Math.min(balance, remainingAmount);
+
+    await prisma.rent_payments.update({
+      where: { id: paymentDue.id },
+      data: {
+        amount_paid: alreadyPaid + payNow,
+        status: payNow + alreadyPaid >= due ? 'completed' : 'partially_paid',
+        payment_date: now,
+        method: payment_method,
+        transaction_id: payment.transaction_id,
+        updated_at: now,
+      },
+    });
+
+    remainingAmount -= payNow;
+  }
+
+  // Create advance months if applicable
+  const lastDueDate = duePayments[duePayments.length - 1].due_date;
+  let nextDueDate = dayjs(lastDueDate).add(1, 'month');
+
+  while (remainingAmount >= monthlyRent) {
+    await prisma.rent_payments.create({
+      data: {
+        id: uuidv4(),
+        rental_agreement_id: agreement.id,
+        tenant_id: userId,
+        property_id: agreement.property_id,
+        unit_id: agreement.unit_id,
+        due_date: nextDueDate.toDate(),
+        due_amount: monthlyRent,
+        amount_paid: monthlyRent,
+        method: payment_method,
+        transaction_id: payment.transaction_id,
+        period_covered: generatePeriodCovered(nextDueDate),
+        status: 'completed',
+        is_deleted: false,
+        created_at: now,
+        updated_at: now,
+      },
+    });
+
+    remainingAmount -= monthlyRent;
+    nextDueDate = nextDueDate.add(1, 'month');
+  }
 
   return {
-    next_due_date: nextDueDate.toISOString().split('T')[0],
+    message: 'Payment successful',
+    status: paymentType,
+    transaction_id: payment.transaction_id,
+    receipt_url: `https://nyumban.com/receipts/RENT-${dayjs().format('YYYYMMDD')}-${Math.floor(Math.random() * 1000)}.pdf`,
   };
+};
 
-}
 
 export const getPaymentHistory = async ({ userId }) => {
   const payments = await prisma.rent_payments.findMany({
@@ -191,6 +235,88 @@ export const getPaymentHistory = async ({ userId }) => {
   });
 };
 
+export const getRentStatus = async ({ userId }) => {
+  const activeAgreement = await prisma.rental_agreements.findFirst({
+    where: {
+      tenant_id: userId,
+      is_deleted: false,
+      status: 'active'
+    },
+    include: {
+      property_units: true,
+      properties: true,
+      rent_payments: {
+        where: { is_deleted: false },
+        orderBy: { due_date: 'asc'},
+      }
+    }
+  })
+
+  if (!activeAgreement) throw new NotFoundError('Active rental agreement not found')
+  
+  const unit = activeAgreement.property_units;
+  const property = activeAgreement.properties;
+
+  const allPayments= activeAgreement.rent_payments;
+  const nextDue = allPayments.find(p => ['pending', 'overdued'].includes(p.status))
+  const lastPaid = allPayments.reverse().find(p => p.status === 'completed')
+
+  const rentAmount = parseFloat(nextDue?.due_amount || unit?.price || 0)
+  const amountPaid = parseFloat(nextDue?.amount_paid || 0)
+  const outstanding = Math.max(0, rentAmount - amountPaid);
+
+  let status = 'upcoming';
+  if (!nextDue) status = 'paid';
+  else if (nextDue.status === 'overdued') status = 'overdue';
+  else if (amountPaid > 0 && amountPaid < rentAmount) status = 'partially_paid';
+  else if (amountPaid >= rentAmount) status = 'paid';
+
+  return {
+    property_id: activeAgreement.property_id,
+    unit: unit?.unit_number || 'N/A',
+    rent_amount: rentAmount,
+    period_due: nextDue ? {
+      start: dayjs(nextDue.due_date).startOf('month').format('YYYY-MM-DD'),
+      end: dayjs(nextDue.due_date).endOf('month').format('YYYY-MM-DD'),
+    } : null,
+    status,
+    amount_paid: amountPaid,
+    outstanding_balance: outstanding,
+    can_pay_advance: true,
+    max_months_advance: 6,
+  };
+
+}
+
+// services/rent-management.service.js
+export const checkAdvanceEligibility = async ({ userId, propertyId }) => {
+  const agreement = await prisma.rental_agreements.findFirst({
+    where: {
+      tenant_id: userId,
+      property_id: propertyId,
+      is_deleted: false,
+      status: { in: ['active', 'completed'] },
+    },
+  });
+
+  if (!agreement) throw new NotFoundError('Rental agreement not found');
+
+  const unit = await prisma.property_units.findUnique({
+    where: { id: agreement.unit_id },
+  });
+
+  if (!unit) throw new NotFoundError('Unit info not found');
+
+  // Assume this comes from landlord configuration or fallback default
+  const maxMonthsAdvance = unit.max_months_advance ?? 6;
+
+  return {
+    can_pay_advance: true,
+    max_months_advance: maxMonthsAdvance,
+  };
+};
+
+
 function generatePeriodCovered(date = new Date()) {
   const d = dayjs(date);
   return `${d.year()}-${String(d.month() + 1).padStart(2, '0')}`;
@@ -204,9 +330,10 @@ function formatMonthlyPeriod(date) {
   return `${start} - ${end}`;
 }
 
-
 export default {
   getCurrentRentalDetails,
   initiateRentPayment,
   getPaymentHistory,
+  getRentStatus, 
+  checkAdvanceEligibility,
 };

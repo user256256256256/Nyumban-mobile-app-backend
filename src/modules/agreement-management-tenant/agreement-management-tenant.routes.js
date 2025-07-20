@@ -5,10 +5,10 @@ import {
     getLeaseAgreementHandler,
     getTenantAgreementsHandler,
     cancelAgreementHandler
-} from './agreement-management.controller.js';
+} from './agreement-management-tenant.controller.js';
 
 import { validate } from '../../common/middleware/validate.js';
-import {  } from './agreement-management.validator.js';
+import {  } from './agreement-management-tenant.validator.js';
 
 const router = express.Router();
 
