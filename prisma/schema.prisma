@@ -152,8 +152,6 @@ model property_engagements {
   @@unique([user_id, property_id], name: "user_id_property_id")
 }
 
-
-
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model property_applications {
   id                                             String              @id @db.Uuid
@@ -405,7 +403,6 @@ model users {
   is_onboarding_complete                                                         Boolean?                        @default(false)
   notification_preferences user_notification_preferences?
   property_engagements                                                           property_engagements[]
-
 }
 
 enum agreement_status {

@@ -2,6 +2,14 @@ import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 
+import {
+  ValidationError,
+  NotFoundError,
+  AuthError,
+  ForbiddenError,
+  ServerError,
+} from '../../common/services/errors.js';
+
 export const markManualPayment = async ({ tenantId, amount, method, notes, landlordId }) => {
     const duePayments = await prisma.rent_payments.findMany({
       where: {
