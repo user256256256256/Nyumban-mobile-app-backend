@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { uploadToStorage, uploadMultipleImages, upload3DTourFile } from '../../common/services/s3.service.js';
 import { generateUniquePropertyCode } from '../../common/utils/generatePropertyCode.js';
 
-
 import {
   ValidationError,
   NotFoundError,
@@ -23,10 +22,6 @@ export const addOwnershipInfo = async ({ userId, data }) => {
     property_website,
     status = 'available',
   } = data;
-
-  if (!property_name || !property_type || !price || !currency || !address || !country) {
-    throw new ValidationError('Missing required ownership information');
-  }
 
   const id = uuidv4();
   const property_code = await generateUniquePropertyCode(country, property_type);
@@ -184,6 +179,8 @@ export const uploadPropertyImages = async (property_id, files) => {
 
   return { propertyId: property_id, images: urls };
 };
+
+
 
 export const addUnitToProperty = async (propertyId, unitData) => {
   const property = await prisma.properties.findUnique({

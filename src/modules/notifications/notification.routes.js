@@ -13,7 +13,7 @@ import {
     markAllAsReadHandler,
 } from './notification.controller.js'
 
-import { validate } from '../../common/middleware/validate.js';
+import { validate } from '../../common/middleware/validate.middleware.js';
 
 import { updateNotificationSchema, triggerNotificationSchema, notificationFilterSchema, notificationSearchSchema, markAsReadSchema, clearNotificationSchema } from './notification.validator.js';
 

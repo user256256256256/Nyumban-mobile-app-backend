@@ -182,7 +182,6 @@ export const terminateAgreement = async ({ agreementId, landlordId, reason }) =>
   return;
 };
 
-
 export default {
   getAllLandlordAgreements, 
   generateAgreementShareLink,

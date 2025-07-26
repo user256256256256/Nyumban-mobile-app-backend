@@ -1,16 +1,20 @@
 import Joi from 'joi';
 
-export const applicationRequestSchema = Joi.object({
-  propertyId: Joi.string().uuid().required().label('Property ID'),
-  unitId: Joi.string().label('Unit Id').optional(),
-  employmentStatus: Joi.string().label('Employment Status').optional(),
-  occupation: Joi.string().label('Occupation').optional(),
-  emergencyContactPhone: Joi.string().label('Emergency Contact Phone').optional(),
-  emergencyContactName: Joi.string().label('Emergency Contact Name').optional(),
-  monthlyIncome: Joi.string().label('Monthly Income').optional(),
-  tenantMessage: Joi.string().label('Tenant message').optional().max(255)
-})
+export const applicationRequestSchema = {
+  body: Joi.object({
+    propertyId: Joi.string().uuid().required(),
+    unitId: Joi.string().optional(),
+    employmentStatus: Joi.string().optional(),
+    occupation: Joi.string().optional(),
+    emergencyContactPhone: Joi.string().optional(),
+    emergencyContactName: Joi.string().optional(),
+    monthlyIncome: Joi.string().optional(),
+    tenantMessage: Joi.string().max(255).optional(),
+  }),
+};
 
-export const cancelApplicationSchema = Joi.object({
-  applicationId: Joi.string().uuid().required().label('Application ID'),
-});
+export const cancelApplicationSchema = {
+  body: Joi.object({
+    applicationId: Joi.string().uuid().required(),
+  }),
+};

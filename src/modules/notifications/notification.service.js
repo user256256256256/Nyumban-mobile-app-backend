@@ -16,7 +16,7 @@ import {
 
 export const getUserNotificationSettings = async (userId) => {
     const prefs = await prisma.user_notification_preferences.findUnique({
-        where: {user_id: userId},
+        where: {user_id: userId,},
         select: {
             notify_nyumban_updates: true,
             notify_payment_sms: true,

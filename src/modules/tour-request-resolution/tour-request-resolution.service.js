@@ -67,6 +67,8 @@ export const resolveTourRequest = async (landlordId, requestId, action, reason) 
     }
   })
 
+  // Send notification to the tenant
+
   return updated
 }
 

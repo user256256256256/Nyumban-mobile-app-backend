@@ -14,6 +14,7 @@ export const getLeaseAgreement = async (userId, propertyId, unitId = null) => {
     const property = await prisma.properties.findUnique({ where: { id: propertyId } });
   
     if (!property) throw new NotFoundError('Property not found', { field: 'propertyId' });
+
     if (property.has_units && !unitId) {
       throw new NotFoundError('This property has units. Specify a unitId', { field: 'unitId' });
     }

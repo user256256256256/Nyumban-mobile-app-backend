@@ -1,82 +1,136 @@
 import Joi from 'joi';
 
-export const landlordPropertyQuerySchema = Joi.object({
-    sort_by: Joi.string()
-      .valid('date', 'likes', 'saves', 'applications', 'tours', 'title')
-      .default('date'),
-      
+// 🧾 Query: Landlord property filters
+export const landlordPropertySchema = {
+  query: Joi.object({
+    sort_by: Joi.string().valid('date', 'likes', 'saves', 'applications', 'tours', 'title').default('date'),
     order: Joi.string().valid('asc', 'desc').default('desc'),
-  
     filter_status: Joi.string().valid('verified', 'with_units', 'pending_verification').optional(),
-});
+  }),
+  params: Joi.object({
+    landlordId: Joi.string().uuid().required().label('Landlord ID'),
+  }),
   
-export const getPropertyDetailsSchema = Joi.object({
-  propertyId: Joi.string().uuid().required().label('Property ID')
-});
 
-export const editPropertySchema = Joi.object({
-  property_name: Joi.string().min(3).max(100).optional(),
-  property_type: Joi.string().valid('apartment', 'house', 'condo', 'studio', 'duplex').optional(),
-  price: Joi.number().positive().optional(),
-  currency: Joi.string().valid('UGX', 'USD', 'KES', 'TZS').optional(),
-  address: Joi.string().min(5).max(200).optional(),
-  country: Joi.string().optional(),
+};
 
-  property_website: Joi.string().uri().optional().allow(null, ''),
-  status: Joi.string().valid('available', 'occupied', 'archived').optional(),
+// 📄 Params: Property ID
+export const getPropertyDetailsSchema = {
+  params: Joi.object({
+    propertyId: Joi.string().uuid().required().label('Property ID').messages({
+      'string.uuid': 'Property ID must be a valid UUID',
+      'any.required': 'Property ID is required',
+    }),
+  }),
+};
 
-  bedrooms: Joi.number().integer().min(0).optional(),
-  bathrooms: Joi.number().integer().min(0).optional(),
-  year_built: Joi.number().integer().min(1900).max(new Date().getFullYear()).optional(),
-  parking_spaces: Joi.number().integer().min(0).optional(),
-  energy_efficiency_features: Joi.array().items(Joi.string()).optional(),
-  amenities: Joi.array().items(Joi.string().min(2)).optional(),
-  open_house_dates: Joi.array().items(Joi.string()).optional(),
-  description: Joi.string().max(1000).optional().allow(null, ''),
-  pet_policy: Joi.string().max(100).optional().allow(null, ''),
-  smoking_policy: Joi.string().max(100).optional().allow(null, '')
-});
+// ✏️ Body: Edit Property
+export const editPropertySchema = {
+  body: Joi.object({
+    property_name: Joi.string().min(3).max(100).optional().label('Property Name'),
+    property_type: Joi.string().valid('apartment', 'house', 'condo', 'studio', 'duplex').optional().label('Property Type'),
+    price: Joi.number().positive().optional().label('Price'),
+    currency: Joi.string().valid('UGX', 'USD', 'KES', 'TZS').optional().label('Currency'),
+    address: Joi.string().min(5).max(200).optional().label('Address'),
+    country: Joi.string().optional().label('Country'),
 
-export const editpropertyUnitSchema = Joi.object({
-  unit_number: Joi.string().optional().label('Unit Number'),
-  price: Joi.number().optional().label('Price'),
-  status: Joi.string().valid('available', 'occupied', 'under_maintenance').optional().label('Status'),
-  bedrooms: Joi.number().integer().min(0).optional().label('Bedrooms'),
-  bathrooms: Joi.number().integer().min(0).optional().label('Bathrooms'),
-  description: Joi.string().optional().label('Description'),
-});
+    property_website: Joi.string().uri().optional().allow('', null).label('Property Website'),
+    status: Joi.string().valid('available', 'occupied', 'archived').optional().label('Status'),
 
-// Thumbnail
-export const propertyThumbnailSchema = Joi.object({
-  property_id: Joi.string().uuid().required(),
-  thumbnail: Joi.any()
-    .required()
-    .meta({ fileField: true })
-    .label('Thumbnail Image'),
-});
+    bedrooms: Joi.number().integer().min(0).optional().label('Bedrooms'),
+    bathrooms: Joi.number().integer().min(0).optional().label('Bathrooms'),
+    year_built: Joi.number().integer().min(1900).max(new Date().getFullYear()).optional().label('Year Built'),
+    parking_spaces: Joi.number().integer().min(0).optional().label('Parking Spaces'),
 
-// Images
-export const propertyImagesSchema = Joi.object({
-  property_id: Joi.string().uuid().required(),
-  images: Joi.any()
-    .required()
-    .meta({ fileField: true })
-    .label('Property Images'),
-});
+    energy_efficiency_features: Joi.array().items(Joi.string()).optional().label('Energy Features'),
+    amenities: Joi.array().items(Joi.string().min(2)).optional().label('Amenities'),
+    open_house_dates: Joi.array().items(Joi.string()).optional().label('Open House Dates'),
 
-// 3D Tour
-export const property3DTourSchema = Joi.object({
-  property_id: Joi.string().uuid().required(),
-  tour_3d: Joi.any()
-    .optional()
-    .meta({ fileField: true })
-    .label('3D Virtual Tour'),
-});
+    description: Joi.string().max(1000).optional().allow('', null).label('Description'),
+    pet_policy: Joi.string().max(100).optional().allow('', null).label('Pet Policy'),
+    smoking_policy: Joi.string().max(100).optional().allow('', null).label('Smoking Policy'),
+  }),
+  params: Joi.object({
+    propertyId: Joi.string().uuid().required().label('Property ID').messages({
+      'string.uuid': 'Property ID must be a valid UUID',
+      'any.required': 'Property ID is required',
+    }),
+  }),
+};
 
-export const updatePropertyStatusSchema = Joi.object({
-  status: Joi.string().valid('available', 'occupied', 'archived').required().label('Status'),
-});
+// 🛠️ Body: Edit Property Unit
+export const editpropertyUnitSchema = {
+  body: Joi.object({
+    unit_number: Joi.string().optional().label('Unit Number'),
+    price: Joi.number().optional().label('Price'),
+    status: Joi.string().valid('available', 'occupied', 'under_maintenance').optional().label('Status'),
+    bedrooms: Joi.number().integer().min(0).optional().label('Bedrooms'),
+    bathrooms: Joi.number().integer().min(0).optional().label('Bathrooms'),
+    description: Joi.string().optional().label('Description'),
+  }),
+  params: Joi.object({
+    unitId: Joi.string().uuid().required().label('Unit ID').messages({
+      'string.uuid': 'Unit ID must be a valid UUID',
+      'any.required': 'Unit ID is required',
+    }),
+  }),
+};
 
-export const updateUnitStatusSchema = Joi.object({
-  status: Joi.string().valid('available', 'occupied').required().label('Status'),
-});
+// 🖼️ File: Thumbnail Upload
+export const propertyThumbnailSchema = {
+  body: Joi.object({
+    property_id: Joi.string().uuid().required().label('Property ID'),
+    thumbnail: Joi.any().required().meta({ fileField: true }).label('Thumbnail Image'),
+  }),
+};
+
+// 🖼️ File: Property Images Upload
+export const propertyImagesSchema = {
+  body: Joi.object({
+    property_id: Joi.string().uuid().required().label('Property ID'),
+    images: Joi.any().required().meta({ fileField: true }).label('Property Images'),
+  }),
+};
+
+// 🌀 File: 3D Virtual Tour
+export const property3DTourSchema = {
+  body: Joi.object({
+    property_id: Joi.string().uuid().required().label('Property ID'),
+    tour_3d: Joi.any().optional().meta({ fileField: true }).label('3D Virtual Tour'),
+  }),
+};
+
+// 📌 Update Property Status
+export const updatePropertyStatusSchema = {
+  body: Joi.object({
+    status: Joi.string().valid('available', 'occupied', 'archived').required().label('Property Status'),
+  }),
+  params: Joi.object({
+    propertyId: Joi.string().uuid().required().label('Property ID').messages({
+      'string.uuid': 'Property ID must be a valid UUID',
+      'any.required': 'Property ID is required',
+    }),
+  }),
+};
+
+// 📌 Update Unit Status
+export const updateUnitStatusSchema = {
+  body: Joi.object({
+    status: Joi.string().valid('available', 'occupied').required().label('Unit Status'),
+  }),
+  params: Joi.object({
+    unitId: Joi.string().uuid().required().label('Unit ID').messages({
+      'string.uuid': 'Unit ID must be a valid UUID',
+      'any.required': 'Unit ID is required',
+    }),
+  }),
+};
+
+export const unitParamSchema = {
+  params: Joi.object({
+    unitId: Joi.string().uuid().required().label('Unit ID').messages({
+      'string.uuid': 'Unit ID must be a valid UUID',
+      'any.required': 'Unit ID is required',
+    }),
+  }),
+};

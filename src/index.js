@@ -3,6 +3,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import { corsOptions } from './config/cors.config.js'
 import './cron/scheduler.js';
 
 import authRoutes from './modules/auth/auth.routes.js';
@@ -32,18 +33,13 @@ import draftingRentalAgreementRoutes from './modules/drafting-rental-agreement/d
 import agreementManagementLandlordRoutes from './modules/agreement-management-landlord/agreement-management-landlord.routes.js'
 import applicationRequestResolutionRoutes from './modules/application-request-resolution/application-request-resolution.routes.js'
 
-
 const app = express();
-app.use(cors());
+app.use(cors(corsOptions));
+
 app.use(express.json());
 
 const BASE_ROUTE_VERSION_1 = '/api/v1'
 const PORT = process.env.PORT || 5050;
-
-//  TESTING ROUTE 
-app.post('/test', (req, res) => {
-  res.status(200).json({ message: 'Test route works' });
-});
 
 app.use(`${BASE_ROUTE_VERSION_1}/auth`, authRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/user`, userRoutes);
@@ -72,8 +68,9 @@ app.use(`${BASE_ROUTE_VERSION_1}/agreement-management-tenant`, agreementManageme
 app.use(`${BASE_ROUTE_VERSION_1}/agreement-management-landlord`, agreementManagementLandlordRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/application-request-resolution`, applicationRequestResolutionRoutes);
 
+// Testing Route
 app.get('/', (req, res) => {
-  res.send('NPS Backend API is running ✅');
+  res.send('NPS Backend API is running successfully. Its ready when you are ready ✅');
 });
 
 // ✅ Await app.listen inside an async IIFE

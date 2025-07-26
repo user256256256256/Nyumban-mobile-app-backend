@@ -16,7 +16,7 @@ export const generateUniqueLandlordCode = async () => {
       where: { landlord_code: code }
     });
   }
-
+  // Example of code "LLD-3C0F"
   return code;
 };
 
@@ -30,6 +30,8 @@ export const generateUniqueTenantCode = async () => {
       where: { tenant_code: code }
     });
   }
+
+  // Example of code "TNT-219F"
 
   return code;
 };

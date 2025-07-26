@@ -19,7 +19,7 @@ export const handleOtpRequest = async (identifier) => {
   await OTPService.sendOtp(identifier);
   return {
     message: 'OTP sent to email or phone number',
-    next_step: 'verify_otp',
+    next_step: 'Verify OTP',
     identifier,
   };
 };
@@ -117,10 +117,12 @@ export const setUserRole = async (userId, roleInput) => {
 
 export const completeProfile = async (userId, userName, profileFile) => {
   let profilePicUrl = null;
+
   if (profileFile) {
     profilePicUrl = await uploadToStorage(profileFile.buffer, profileFile.originalName);
   }
 
+  // Update user profile
   await prisma.users.update({
     where: { id: userId },
     data: {
@@ -131,11 +133,30 @@ export const completeProfile = async (userId, userName, profileFile) => {
     },
   });
 
+  // Fetch user's active role
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { active_role: true },
+  });
+
+  let redirectTo = '/dashboard';
+  if (user?.active_role) {
+    const role = await prisma.user_roles.findUnique({
+      where: { id: user.active_role },
+      select: { role: true },
+    });
+
+    if (role?.role) {
+      redirectTo = `/dashboard/${role.role.toLowerCase()}`;
+    }
+  }
+
   return {
     message: 'Profile completed successfully',
-    redirect_to: '/dashboard',
+    redirect_to: redirectTo,
   };
 };
+
 
 export const getSlidesByRole = async (role) => {
   const roleRecord = await prisma.user_roles.findFirst({ where: { role } });
@@ -153,7 +174,7 @@ export const getSlidesByRole = async (role) => {
 
 export const hasCompletedOnboarding = async (userId) => {
   const user = await prisma.users.findUnique({
-    where: { id: userId },
+    where: { id: userId, is_deleted: false },
     select: { is_onboarding_complete: true },
   });
   return user?.is_onboarding_complete === true;
@@ -161,21 +182,22 @@ export const hasCompletedOnboarding = async (userId) => {
 
 export const completeOnboarding = async (userId) => {
   const user = await prisma.users.update({
-    where: { id: userId },
+    where: { id: userId, is_deleted: false },
     data: { is_onboarding_complete: true , updated_at: new Date(), },
     include: { user_role_assignments: { include: { user_roles: true } } },
   });
 
   if(!user) throw new ServerError('Failed to complete Onboarding');
 
-  try {
-    await EmailService.sendWelcomeEmail({
-      email: user.email,
-      username: user.username,
-    })
-  } catch (error) {
-    // Log error but don't block onboarding
-    console.error('Welcome email failed:', error);
+  if (user.email) {
+    try {
+      await EmailService.sendWelcomeEmail({
+        email: user.email,
+        username: user.username,
+      })
+    } catch (error) {
+      console.error('Welcome email failed:', error); // Non-blocking
+    }
   }
   
   return user.user_role_assignments?.[0]?.user_roles?.role || 'tenant';
@@ -199,13 +221,12 @@ export const getLinkedRoles = async (userId) => {
 export const switchRole = async (userId, targetRole) => {
   const assignments = await getLinkedRoles(userId);
   if (!assignments.roles.includes(targetRole)) {
-    throw new ForbiddenError('You have not registered as this role', { field: 'target_role' });
+    throw new ForbiddenError(`You have not registered the ${targetRole} role`, { field: 'target_role' });
   }
 
   await prisma.users.update({
-    where: { id: userId },
+    where: { id: userId, is_deleted: false },
     data: { active_role: targetRole, updated_at: new Date(), },
-    
   });
 
   const token = generateToken({ id: userId, role: targetRole });
@@ -242,7 +263,6 @@ export const addRole = async (userId, newRole) => {
 
   return {
     message: 'New role added successfully',
-    redirect_to: `/profile/setup?role=${newRole}`,
   };
 };
 
@@ -279,7 +299,7 @@ const createLandlordProfile = async (userId) => {
 };
 
 const createTenantProfile = async (userId) => {
-  const existing = await prisma.tenant_profiles.findUnique({ where: { user_id: userId } });
+  const existing = await prisma.tenant_profiles.findUnique({ where: { user_id: userId, is_deleted: false } });
   if (existing) return;
 
   const tenantCode = await generateUniqueTenantCode();
@@ -292,7 +312,66 @@ const createTenantProfile = async (userId) => {
   });
 };
 
+export const getUserRoles = async (userId) => {
+  if (!userId) {
+    throw new AuthError('User not authenticated');
+  }
 
+  const roleAssignments = await prisma.user_role_assignments.findMany({
+    where: { user_id: userId },
+    include: {
+      user_roles: true,
+    },
+  });
+
+  const roles = roleAssignments.map((assignment) => ({
+    role_id: assignment.role_id,
+    role: assignment.user_roles?.role,
+    assigned_at: assignment.assigned_at,
+  }));
+
+  return {
+    user_id: userId,
+    roles,
+    total: roles.length,
+  };
+};
+
+export const getActiveUserRole = async (userId) => {
+  if (!userId) {
+    throw new AuthError('User not authenticated');
+  }
+
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      active_role: true,
+    },
+  });
+
+  if (!user || !user.active_role) {
+    throw new NotFoundError('Active role not set for user');
+  }
+
+  const role = await prisma.user_roles.findUnique({
+    where: { id: user.active_role },
+    select: {
+      id: true,
+      role: true,
+    },
+  });
+
+  if (!role) {
+    throw new NotFoundError('Active role not found in roles table');
+  }
+
+  return {
+    user_id: user.id,
+    role_id: role.id,
+    role: role.role,
+  };
+};
 
 export default {
   handleOtpRequest,
@@ -306,4 +385,6 @@ export default {
   switchRole,
   addRole,
   checkProfileStatus,
+  getUserRoles,
+  getActiveUserRole,
 };

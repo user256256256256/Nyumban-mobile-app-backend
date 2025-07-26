@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate } from '../auth/auth.middleware.js';
+import { authorizeRoles } from '../../common/middleware/authorize-role.middleware.js';
 
 import {
     getLeaseAgreementHandler,
@@ -7,13 +8,13 @@ import {
     cancelAgreementHandler
 } from './agreement-management-tenant.controller.js';
 
-import { validate } from '../../common/middleware/validate.js';
-import {  } from './agreement-management-tenant.validator.js';
+import { validate } from '../../common/middleware/validate.middleware.js';
+import { getLeaseAgreementSchema, cancelAgreementSchema } from './agreement-management-tenant.validator.js';
 
 const router = express.Router();
 
-router.get('/tenants-agreements', authenticate, getTenantAgreementsHandler)
-router.get('/properties/:propertyId', authenticate, getLeaseAgreementHandler);
-router.patch('/:agreementId/cancel', authenticate, cancelAgreementHandler)
+router.get('/tenants-agreements', authenticate, authorizeRoles('tenant'), getTenantAgreementsHandler);
+router.get('/properties/:propertyId', authenticate, authorizeRoles('tenant'), validate(getLeaseAgreementSchema), getLeaseAgreementHandler);
+router.patch('/:agreementId/cancel', authenticate, authorizeRoles('tenant'), validate(cancelAgreementSchema), cancelAgreementHandler);
 
 export default router;

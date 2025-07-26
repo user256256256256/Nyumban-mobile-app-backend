@@ -116,7 +116,8 @@ export const resolveApplicationRequest = async (landlordId, applicationId, actio
 
   if (!applicationRequest) throw new NotFoundError('Application request not found', { field: 'Application Id' });
   if (applicationRequest.landlord_id !== landlordId) throw new AuthError('You are not authorized to resolve this application', { field: 'Landlord Id' })
-  if (!applicationRequest.properties?.has_agreement) throw new ValidationError('Attach agreement before resolving application', { field: `has_agreement: ${applicationRequest.properties?.has_agreement}`})
+  if (!applicationRequest.properties?.has_agreement) 
+    throw new ValidationError('Attach agreement before resolving application', { field: `has_agreement: ${applicationRequest.properties?.has_agreement}`}) // Send notification here 
   if (applicationRequest.status !== 'pending') throw new ForbiddenError('Application request has already been resolved and cannot be modified', { field: 'Application Status' })
 
   const updated = await prisma.property_applications.update({

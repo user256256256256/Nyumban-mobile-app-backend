@@ -88,7 +88,7 @@ export const submitVerificationRequest = async (userId, comment, fullNames, file
 export const getPropertyVerificationStatus = async (userId, propertyId) => {
   const property = await prisma.properties.findFirst({ where: { id: propertyId, owner_id: userId, is_deleted: false }, })
   if (!property) throw new NotFoundError('Property not found')
-  
+    
   return {
     property_id: propertyId,
     property_name: property.property_name,
@@ -108,6 +108,7 @@ export const reviewVerificationRequest = async ({ requestId, status, review_note
     }
   });
 
+  // Send a notifiaction on approve and failed with detailed message 
   return {
     request_id: updated.id,
     status: updated.status,

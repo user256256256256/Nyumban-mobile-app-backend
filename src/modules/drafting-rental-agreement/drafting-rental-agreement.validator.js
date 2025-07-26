@@ -1,11 +1,33 @@
 import Joi from 'joi';
 
-export const draftAgreementSchema = Joi.object({
-  security_deposit: Joi.string().required().label('Security Deposit'),
-  utility_responsibilities: Joi.string().max(100).optional().label('Utility Responsibilities'),
-  status: Joi.string().valid('draft', 'ready').required().label('Agreement Status'),
-});
+export const draftAgreementSchema = {
+  body: Joi.object({
+    security_deposit: Joi.string().required(),
+    utility_responsibilities: Joi.string().max(100).optional(),
+    status: Joi.string().valid('draft', 'ready').required(),
+  }),
+  params: Joi.object({
+    propertyId: Joi.string().uuid().required().label('Property ID'),
+  }),
+};
 
-export const finalizeAgreementSchema = Joi.object({ 
-  status: Joi.string().valid('ready').required()
-})
+export const finalizeAgreementSchema = {
+  body: Joi.object({
+    status: Joi.string().valid('ready').required(),
+  }),
+  params: Joi.object({
+    propertyId: Joi.string().uuid().required().label('Property ID'),
+  }),
+};
+
+export const propertyIdParamSchema = {
+  params: Joi.object({
+    propertyId: Joi.string().uuid().required().label('Property ID'),
+  }),
+};
+
+export const agreementIdParamSchema = {
+  params: Joi.object({
+    agreementId: Joi.string().uuid().required().label('Agreement ID'),
+  }),
+};

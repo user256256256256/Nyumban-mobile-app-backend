@@ -13,7 +13,7 @@ import {
 
 export const updateUsername = async (userId, username) => {
     const user = await prisma.users.update({
-        where: { id: userId },
+        where: { id: userId, is_deleted: false },
         data: {
             username,
             updated_at: new Date()
@@ -28,7 +28,7 @@ export const updateUsername = async (userId, username) => {
 }
 
 export const requestEmailOtp = async (userId, old_email, new_email) => {
-    const user = await prisma.users.findUnique({ where: { id: userId } });
+    const user = await prisma.users.findUnique({ where: { id: userId, is_deleted: false} });
 
     if (!user || user.email !== old_email) throw new NotFoundError('Old email does not match our records');
 
@@ -145,12 +145,13 @@ export const updateProfilePicture = async (userId, profileFile) => {
     const profilePicUrl = await uploadToStorage(profileFile.buffer, profileFile.originalName);
 
     const updateUser = await prisma.users.update({
-        where: {id: userId},
+        where: {id: userId, is_deleted: false},
         data: {
             profile_picture_path: profilePicUrl, 
             updated_at: new Date(),
         },
         select: {
+            id: true,
             profile_picture_path: true,
         },
     });
@@ -159,25 +160,95 @@ export const updateProfilePicture = async (userId, profileFile) => {
 }
 
 export const deleteAccount = async (userId, otp, identifier) => {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { email: true, phone_number: true }
+  });
+
+  if (!user) throw new NotFoundError('User not found');
+
+  const isMatching = identifier === user.email || identifier === user.phone_number;
+  if (!isMatching) throw new AuthError('Invalid contact info', { field: 'contact' });
+
+  const isValid = await OTPService.verifyOtp(identifier, otp);
+  if (!isValid) {
+    throw new AuthError('Invalid or expired OTP', { field: 'otp' });
+  }
+
+  if(user.is_deleted) throw new AuthError('Account already deleted');
+  
+  await prisma.users.update({
+    where: { id: userId },
+    data: {
+      is_deleted: true,
+      deleted_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
+  return { message: 'Account marked for deletion. You have 30 days to recover it.' };
+};
+
+export const permanentlyDeleteUser = async (userId) => {
     const user = await prisma.users.findUnique({
-        where: { id: userId },
-        select: { email: true, phone_number: true }
+      where: { id: userId },
+      select: { is_deleted: true },
     });
-    
-    if (!user) throw new NotFoundError('User not found');
+  
+    if (!user?.is_deleted) throw new ForbiddenError('User must be marked as deleted first');
+  
+    await prisma.users.delete({ where: { id: userId } });
+};
+  
 
-    const isMatching = identifier === user.email || identifier === user.phone_number;
-    if (!isMatching) throw new AuthError('Invalid contact info', {field: 'contact'});
-
-    const isValid = await OTPService.verifyOtp(identifier, otp);
-    if (!isValid) {
-      throw new AuthError('Invalid or expired OTP', { field: 'otp' });
+export const getUserContact = async (userId) => {
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        phone_number: true,
+      },
+    });
+  
+    if (!user) {
+      throw new NotFoundError('User not found');
     }
-    
-    await prisma.users.delete({where: {id: userId}});
+  
+    return {
+      user_id: user.id,
+      email: user.email,
+      phone_number: user.phone_number,
+    };
+};
 
-    return; 
-}
+export const recoverAccount = async (userId) => {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { is_deleted: true, deleted_at: true }
+  });
+
+  if (!user) throw new NotFoundError('User not found');
+  if (!user.is_deleted) throw new AuthError('Account is not deleted');
+  
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  const deletedAt = user.deleted_at;
+  if (!deletedAt || (Date.now() - new Date(deletedAt).getTime()) > THIRTY_DAYS_MS) {
+    throw new AuthError('Account cannot be recovered, permanent deletion period passed');
+  }
+
+  await prisma.users.update({
+    where: { id: userId },
+    data: {
+      is_deleted: false,
+      deleted_at: null,
+      updated_at: new Date(),
+    }
+  });
+
+  return { message: 'Account recovered successfully' };
+};
+
 
 export default {
     updateUsername,
@@ -188,5 +259,8 @@ export default {
     addContact,
     sendOtpToContact,
     updateProfilePicture,
-    deleteAccount
+    deleteAccount,
+    getUserContact,
+    permanentlyDeleteUser,
+    recoverAccount,
 }

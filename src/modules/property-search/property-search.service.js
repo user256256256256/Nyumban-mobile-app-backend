@@ -1,5 +1,5 @@
 import prisma from '../../prisma-client.js';
-import {scoreProperty} from './score-calculation.service.js'
+import { scoreProperty } from './score-calculation.service.js'
 
 export const searchProperties = async (filters) => {
     const {

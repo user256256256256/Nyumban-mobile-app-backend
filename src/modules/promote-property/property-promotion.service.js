@@ -41,7 +41,7 @@ export const getPromotionPlans = async () => {
 }
 
 
-export const promoteProperty = async  (userId, propertyId, planId, paymentMethod, phoneNumber, force = false) => { 
+export const promoteProperty = async  (userId, propertyId, planId, paymentMethod , phoneNumber, force = false) => { 
   // Fetch property details
   const property = await prisma.properties.findUnique({
     where: { id: propertyId },
@@ -52,13 +52,6 @@ export const promoteProperty = async  (userId, propertyId, planId, paymentMethod
   if (property.owner_id !== userId) throw new ForbiddenError('Unauthorized.');
   if (!property.is_verified) throw new ForbiddenError('Property must be verified before promotion.');
 
-  // Simulate payment and get plan details first
-  const { payment, plan } = await simulateFlutterwavePropertyPromotionPayment({
-    userId,
-    planId,
-    phoneNumber,
-  });
-
   // Check for an existing active promotion
   const activePromotion = await prisma.property_promotions.findFirst({
     where: {
@@ -67,20 +60,23 @@ export const promoteProperty = async  (userId, propertyId, planId, paymentMethod
       is_deleted: false,
     },
     include: {
-      payments: true,  // make sure this matches your Prisma relation name
+      payments: true,  
     },
   });
+
 
   if (activePromotion) {
     const currentPlanId = activePromotion.payments?.metadata?.planId;
     const currentPrice = activePromotion.payments?.amount;
 
+    //  Property already under the same promotion plan
     if (currentPlanId === planId && !force) {
       throw new ValidationError(
         `This property is already under the same promotion plan until ${activePromotion.end_date.toDateString()}.`
       );
     }
 
+    // Property new promotion plan is less than the active promotion plan
     if (currentPrice >= plan.price && !force) {
       throw new AuthError(
         `A higher or equal-tier promotion is already active until ${activePromotion.end_date.toDateString()}.`
@@ -100,6 +96,14 @@ export const promoteProperty = async  (userId, propertyId, planId, paymentMethod
   const start = new Date();
   const end = new Date(start.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
 
+
+  // Simulate payment and get plan details first
+  const { payment, plan } = await simulateFlutterwavePropertyPromotionPayment({
+    userId,
+    planId,
+    phoneNumber,
+  });
+  
   // Create the new promotion record
   await prisma.property_promotions.create({
     data: {

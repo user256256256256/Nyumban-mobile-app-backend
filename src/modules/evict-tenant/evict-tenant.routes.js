@@ -1,6 +1,8 @@
 import express from 'express';
 import { authenticate } from '../auth/auth.middleware.js';
-import { validate } from '../../common/middleware/validate.js';
+import { validate } from '../../common/middleware/validate.middleware.js';
+import { authorizeRoles } from '../../common/middleware/authorize-role.middleware.js';
+
 import { evictTenantSchema } from './evict-tenant.validator.js';
 import {
   evictTenantHandler,
@@ -8,6 +10,7 @@ import {
 
 const router = express.Router();
 
-router.post( '/tenants/:tenantId/evict', authenticate, validate(evictTenantSchema), evictTenantHandler);
+
+router.post('/tenants/:tenantId/evict', authenticate, authorizeRoles('landlord'), validate(evictTenantSchema), evictTenantHandler);
 
 export default router;

@@ -115,3 +115,32 @@ export const deleteAccountHandler = async (req, res) => {
     }
 }
 
+// For Administrators Only
+export const permanentlyDeleteHandler = async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      await UserService.permanentlyDeleteUser(userId);
+      return success(res, null, 'User permanently deleted');
+    } catch (error) {
+      return handleControllerError(res, error, 'PERMANENT_DELETE_FAILED', 'Failed to delete permanently');
+    }
+};
+
+export const recoverAccountHandler = async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const result = await UserService.recoverAccount(userId);
+      return success(res, result, 'Account recovered successfully');
+    } catch (error) {
+      return handleControllerError(res, error, 'ACCOUNT_RECOVERY_FAILED', 'Failed to recover account');
+    }
+};  
+export const getUserContactHandler = async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const contact = await UserService.getUserContact(userId);
+      return success(res, contact, 'User contact fetched successfully');
+    } catch (err) {
+      return handleControllerError(res, err, 'GET_CONTACT_FAILED', 'Failed to retrieve user contact');
+    }
+};

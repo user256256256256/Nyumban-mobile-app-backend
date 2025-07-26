@@ -26,29 +26,42 @@ export const applicationRequest = async (payload, userId) => {
     where: { id: propertyId, is_deleted: false }
   });
 
-  if (!property) {
-    throw new NotFoundError('Property not found');
-  }
+  if (!property) throw new NotFoundError('Property not found');
 
   // 2. If property has units, unitId must be specified
   if (property.has_units && !unitId) {
     throw new ForbiddenError('You have to specify a unit ID, this property has units');
   }
 
-  // 3. Prevent duplicate active applications for the same property/unit
-  const existingApplication = await prisma.property_applications.findFirst({
+  // 3. Prevent duplicate or approved applications for the same property/unit
+  const approvedApplication = await prisma.property_applications.findFirst({
     where: {
       property_id: propertyId,
       unit_id: property.has_units ? unitId : null,
       user_id: userId,
-      status: { in: ['pending', 'approved'] },
+      status: 'approved',
       is_deleted: false,
     }
   });
 
-  if (existingApplication) {
-    throw new AuthError('You already have an active application for this property/unit');
+  if (approvedApplication) {
+    throw new ForbiddenError('You already have an approved application for this property/unit');
   }
+
+  const pendingApplication = await prisma.property_applications.findFirst({
+    where: {
+      property_id: propertyId,
+      unit_id: property.has_units ? unitId : null,
+      user_id: userId,
+      status: 'pending',
+      is_deleted: false,
+    }
+  });
+
+  if (pendingApplication) {
+    throw new AuthError('You already have a pending application for this property/unit');
+  }
+
 
   const landlordId = property.owner_id;
 
@@ -135,7 +148,7 @@ export const getApplicationRequest = async(userId) => {
     property_name: app.properties?.property_name || null,
     thumbnail_url: app.properties?.thumbnail_image_path || null,
     unit_id: app.unit_id || null,
-    unit_number: app.property_units?.unit_number || null,
+    unit_number: app.property_units?.unit_number || null, 
     status: app.status,
     submitted_at: app.submitted_at,
   }));

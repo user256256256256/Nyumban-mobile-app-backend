@@ -71,7 +71,7 @@ export const getTenants = async (landlordId) => {
       payment_info: {
         amount_due: latestPayment?.amount_due || 0,
         next_due_date: latestPayment?.due_date || null,
-        date_rented: a.start_date,
+        date_rented: a.start_date, 
         rent_status: latestPayment?.payment_status || 'pending'
       }
     };
