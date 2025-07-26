@@ -1,4 +1,6 @@
+import { generateUniqueTenantCode } from '../../common/utils/user-code-generator.js';
 import prisma from '../../prisma-client.js';
+import { v4 as uuidv4 } from 'uuid';
 import { 
     NotFoundError, 
     ForbiddenError,
@@ -15,20 +17,27 @@ export const getTenantProfile = async (userId) => {
 }
 
 export const updateTenantProfile = async (userId, data) => {
-    const existing = await prisma.tenant_profiles.findUnique({ where: { user_id: userId } })
-
-    if (!existing) throw new NotFoundError('Tenant profile not found', { field: 'User ID'})
-    
-    const updated = await prisma.tenant_profiles.update({
+    try {
+      const profile = await prisma.tenant_profiles.upsert({
         where: { user_id: userId },
-        data: {
-            ...data,
-            updated_at: new Date(),
+        update: {
+          ...data,
+          updated_at: new Date(),
         },
-    });
-
-    return { updated };
-}
+        create: {
+          id: uuidv4(),
+          ...data,
+          user_id: userId,
+          tenant_code: await generateUniqueTenantCode(),
+          created_at: new Date(),
+        },
+      });
+  
+      return { profile };
+    } catch (error) {
+      throw new ServerError('Failed to upsert tenant profile', { field: 'User ID' });
+    }
+  };
 
 export default {
     getTenantProfile,

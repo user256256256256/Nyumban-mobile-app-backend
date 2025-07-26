@@ -1,4 +1,7 @@
 import prisma from '../../prisma-client.js';
+import { generateUniqueLandlordCode } from '../../common/utils/user-code-generator.js';
+
+import { v4 as uuidv4 } from 'uuid';
 import {
   NotFoundError
 } from '../../common/services/errors.js';
@@ -16,22 +19,24 @@ export const getLandlordProfile = async (userId) => {
 };
 
 export const updateLandlordProfile = async (userId, data) => {
-  const existing = await prisma.landlord_profiles.findUnique({
-    where: { user_id: userId }
-  });
+  try {
+    const profile = await prisma.landlord_profiles.upsert({
+      where: { user_id: userId },
+      update: {
+        ...data,
+      },
+      create: {
+        id: uuidv4(),
+        ...data,
+        user_id: userId,
+        landlord_code: await generateUniqueLandlordCode(),
+      },
+    });
 
-  if (!existing) {
-    throw new NotFoundError('Landlord profile not found', { field: 'User ID' });
+    return { profile };
+  } catch (error) {
+    throw new ServerError('Failed to upsert landlord profile', { field: 'User ID' });
   }
-
-  const updated = await prisma.landlord_profiles.update({
-    where: { user_id: userId },
-    data: {
-      ...data,
-    }
-  });
-
-  return { updated };
 };
 
 export default {
