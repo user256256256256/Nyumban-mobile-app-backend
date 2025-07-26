@@ -5,6 +5,7 @@ import { handleControllerError } from '../../common/utils/handleControllerError.
 export const getLandlordApplicationRequestsHandler = async (req, res) => {
     try {
         const landlordId = req.user.id;  
+  
         const { status } = req.query;
         const result = await ApplicationRequestResolutionService.getLandlordApplicationRequests(landlordId, status)
         return success(res, result, 'Landlord Property Application requests retrieved successfully');

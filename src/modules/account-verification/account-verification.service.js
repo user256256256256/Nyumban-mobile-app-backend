@@ -17,7 +17,7 @@ export const getAccountVerificationStatus = async (userId) => {
     select: { is_verified: true }
   });
 
-  if (!landlordProfile) throw new NotFoundError('Landlord profile not found');
+  if (!landlordProfile) throw new NotFoundError('Landlord profile not found', { field: 'User ID' });
 
   const verificationRequest = await prisma.account_verification_requests.findFirst({
     where: {
@@ -62,7 +62,7 @@ export const getAccountVerificationStatus = async (userId) => {
 };
 
 export const submitVerificationRequest = async (userId, comment, fullNames, file) => {
-  if (!file) throw new NotFoundError('Proof document is required', {field: 'file'})
+  if (!file) throw new NotFoundError('Proof document is required', {field: 'File'})
   
   const url = await uploadToStorage(file.buffer, file.originalname);
 
@@ -87,7 +87,7 @@ export const submitVerificationRequest = async (userId, comment, fullNames, file
 
 export const getPropertyVerificationStatus = async (userId, propertyId) => {
   const property = await prisma.properties.findFirst({ where: { id: propertyId, owner_id: userId, is_deleted: false }, })
-  if (!property) throw new NotFoundError('Property not found')
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' })
     
   return {
     property_id: propertyId,

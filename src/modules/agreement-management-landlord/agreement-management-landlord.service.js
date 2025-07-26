@@ -99,7 +99,7 @@ export const generateAgreementShareLink = async ({ agreementId }) => {
     },
   });
 
-  if (!agreement) throw new NotFoundError('Agreement not found');
+  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
 
   const slug = slugify(agreement.properties?.property_name || 'agreement', {
     lower: true,
@@ -124,7 +124,7 @@ export const downloadAgreementPdf = async ({ agreementId }) => {
   });
 
   if (!agreement || !agreement.file_path) {
-    throw new NotFoundError('Agreement document not found');
+    throw new NotFoundError('Agreement document not found', { field: 'Agreement ID' });
   }
 
   // Assuming file_path is a server-relative path or full CDN URL
@@ -154,10 +154,10 @@ export const terminateAgreement = async ({ agreementId, landlordId, reason }) =>
     }
   });
 
-  if (!agreement) throw new NotFoundError('Agreement not found');
+  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
 
   if (agreement.owner_id !== landlordId) {
-    throw new ForbiddenError('You are not authorized to terminate this agreement');
+    throw new ForbiddenError('You are not authorized to terminate this agreement', { field: 'User ID' });
   }
 
   if (agreement.status !== 'completed') {

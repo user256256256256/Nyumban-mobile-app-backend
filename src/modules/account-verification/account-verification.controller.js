@@ -42,7 +42,7 @@ export const reviewVerificationRequestHandler = async (req, res) => {
         const { status, review_notes } = req.body;
         const adminId = req.user?.id;
         const role = req.user?.role;
-        if (role !== 'admin') throw new ForbiddenError('Access denied');
+        if (role !== 'admin') throw new ForbiddenError('Access denied', { field: 'Role' } );
         const result = await AccountVerificationService.reviewVerificationRequest({
             requestId,
             status,

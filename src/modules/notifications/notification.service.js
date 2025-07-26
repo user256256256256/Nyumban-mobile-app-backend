@@ -44,12 +44,12 @@ export const triggerNotification = async (userId, type, title, body, sendSms = f
   const timestamp = new Date();
 
   if (type !== 'user') {
-    throw new ValidationError('Invalid notification type for user notifications');
+    throw new ValidationError('Invalid notification type for user notifications', { field: 'Notification type' });
   }
 
   const userExists = await prisma.users.findUnique({ where: { id: userId } });
   if (!userExists) {
-    throw new NotFoundError(`User with id ${userId} does not exist`, {field: 'user_id'});
+    throw new NotFoundError(`User with id ${userId} does not exist`, {field: 'User ID'});
   }
 
   let notification;

@@ -5,6 +5,7 @@ import { handleControllerError } from '../../common/utils/handleControllerError.
 export const getRentPaymentsHandler = async (req, res) => {
     try {
       const landlordId = req.user.id;
+
       const filters = req.query;
       const result = await PaymentManagementService.getRentPayments(landlordId, filters);
       return success(res, result, 'Rent Payments retrieved successfully');
@@ -28,6 +29,7 @@ export const getRentPaymentHandler = async (req, res) => {
 
 export const getPaymentsHandler = async (req, res) => {
   try {
+    // Found a query
     const filters = req.query;
     const result = await PaymentManagementService.getPayments(filters);
     return success(res, result, 'Payments retrieved successfully');

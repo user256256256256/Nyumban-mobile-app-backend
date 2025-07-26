@@ -115,7 +115,7 @@ export const addPhysicalAttributes = async ({ userId, propertyId, data }) => {
     },
   });
 
-  if (!property) throw new NotFoundError('Property not found or access denied');
+  if (!property) throw new NotFoundError('Property not found or access denied', { field: 'Property ID' });
 
   const updated = await prisma.properties.update({
     where: { id: propertyId },
@@ -152,7 +152,7 @@ export const uploadPropertyThumbnail = async (propertyId, file) => {
 };
 
 export const uploadPropertyTour = async (property_id, file) => {
-  if (!property_id || !file) throw new NotFoundError('Property ID and file are required');
+  if (!property_id || !file) throw new NotFoundError('Property ID and file are required', { field: 'Property ID or File' });
 
   const url = await upload3DTourFile(file);
 
@@ -165,7 +165,7 @@ export const uploadPropertyTour = async (property_id, file) => {
 };
 
 export const uploadPropertyImages = async (property_id, files) => {
-  if (!property_id || !files?.length) throw new NotFoundError('Property ID and images are required');
+  if (!property_id || !files?.length) throw new NotFoundError('Property ID and images are required', { field: 'Property ID or File' });
 
   const urls = await uploadMultipleImages(files);
 
@@ -188,7 +188,7 @@ export const addUnitToProperty = async (propertyId, unitData) => {
     include: { property_units: true },
   });
 
-  if (!property) throw new NotFoundError('Property not found');
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
 
   const unit = await prisma.property_units.create({
     data: {

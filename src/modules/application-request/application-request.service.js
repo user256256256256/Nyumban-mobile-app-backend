@@ -30,7 +30,7 @@ export const applicationRequest = async (payload, userId) => {
 
   // 2. If property has units, unitId must be specified
   if (property.has_units && !unitId) {
-    throw new ForbiddenError('You have to specify a unit ID, this property has units');
+    throw new ForbiddenError('You have to specify a unit ID, this property has units', { field: 'Unit ID' });
   }
 
   // 3. Prevent duplicate or approved applications for the same property/unit
@@ -163,9 +163,9 @@ export const cancelApplication = async (userId, applicationId) => {
     },
   })
 
-  if (!application) throw new NotFoundError('Application not found')
+  if (!application) throw new NotFoundError('Application not found', { field: 'Application ID' })
 
-  if (application.status !== 'pending') throw new ValidationError('Application cannot be cancelled after approval or rejection', {field: 'Application Id'})
+  if (application.status !== 'pending') throw new ValidationError('Application cannot be cancelled after approval or rejection', { field: 'Application Id' })
 
   const updated = await prisma.property_applications.update({
     where: { id: applicationId },

@@ -55,8 +55,8 @@ export const getLandlordTourRequests = async (landlordId, status) => {
 export const resolveTourRequest = async (landlordId, requestId, action, reason) => {
   const request = await prisma.property_tour_requests.findUnique({ where: { id: requestId } })
   if (!request) throw new NotFoundError('Tour request not found', { field: requestId })
-  if (request.owner_id !== landlordId) throw new ForbiddenError('You are not authorized to resolve this request')
-  if (request.status !== 'pending') throw new ServerError('Tour request has already been resolved and cannot be modified')
+  if (request.owner_id !== landlordId) throw new ForbiddenError('You are not authorized to resolve this request', { field: 'Landlord ID' })
+  if (request.status !== 'pending') throw new ServerError('Tour request has already been resolved and cannot be modified', { field: 'Action' })
   
   const updated = await prisma.property_tour_requests.update({
     where: { id: requestId },

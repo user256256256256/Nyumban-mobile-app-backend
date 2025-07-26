@@ -37,6 +37,7 @@ export const triggerNotificationHandler = async (req, res) => {
 export const getUserNotifications = async (req, res) => {
     try {
         const userId = req.user?.id;
+  
         const { filter = 'all' } = req.query;
         const result = await NotificationService.getUserNotifications(userId, filter);
         return success(res, result, 'Notification fetched successfully');
@@ -68,6 +69,7 @@ export const clearAllNotificationsHandler = async (req, res) => {
 export const searchNotificationsHandler = async (req, res) => {
     try {
         const userId = req.user?.id;
+  
         const { q } = req.query;
         const result = await NotificationService.searchNotifications(userId, q);
         return success(res, result, 'Search successfull');

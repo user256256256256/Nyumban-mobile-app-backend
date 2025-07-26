@@ -15,7 +15,7 @@ export const tourRequest = async (requesterId, propertyId, message) => {
         select: { owner_id: true,  property_name: true, thumbnail_image_path: true },
     });
 
-    if (!property) throw new NotFoundError('Property not found')
+    if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' })
     
     const existingTour = await prisma.property_tour_requests.findFirst({
         where: {
@@ -96,10 +96,10 @@ export const cancelTourRequest = async (userId, tourId) => {
     },
   });
 
-  if (!tour)  throw new NotFoundError('Tour request not found');
+  if (!tour)  throw new NotFoundError('Tour request not found', { field: 'Tour ID' });
 
   if (tour.status !== 'pending') {
-    throw new ForbiddenError('Only pending tour requests can be cancelled', { field: 'tour_id', help_url: '', } );    
+    throw new ForbiddenError('Only pending tour requests can be cancelled', { field: 'Tour ID', } );    
   }
 
   const updated = await prisma.property_tour_requests.update({

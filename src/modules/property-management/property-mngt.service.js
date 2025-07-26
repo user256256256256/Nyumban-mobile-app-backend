@@ -326,9 +326,9 @@ export const confirmOtpAndDeleteProperty = async (userId, propertyId, otpCode, i
     select: { owner_id: true, is_deleted: true },
   });
   if (!property || property.is_deleted) throw new NotFoundError('Property not found or already deleted');
-  if (property.owner_id !== userId) throw new ForbiddenError('Access denied');
+  if (property.owner_id !== userId) throw new ForbiddenError('Access denied', { field: 'User ID' });
 
-  if (!identifier) throw new ValidationError('Identifier (email or phone) is required', { field: 'identifier' });
+  if (!identifier) throw new ValidationError('Identifier (email or phone) is required', { field: 'Identifier' });
 
   const isValidOtp = await OTPService.verifyOtp(identifier, otpCode);
   if (!isValidOtp) throw new AuthError('Invalid or expired OTP code');

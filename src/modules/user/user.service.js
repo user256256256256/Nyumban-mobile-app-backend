@@ -30,7 +30,7 @@ export const updateUsername = async (userId, username) => {
 export const requestEmailOtp = async (userId, old_email, new_email) => {
     const user = await prisma.users.findUnique({ where: { id: userId, is_deleted: false} });
 
-    if (!user || user.email !== old_email) throw new NotFoundError('Old email does not match our records');
+    if (!user || user.email !== old_email) throw new NotFoundError('Old email does not match our records', { field: 'Old email' });
 
     await OTPService.sendOtp(new_email);
 
@@ -39,7 +39,7 @@ export const requestEmailOtp = async (userId, old_email, new_email) => {
 
 export const confirmEmailOtpAndUpdate = async (userId, otp, new_email) => {
     const isValid = await  OTPService.verifyOtp(new_email, otp);
-    if (!isValid) throw new AuthError('Invalid or expired OTP', { field: 'otp' });
+    if (!isValid) throw new AuthError('Invalid or expired OTP', { field: 'Otp' });
 
     const updateUser = await prisma.users.update({
         where: {id: userId},
@@ -62,7 +62,7 @@ export const confirmEmailOtpAndUpdate = async (userId, otp, new_email) => {
 export const requestPhoneOtp = async (userId, old_phone, new_phone) => {
     const user = await prisma.users.findUnique({ where: { id: userId } });
     
-    if (!user || user.phone_number !== old_phone) throw new NotFoundError('Old phone does not match our records');
+    if (!user || user.phone_number !== old_phone) throw new NotFoundError('Old phone does not match our records', { field: 'Old Phone' });
 
     await OTPService.sendOtp(new_phone);
 
@@ -72,7 +72,7 @@ export const requestPhoneOtp = async (userId, old_phone, new_phone) => {
 
 export const confirmPhoneOtpAndUpdate = async (userId, otp, new_phone) => {
     const isValid = await  OTPService.verifyOtp(new_phone, otp);
-    if (!isValid) throw new AuthError('Invalid or expired OTP', { field: 'otp' });
+    if (!isValid) throw new AuthError('Invalid or expired OTP', { field: 'Otp' });
 
     const updateUser = await prisma.users.update({
         where: {id: userId},
@@ -102,7 +102,7 @@ export const addContact = async (userId, otp, identifier) => {
       select: { [contactField]: true }
     });
   
-    if (!user) throw new ForbiddenError('User not found');
+    if (!user) throw new ForbiddenError('User not found', { field: 'User ID' });
   
     if (user[contactField]) {
       throw new ValidationError(`User already has a ${contactField} set`, {
@@ -112,7 +112,7 @@ export const addContact = async (userId, otp, identifier) => {
   
     const isValid = await OTPService.verifyOtp(identifier, otp);
     if (!isValid) {
-      throw new AuthError('Invalid or expired OTP', { field: 'otp' });
+      throw new AuthError('Invalid or expired OTP', { field: 'Otp' });
     }
   
     const updateUser = await prisma.users.update({
@@ -165,14 +165,14 @@ export const deleteAccount = async (userId, otp, identifier) => {
     select: { email: true, phone_number: true }
   });
 
-  if (!user) throw new NotFoundError('User not found');
+  if (!user) throw new NotFoundError('User not found', { field: 'User ID' });
 
   const isMatching = identifier === user.email || identifier === user.phone_number;
-  if (!isMatching) throw new AuthError('Invalid contact info', { field: 'contact' });
+  if (!isMatching) throw new AuthError('Invalid contact info', { field: 'Contact' });
 
   const isValid = await OTPService.verifyOtp(identifier, otp);
   if (!isValid) {
-    throw new AuthError('Invalid or expired OTP', { field: 'otp' });
+    throw new AuthError('Invalid or expired OTP', { field: 'Otp' });
   }
 
   if(user.is_deleted) throw new AuthError('Account already deleted');
@@ -212,7 +212,7 @@ export const getUserContact = async (userId) => {
     });
   
     if (!user) {
-      throw new NotFoundError('User not found');
+      throw new NotFoundError('User not found', { field: 'User ID' });
     }
   
     return {
@@ -228,7 +228,7 @@ export const recoverAccount = async (userId) => {
     select: { is_deleted: true, deleted_at: true }
   });
 
-  if (!user) throw new NotFoundError('User not found');
+  if (!user) throw new NotFoundError('User not found', { field: 'User ID' });
   if (!user.is_deleted) throw new AuthError('Account is not deleted');
   
   const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;

@@ -3,7 +3,7 @@ import prisma from '../../prisma-client.js';
 
 export const simulateFlutterwavePropertyPromotionPayment = async ({ userId, planId, phoneNumber }) => {
   const plan = await prisma.promotion_plans.findUnique({ where: { plan_id: planId } });
-  if (!plan) throw new NotFoundError('Promotion plan not found.');
+  if (!plan) throw new NotFoundError('Promotion plan not found.', { field: 'Plan Id' });
 
   const payment = await prisma.payments.create({
     data: {

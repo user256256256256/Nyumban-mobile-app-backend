@@ -18,7 +18,7 @@ export const acceptAgreement = async (userId, agreementId, payload) => {
     include: { users_rental_agreements_tenant_idTousers: true }
   })
 
-  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement Id'} )
+  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID'} )
   
   if (agreement.status !== 'ready') throw new ForbiddenError('Agreement is not yet ready for acceptance');
 
@@ -47,8 +47,8 @@ export const processInitialRentPayment = async ({ userId, agreementId, payment_m
     },
   });
 
-  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'agreementId' });
-  if (agreement.tenant_id !== userId) throw new AuthError('Unauthorized to pay for this agreement');
+  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
+  if (agreement.tenant_id !== userId) throw new AuthError('Unauthorized to pay for this agreement', { field: 'User ID' });
   if (!agreement.tenant_accepted_agreement) {
     throw new ForbiddenError('Tenant must accept the agreement before making payment');
   }

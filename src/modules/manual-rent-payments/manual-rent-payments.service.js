@@ -33,7 +33,7 @@ export const markManualPayment = async ({ tenantId, amount, method, notes, landl
 
   // 4. Ensure that the landlord making this request owns the agreement
   if (!agreement || agreement.owner_id !== landlordId) {
-    throw new ForbiddenError('Unauthorized: You do not own this agreement');
+    throw new ForbiddenError('Unauthorized: You do not own this agreement', { field: 'Landlord ID' });
   }
 
   // 5. Determine monthly rent and calculate total outstanding due

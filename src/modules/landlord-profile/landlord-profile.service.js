@@ -9,7 +9,7 @@ export const getLandlordProfile = async (userId) => {
   });
 
   if (!profile) {
-    throw new NotFoundError('Landlord profile not found', { field: 'User Id' });
+    throw new NotFoundError('Landlord profile not found', { field: 'User ID' });
   }
 
   return profile;
@@ -21,7 +21,7 @@ export const updateLandlordProfile = async (userId, data) => {
   });
 
   if (!existing) {
-    throw new NotFoundError('Landlord profile not found', { field: 'User Id' });
+    throw new NotFoundError('Landlord profile not found', { field: 'User ID' });
   }
 
   const updated = await prisma.landlord_profiles.update({

@@ -15,18 +15,18 @@ export const checkAgreementExists = async (userId, propertyId, unitId) => {
       where: { id: propertyId }
     })
   
-    if (!property) throw new NotFoundError('Property not found', { field: 'propertyId' })
+    if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' })
   
     if (property.owner_id !== userId)
-      throw new AuthError('Access denied. You are not the owner of this property.', { field: 'owner_id' })
+      throw new AuthError('Access denied. You are not the owner of this property.', { field: 'Owner ID' })
   
     if (property.has_units && !unitId)
-      throw new ForbiddenError('Property has units, specify the unit to check agreement status', { field: 'unitId' })
+      throw new ForbiddenError('Property has units, specify the unit to check agreement status', { field: 'Unit ID' })
   
     if (unitId) {
       const unit = await prisma.property_units.findUnique({ where: { id: unitId } })
       if (!unit || unit.property_id !== propertyId)
-      throw new NotFoundError('Unit not found or does not belong to this property', { field: 'unitId' })
+      throw new NotFoundError('Unit not found or does not belong to this property', { field: 'Unit ID' })
     }
 
     const whereClause = {
@@ -61,15 +61,15 @@ export const createOrSaveDraft = async (userId, propertyId, unitId, payload) => 
   
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });
   
-  if (!property) throw new NotFoundError('Property not found', { field: 'propertyId' });
-  if (property.owner_id !== userId) throw new AuthError('Access denied', { field: 'owner_id' });
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
+  if (property.owner_id !== userId) throw new AuthError('Access denied', { field: 'Owner ID' });
   if (property.has_units && !unitId) 
-    throw new ForbiddenError('Property has units; specify unit_id', { field: 'unit_id' });
+    throw new ForbiddenError('Property has units; specify unit_id', { field: 'Unit ID' });
   
   if (unitId) {
     const unit = await prisma.property_units.findUnique({ where: { id: unitId } })
     if (!unit || unit.property_id !== propertyId)
-    throw new NotFoundError('Unit not found or does not belong to this property', { field: 'unitId' })
+    throw new NotFoundError('Unit not found or does not belong to this property', { field: 'Unit ID' })
   }
 
   const template = await prisma.rental_agreement_templates.findFirst({
@@ -140,7 +140,7 @@ export const generateAgreementPreview = async (agreementId) => {
   });
 
   if (!agreement) {
-    throw new NotFoundError('Agreement not found', { field: 'Agreement Id' });
+    throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
   }
 
   const template = agreement.rental_agreement_templates?.template_html;
@@ -177,15 +177,15 @@ export const generateAgreementPreview = async (agreementId) => {
 export const finalizeAgreement = async (userId, propertyId, unitId, status) => {
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });
 
-  if (!property) throw new NotFoundError('Property not found', { field: 'propertyId' });
-  if (property.owner_id !== userId) throw new AuthError('Access denied', { field: 'owner_id' });
+  if (!property) throw new NotFoundError('Property not found', { field: 'Propert ID' });
+  if (property.owner_id !== userId) throw new AuthError('Access denied', { field: 'Owner ID' });
   if (property.has_units && !unitId) 
-    throw new ForbiddenError('Property has units; specify unit_id', { field: 'unit_id' });
+    throw new ForbiddenError('Property has units; specify unit_id', { field: 'Unit ID' });
   
   if (unitId) {
     const unit = await prisma.property_units.findUnique({ where: { id: unitId } })
     if (!unit || unit.property_id !== propertyId)
-    throw new NotFoundError('Unit not found or does not belong to this property', { field: 'unitId' })
+    throw new NotFoundError('Unit not found or does not belong to this property', { field: 'Unit ID' })
   }
 
   const agreement = await prisma.rental_agreements.findFirst({
@@ -197,11 +197,11 @@ export const finalizeAgreement = async (userId, propertyId, unitId, status) => {
 
   if (!agreement)  throw new NotFoundError('Agreement not found for this property/unit')
 
-  if (agreement.owner_id !== userId) throw new ForbiddenError('You are not authorized to finalize this agreement')
+  if (agreement.owner_id !== userId) throw new ForbiddenError('You are not authorized to finalize this agreement', { field: 'User ID' } )
  
   if (agreement.tenant_accepted_agreement) throw new AuthError('Agreement has already been signed by the tenant')
 
-  if (agreement.status === 'ready') throw new ServerError('Agreement is already finalized')
+  if (agreement.status === 'ready') throw new ServerError('Agreement is already finalized', { field: 'Status' })
 
   const updatedAgreement = await prisma.rental_agreements.update({
     where: { id: agreement.id },

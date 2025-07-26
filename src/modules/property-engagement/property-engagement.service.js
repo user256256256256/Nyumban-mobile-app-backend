@@ -4,7 +4,7 @@ import { AuthError, NotFoundError } from '../../common/services/errors.js';
 
 const getPropertyOrThrow = async (propertyId) => {
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });
-  if (!property) throw new NotFoundError('Property not found');
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
   return property;
 };
 
@@ -177,7 +177,7 @@ export const getDistanceToProperty = async (propertyId, userLat, userLon) => {
     }
   });
 
-  if (!property) throw new NotFoundError('Property not found', { field: 'Property Id'})
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID'})
   
   // if (!property.latitude || !property.longitude) {
   //   throw new NotFoundError('Property location not available');

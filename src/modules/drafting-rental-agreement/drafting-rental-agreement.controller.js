@@ -6,6 +6,7 @@ export const checkAgreementExistsHandler = async (req, res) => {
     try {
         const userId = req.user.id;
         const { propertyId } = req.params;
+  
         const { unitId }  = req.query
         const result = await DraftingRentalAgreementService.checkAgreementExists(userId, propertyId, unitId)
         return success(res, result, 'Agreeement status retrieved successfully')
@@ -18,6 +19,7 @@ export const createOrUpdateDraftHandler = async (req, res) => {
     try {
         const userId = req.user.id;
         const { propertyId } = req.params;
+  
         const { unitId }  = req.query;
         const payload = req.body;
         const result = await DraftingRentalAgreementService.createOrSaveDraft(userId, propertyId, unitId, payload)
@@ -41,6 +43,7 @@ export const finalizeAgreementHandler = async (req, res) => {
     try {
         const userId = req.user.id;
         const { propertyId } = req.params;
+  
         const { unitId }  = req.query;
         const { status } = req.body
         const result = await DraftingRentalAgreementService.finalizeAgreement(userId, propertyId, unitId, status)

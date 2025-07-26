@@ -25,7 +25,7 @@ export const generateAgreementPreview = async (agreementId) => {
   });
 
   if (!agreement) {
-    throw new NotFoundError('Agreement not found', { field: 'Agreement Id' });
+    throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
   }
 
   const template = agreement.rental_agreement_templates?.template_html;

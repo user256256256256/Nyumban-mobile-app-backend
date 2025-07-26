@@ -34,7 +34,7 @@ export const getCurrentRentalDetails = async ( { userId, propertyId, unitId} ) =
     }
   });
 
-  if (!agreement) throw new NotFoundError('Active rental agreement not found');
+  if (!agreement) throw new NotFoundError('Active rental agreement not found', { field: 'Property ID or Unit ID or User ID' });
   const lastPayment = agreement.rent_payments[0];
 
   const unit = agreement.property_units;
@@ -305,7 +305,7 @@ export const checkAdvanceEligibility = async ({ userId, propertyId }) => {
     where: { id: agreement.unit_id },
   });
 
-  if (!unit) throw new NotFoundError('Unit info not found');
+  if (!unit) throw new NotFoundError('Unit info not found', { field: 'Unit ID' });
 
   // Assume this comes from landlord configuration or fallback default
   const maxMonthsAdvance = unit.max_months_advance ?? 6;

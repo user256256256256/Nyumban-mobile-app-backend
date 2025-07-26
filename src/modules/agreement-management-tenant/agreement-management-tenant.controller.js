@@ -6,6 +6,7 @@ export const getLeaseAgreementHandler = async (req, res) => {
     try {
       const userId = req.user.id;
       const { propertyId }  = req.params;
+
       const { unitId } = req.query;
   
       const result = await AgreementManagementService.getLeaseAgreement(userId, propertyId, unitId);
@@ -19,6 +20,7 @@ export const getLeaseAgreementHandler = async (req, res) => {
 export const getTenantAgreementsHandler = async (req, res) => {
   try {
     const userId = req.user.id;
+    // Found a query
     const { status, limit = 10, offset = 0 } = req.query;
 
     const result = await AgreementManagementService.getTenantAgreements({

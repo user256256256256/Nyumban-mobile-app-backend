@@ -72,7 +72,8 @@ export const promoteProperty = async  (userId, propertyId, planId, paymentMethod
     //  Property already under the same promotion plan
     if (currentPlanId === planId && !force) {
       throw new ValidationError(
-        `This property is already under the same promotion plan until ${activePromotion.end_date.toDateString()}.`
+        `This property is already under the same promotion plan until ${activePromotion.end_date.toDateString()}.`,
+        { field: 'Plan Id' }
       );
     }
 
@@ -138,8 +139,8 @@ export const getPropertyPromotionStatus = async  (userId, propertyId) => {
     select: { owner_id: true },
   });
 
-  if (!property) throw new NotFoundError('Property not found.');
-  if (property.owner_id !== userId) throw new AuthError('Unauthorized.');
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
+  if (property.owner_id !== userId) throw new AuthError('Unauthorized.', { field: 'User ID' });
 
   const activePromotion = await prisma.property_promotions.findFirst({
     where: {

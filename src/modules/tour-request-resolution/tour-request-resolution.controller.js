@@ -5,6 +5,7 @@ import { handleControllerError } from '../../common/utils/handleControllerError.
 export const getLandlordTourRequestsHandler = async (req, res) => {
     try {
         const landlordId = req.user.id;  
+  
         const { status } = req.query;
         const result = await TourRequestResolutionService.getLandlordTourRequests(landlordId, status);
         return success(res, result, 'Landlord Property Tour requests retrieved successfully');

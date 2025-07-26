@@ -6,6 +6,7 @@ export const getCurrentRentalDetailsHandler = async (req, res) => {
   try {
     const userId = req.user.id;
     const { propertyId } = req.params;
+    // Found a query
     const { unitId } = req.query;
 
     const result = await RentManagementService.getCurrentRentalDetails({

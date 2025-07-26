@@ -13,10 +13,10 @@ export const getLeaseAgreement = async (userId, propertyId, unitId = null) => {
 
     const property = await prisma.properties.findUnique({ where: { id: propertyId } });
   
-    if (!property) throw new NotFoundError('Property not found', { field: 'propertyId' });
+    if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
 
     if (property.has_units && !unitId) {
-      throw new NotFoundError('This property has units. Specify a unitId', { field: 'unitId' });
+      throw new NotFoundError('This property has units. Specify a unitId', { field: 'Unit ID' });
     }
   
     // Check if user is the tenant in an active/completed agreement
@@ -118,7 +118,7 @@ export const cancelAgreement = async ({ agreementId, userId }) => {
   if (agreement.status === 'active') throw new ForbiddenError('Active agreements cannot be canceled')
   
   if (agreement.tenant_id !== userId && agreement.owner_id !== userId) {
-    throw new ForbiddenError('You are not authorized to cancel this agreement');
+    throw new ForbiddenError('You are not authorized to cancel this agreement', { field: 'User ID' });
   }
 
   const updated = await prisma.rental_agreements.update({
