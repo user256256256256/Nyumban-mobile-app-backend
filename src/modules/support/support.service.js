@@ -6,7 +6,7 @@ import {
     AuthError,
     ForbiddenError,
     ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const sendSupportMessage = async (userId, subject, message) => {
     const user = await prisma.users.findUnique({ where: {id: userId } });

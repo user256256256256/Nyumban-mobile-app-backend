@@ -1,7 +1,7 @@
-import { success } from '../../common/utils/responseBuilder.js';
+import { success } from '../../common/utils/response-builder.util.js';
 import AccountVerificationService from './account-verification.service.js';
-import { handleControllerError } from '../../common/utils/handleControllerError.js';
-import { ForbiddenError, ServerError } from '../../common/services/errors.js';
+import { handleControllerError } from '../../common/utils/handle-controller-error.util.js';
+import { ForbiddenError, ServerError } from '../../common/services/errors-builder.service.js';
 
 export const getLandlordAccountStatusHandler = async (req, res) => {
     try {
@@ -16,9 +16,9 @@ export const getLandlordAccountStatusHandler = async (req, res) => {
 export const submitVerificationRequestHandler = async (req, res) => {
     try {
         const userId = req.user.id;  
-        const { ownership_comment, landlord_full_names } = req.body;
+        const { ownership_comment } = req.body;
         const file = req.file;
-        const result = await AccountVerificationService.submitVerificationRequest(userId, ownership_comment, landlord_full_names, file);
+        const result = await AccountVerificationService.submitVerificationRequest(userId, ownership_comment, file);
         return success(res, result, 'Verification request submitted successfully');
     } catch (error) {
         return handleControllerError(res, error, 'VERIFICATION_ERROR', 'Failed to submit verification details');

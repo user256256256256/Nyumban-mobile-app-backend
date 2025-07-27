@@ -1,11 +1,12 @@
 import prisma from '../../prisma-client.js';
 import OTPService from './otp.service.js';
-import { generateToken } from '../../common/utils/jwt.js';
+import { generateToken } from '../../common/utils/jwt.util.js';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadToStorage } from '../../common/services/s3.service.js';
 import { EmailService } from '../../common/services/email.service.js';
-import { isEmail } from '../../common/utils/checkUserIdentifier.js'
-import { generateUniqueLandlordCode, generateUniqueTenantCode } from '../../common/utils/user-code-generator.js';
+import { isEmail } from '../../common/utils/check-user-identifier.utiil.js'
+import { generateUniqueLandlordCode, generateUniqueTenantCode } from '../../common/utils/user-code-generator.util.js';
+import { validatePhoneNumber, validateEmail, validateUsername } from '../../common/services/user-validation.service.js';
 
 import {
   ValidationError,
@@ -13,7 +14,7 @@ import {
   AuthError,
   ForbiddenError,
   ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const handleOtpRequest = async (identifier) => {
   await OTPService.sendOtp(identifier);
@@ -25,32 +26,44 @@ export const handleOtpRequest = async (identifier) => {
 };
 
 export const verifyOtp = async (identifier, otp) => {
-  const where = isEmail(identifier)
+  const isIdentifierEmail = isEmail(identifier);
+  const where = isIdentifierEmail
     ? { email: identifier }
     : { phone_number: identifier };
 
   // Step 1: Validate OTP
   const isValid = await OTPService.verifyOtp(identifier, otp);
-  if (!isValid) throw new AuthError('Invalid or expired OTP', { field: 'otp' });
+  if (!isValid) {
+    throw new AuthError('Invalid or expired OTP', { field: 'otp' });
+  }
 
   // Step 2: Find or create user
   let user = await prisma.users.findUnique({ where });
+
   if (!user) {
-    const data = isEmail(identifier)
+    // Before creating, validate format & uniqueness
+    if (isIdentifierEmail) {
+      await validateEmail(identifier);
+    } else {
+      await validatePhoneNumber(identifier);
+    }
+
+    const data = isIdentifierEmail
       ? { email: identifier, is_email_confirmed: true }
       : { phone_number: identifier, is_phone_number_confirmed: true };
 
     user = await prisma.users.create({ data });
   } else {
+    // Update confirmation flags if user exists
     await prisma.users.update({
       where: { id: user.id },
-      data: isEmail(identifier)
+      data: isIdentifierEmail
         ? { is_email_confirmed: true, updated_at: new Date() }
         : { is_phone_number_confirmed: true, updated_at: new Date() },
-    });    
+    });
   }
 
-  // Step 3: Find role assignment
+  // Step 3: Get assigned role (if exists)
   const roleAssignment = await prisma.user_role_assignments.findFirst({
     where: { user_id: user.id },
     include: { user_roles: true },
@@ -58,10 +71,10 @@ export const verifyOtp = async (identifier, otp) => {
 
   const assignedRole = roleAssignment?.user_roles?.role || null;
 
-  // Step 4: Generate JWT token
+  // Step 4: Generate token
   const token = generateToken({ id: user.id, role: assignedRole });
 
-  // Step 5: Return response based on role
+  // Step 5: Final response
   if (!assignedRole) {
     return {
       message: 'OTP verified. Please choose a role.',
@@ -117,6 +130,8 @@ export const setUserRole = async (userId, roleInput) => {
 
 export const completeProfile = async (userId, userName, profileFile) => {
   let profilePicUrl = null;
+
+  await validateUsername(userName)
 
   if (profileFile) {
     profilePicUrl = await uploadToStorage(profileFile.buffer, profileFile.originalName);

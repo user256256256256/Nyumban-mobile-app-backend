@@ -1,3 +1,4 @@
+import { ensureProfileIsComplete } from '../../common/services/user-validation.service.js';
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -7,9 +8,16 @@ import {
     AuthError,
     ForbiddenError,
     ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const applicationRequest = async (payload, userId) => {
+  
+  const user = await prisma.users.findUnique({ where: { id: userId } });
+
+  if (!user) throw new ValidationError('User not found', { field: 'User ID'})
+  
+  await ensureProfileIsComplete(user.email || user.phone_number);
+
   const {
     propertyId,
     unitId,

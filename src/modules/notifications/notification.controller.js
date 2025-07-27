@@ -1,6 +1,6 @@
 import NotificationService from './notification.service.js'
-import { success } from '../../common/utils/responseBuilder.js'
-import { handleControllerError } from '../../common/utils/handleControllerError.js'
+import { success } from '../../common/utils/response-builder.util.js'
+import { handleControllerError } from '../../common/utils/handle-controller-error.util.js'
 
 export const getNotificationSettingsHandler = async (req, res) => {
     try {

@@ -8,7 +8,7 @@ import {
   AuthError,
   ServerError,
   ForbiddenError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const getCurrentRentalDetails = async ( { userId, propertyId, unitId} ) => {
   const whereClause = {

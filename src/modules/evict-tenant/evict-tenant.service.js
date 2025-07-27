@@ -4,7 +4,7 @@ import {
   NotFoundError,
   ForbiddenError,
   ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const evictTenant = async ({ landlordId, tenantId, propertyId, unitId, reason }) => {
   // 1. Locate active lease

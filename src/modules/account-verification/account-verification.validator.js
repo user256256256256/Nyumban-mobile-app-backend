@@ -6,10 +6,6 @@ export const verificationRequestSchema = {
       'string.empty': 'Ownership comment is required',
       'string.max': 'Ownership comment must not exceed 500 characters',
     }),
-    landlord_full_names: Joi.string().max(200).required().messages({
-      'string.empty': 'Landlord full names are required',
-      'string.max': 'Full names must not exceed 200 characters',
-    }),
   }),
   file: Joi.any().required().meta({ fileField: true }).label('Proof Document'),
 };

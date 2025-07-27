@@ -8,7 +8,7 @@ import {
     AuthError,
     ForbiddenError,
     ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const checkAgreementExists = async (userId, propertyId, unitId) => {
     const property = await prisma.properties.findUnique({

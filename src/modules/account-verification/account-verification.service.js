@@ -9,7 +9,7 @@ import {
     AuthError,
     ForbiddenError,
     ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const getAccountVerificationStatus = async (userId) => {
   const landlordProfile = await prisma.landlord_profiles.findUnique({
@@ -61,7 +61,7 @@ export const getAccountVerificationStatus = async (userId) => {
   };
 };
 
-export const submitVerificationRequest = async (userId, comment, fullNames, file) => {
+export const submitVerificationRequest = async (userId, comment, file) => {
   if (!file) throw new NotFoundError('Proof document is required', {field: 'File'})
   
   const url = await uploadToStorage(file.buffer, file.originalname);
@@ -76,11 +76,6 @@ export const submitVerificationRequest = async (userId, comment, fullNames, file
       created_at: new Date()
     }
   })
-
-  await prisma.landlord_profiles.updateMany({
-    where: { user_id: userId },
-    data: { full_names: fullNames }
-  });
 
   return { id: record.id, status: record.status };
 }

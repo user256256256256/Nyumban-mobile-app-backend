@@ -1,4 +1,4 @@
-import { generateUniqueTenantCode } from '../../common/utils/user-code-generator.js';
+import { generateUniqueTenantCode } from '../../common/utils/user-code-generator.util.js';
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -6,7 +6,7 @@ import {
     ForbiddenError,
     AuthError, 
     ServerError
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const getTenantProfile = async (userId) => {
     const profile = await prisma.tenant_profiles.findUnique({ where: { user_id: userId } })

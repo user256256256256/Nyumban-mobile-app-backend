@@ -1,5 +1,5 @@
-import { success } from '../../common/utils/responseBuilder.js';
-import { handleControllerError } from '../../common/utils/handleControllerError.js';
+import { success } from '../../common/utils/response-builder.util.js';
+import { handleControllerError } from '../../common/utils/handle-controller-error.util.js';
 import EvictionService from './evict-tenant.service.js';
 
 export const evictTenantHandler = async (req, res) => {

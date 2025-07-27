@@ -1,7 +1,8 @@
 import prisma from '../../prisma-client.js';
 import OTPService from '../auth/otp.service.js';
-import { isEmail } from '../../common/utils/checkUserIdentifier.js'
+import { isEmail } from '../../common/utils/check-user-identifier.utiil.js'
 import { uploadToStorage } from '../../common/services/s3.service.js';
+import { validatePhoneNumber, validateEmail, validateUsername } from '../../common/services/user-validation.service.js';
 
 import {
     ValidationError,
@@ -9,9 +10,12 @@ import {
     AuthError,
     ForbiddenError,
     ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const updateUsername = async (userId, username) => {
+    
+    await validateUsername(username)
+
     const user = await prisma.users.update({
         where: { id: userId, is_deleted: false },
         data: {
@@ -32,6 +36,8 @@ export const requestEmailOtp = async (userId, old_email, new_email) => {
 
     if (!user || user.email !== old_email) throw new NotFoundError('Old email does not match our records', { field: 'Old email' });
 
+    // Send notification to old email when email is updated.
+
     await OTPService.sendOtp(new_email);
 
     return { otp_sent: true, sent_otp_to: new_email }
@@ -40,6 +46,8 @@ export const requestEmailOtp = async (userId, old_email, new_email) => {
 export const confirmEmailOtpAndUpdate = async (userId, otp, new_email) => {
     const isValid = await  OTPService.verifyOtp(new_email, otp);
     if (!isValid) throw new AuthError('Invalid or expired OTP', { field: 'Otp' });
+
+    await validateEmail(new_email)
 
     const updateUser = await prisma.users.update({
         where: {id: userId},
@@ -74,6 +82,8 @@ export const confirmPhoneOtpAndUpdate = async (userId, otp, new_phone) => {
     const isValid = await  OTPService.verifyOtp(new_phone, otp);
     if (!isValid) throw new AuthError('Invalid or expired OTP', { field: 'Otp' });
 
+    await validatePhoneNumber(new_phone)
+
     const updateUser = await prisma.users.update({
         where: {id: userId},
         data: {
@@ -96,6 +106,12 @@ export const addContact = async (userId, otp, identifier) => {
     const isEmailIdentifier = isEmail(identifier);
     const contactField = isEmailIdentifier ? 'email' : 'phone_number';
     const confirmationField = isEmailIdentifier ? 'is_email_confirmed' : 'is_phone_number_confirmed';
+
+    if(isEmailIdentifier) {
+      await validateEmail(identifier)
+    } else {
+      await validatePhoneNumber(identifier)
+    }
   
     const user = await prisma.users.findUnique({
       where: { id: userId },
@@ -208,6 +224,7 @@ export const getUserContact = async (userId) => {
         id: true,
         email: true,
         phone_number: true,
+        profile_picture_path: true,
       },
     });
   
@@ -219,6 +236,7 @@ export const getUserContact = async (userId) => {
       user_id: user.id,
       email: user.email,
       phone_number: user.phone_number,
+      profile_pic: user.profile_picture_path
     };
 };
 

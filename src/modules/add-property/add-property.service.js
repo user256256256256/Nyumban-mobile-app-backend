@@ -1,7 +1,8 @@
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadToStorage, uploadMultipleImages, upload3DTourFile } from '../../common/services/s3.service.js';
-import { generateUniquePropertyCode } from '../../common/utils/generatePropertyCode.js';
+import { ensureProfileIsComplete } from '../../common/services/user-validation.service.js';
+import { generateUniquePropertyCode } from '../../common/utils/generate-property-code.util.js';
 
 import {
   ValidationError,
@@ -9,9 +10,16 @@ import {
   AuthError,
   ForbiddenError,
   ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const addOwnershipInfo = async ({ userId, data }) => {
+
+  const user = await prisma.users.findUnique({ where: { id: userId } });
+
+  if (!user) throw new ValidationError('User not found', { field: 'User ID'})
+  
+  await ensureProfileIsComplete(user.email || user.phone_number);
+
   const {
     property_name,
     property_type,

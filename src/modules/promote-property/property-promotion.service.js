@@ -8,7 +8,7 @@ import {
     AuthError,
     ForbiddenError,
     ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const checkLandlordVerificationStatus = async (userId) => {
   const landlordProfile = await prisma.landlord_profiles.findUnique({

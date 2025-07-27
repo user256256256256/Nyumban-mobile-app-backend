@@ -9,7 +9,7 @@ import {
     AuthError,
     ForbiddenError,
     ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const getLandlordProperties = async ({ landlordId, sortBy: sort_by, order = 'desc', filterStatus: filter_status }) => {
     const where = {

@@ -1,6 +1,6 @@
 import prisma from '../../prisma-client.js';
 import { calculateDistaceService } from './calculate-distance.service.js'
-import { AuthError, NotFoundError } from '../../common/services/errors.js';
+import { AuthError, NotFoundError } from '../../common/services/errors-builder.service.js';
 
 const getPropertyOrThrow = async (propertyId) => {
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });

@@ -2,7 +2,7 @@ import prisma from '../../prisma-client.js';
 import Handlebars from 'handlebars';
 import {
     NotFoundError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const generateAgreementPreview = async (agreementId) => {
   const agreement = await prisma.rental_agreements.findUnique({

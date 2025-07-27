@@ -1,5 +1,5 @@
 import { VALID_ROLES } from '../constants/roles.js';
-import { ForbiddenError, AuthError } from '../services/errors.js';
+import { ForbiddenError, AuthError } from '../services/errors-builder.service.js';
 
 /**
  * Middleware to authorize access based on user roles.

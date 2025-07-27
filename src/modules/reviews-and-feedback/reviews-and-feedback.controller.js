@@ -1,6 +1,6 @@
-import { success } from '../../common/utils/responseBuilder.js';
+import { success } from '../../common/utils/response-builder.util.js';
 import ReviewService from './reviews-and-feedback.service.js';
-import { handleControllerError } from '../../common/utils/handleControllerError.js';
+import { handleControllerError } from '../../common/utils/handle-controller-error.util.js';
 
 export const submitReviewHandler = async (req, res) => {
   try {

@@ -8,7 +8,7 @@ import {
   AuthError,
   ForbiddenError,
   ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 // Main function to manually record a rent payment
 export const markManualPayment = async ({ tenantId, amount, method, notes, landlordId }) => {

@@ -1,6 +1,6 @@
-import { success } from '../../common/utils/responseBuilder.js';
+import { success } from '../../common/utils/response-builder.util.js';
 import ApplicationRequestResolutionService from './application-request-resolution.service.js';
-import { handleControllerError } from '../../common/utils/handleControllerError.js';
+import { handleControllerError } from '../../common/utils/handle-controller-error.util.js';
 
 export const getLandlordApplicationRequestsHandler = async (req, res) => {
     try {

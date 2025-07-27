@@ -1,5 +1,5 @@
 import prisma from '../../prisma-client.js';
-import { logNotification } from '../../common/utils/notification.logger.js';
+import { logNotification } from '../../common/utils/notification.logger.util.js';
 import { EmailService } from '../../common/services/email.service.js'
 import { SnsService }  from '../../common/services/sns.service.js'
 import { sendPushNotification } from '../../common/services/push.service.js'
@@ -12,7 +12,7 @@ import {
     AuthError,
     ForbiddenError,
     ServerError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const getUserNotificationSettings = async (userId) => {
     const prefs = await prisma.user_notification_preferences.findUnique({

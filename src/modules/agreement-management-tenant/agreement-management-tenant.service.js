@@ -6,7 +6,7 @@ import {
   AuthError,
   ServerError,
   ForbiddenError,
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 
 export const getLeaseAgreement = async (userId, propertyId, unitId = null) => {

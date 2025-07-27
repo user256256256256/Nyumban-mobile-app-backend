@@ -1,10 +1,10 @@
 import prisma from '../../prisma-client.js';
-import { generateUniqueLandlordCode } from '../../common/utils/user-code-generator.js';
+import { generateUniqueLandlordCode } from '../../common/utils/user-code-generator.util.js';
 
 import { v4 as uuidv4 } from 'uuid';
 import {
   NotFoundError
-} from '../../common/services/errors.js';
+} from '../../common/services/errors-builder.service.js';
 
 export const getLandlordProfile = async (userId) => {
   const profile = await prisma.landlord_profiles.findUnique({
