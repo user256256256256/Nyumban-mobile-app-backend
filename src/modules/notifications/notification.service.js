@@ -15,17 +15,17 @@ import {
 } from '../../common/services/errors-builder.service.js';
 
 export const getUserNotificationSettings = async (userId) => {
-    const prefs = await prisma.user_notification_preferences.findUnique({
-        where: {user_id: userId,},
-        select: {
-            notify_nyumban_updates: true,
-            notify_payment_sms: true,
-        }
-    })
+  const prefs = await prisma.user_notification_preferences.findUnique({
+      where: {user_id: userId,},
+      select: {
+          notify_nyumban_updates: true,
+          notify_payment_sms: true,
+      }
+  })
 
-    if (!prefs) throw new NotFoundError('Notification preferences not found');
-    
-    return  prefs;
+  if (!prefs) throw new NotFoundError('Notification preferences not found');
+  
+  return  prefs;
 }
 
 export const updateUserNotificationSettings = async (userId, updates) => {
@@ -188,15 +188,14 @@ export const clearNotifications = async (userId, ids = null) => {
   return { cleared: result.count };
 };
 
-
 export default {
-    getUserNotificationSettings,
-    updateUserNotificationSettings, 
-    triggerNotification,
-    getUserNotifications,
-    markAllAsRead, 
-    clearAllNotifications,
-    searchNotifications,
-    markAsRead,
-    clearNotifications
+  getUserNotificationSettings,
+  updateUserNotificationSettings, 
+  triggerNotification,
+  getUserNotifications,
+  markAllAsRead, 
+  clearAllNotifications,
+  searchNotifications,
+  markAsRead,
+  clearNotifications
 }

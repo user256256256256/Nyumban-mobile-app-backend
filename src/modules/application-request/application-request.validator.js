@@ -13,8 +13,22 @@ export const applicationRequestSchema = {
   }),
 };
 
-export const cancelApplicationSchema = {
+export const cancelApplicationBatchSchema = {
   body: Joi.object({
-    applicationId: Joi.string().uuid().required(),
+    application_ids: Joi.array().items(Joi.string().uuid()).min(1).required().label('Application IDs').messages({
+      'array.base': 'Application IDs must be an array',
+      'array.min': 'At least one application ID is required',
+      'string.uuid': 'Each Application ID must be a valid UUID',
+    }),
+  }),
+};
+
+export const deleteApplicationBatchSchema = {
+  body: Joi.object({
+    application_ids: Joi.array().items(Joi.string().uuid()).min(1).required().label('Application IDs').messages({
+      'array.base': 'Application IDs must be an array',
+      'array.min': 'At least one application ID is required',
+      'string.uuid': 'Each Application ID must be a valid UUID',
+    }),
   }),
 };

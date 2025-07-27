@@ -33,3 +33,17 @@ export const upload3DTourFile = async (file) => {
     return uploadToStorage(file.buffer, file.originalname);
 };
   
+// 🔥 Simulate deletion of a file from local mock storage
+export const deleteFromStorage = async (fileUrl) => {
+    try {
+      const url = new URL(fileUrl);
+      const fileName = path.basename(url.pathname);
+      const filePath = path.join('uploads', fileName);
+  
+      await fs.unlink(filePath);
+      console.log(`🗑️  Deleted local file: ${filePath}`);
+    } catch (err) {
+      console.warn(`⚠️  Failed to delete file from storage: ${err.message}`);
+      // Allow non-blocking failure
+    }
+};

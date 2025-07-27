@@ -24,6 +24,6 @@ router.post('/:propertyId/save', authenticate, authorizeRoles('tenant'), validat
 router.post('/:propertyId/unsave', authenticate, authorizeRoles('tenant'), validate(propertyIdParamSchema), unsavePropertyHandler);
 router.get('/liked', authenticate, authorizeRoles('tenant'), validate(paginationSchema, 'query'), getLikedPropertiesHandler);
 router.get('/saved', authenticate, authorizeRoles('tenant'), validate(paginationSchema, 'query'), getSavedPropertiesHandler);
-router.post('/distance', authenticate, authorizeRoles('tenant'), validate(distanceSchema), getDistanceToPropertyHandler);
+router.post('/distance', authenticate, authorizeRoles('tenant'), validate(distanceSchema), getDistanceToPropertyHandler); 
 
 export default router;

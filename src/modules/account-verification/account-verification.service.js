@@ -68,7 +68,7 @@ export const submitVerificationRequest = async (userId, comment, file) => {
 
   const record = await prisma.account_verification_requests.create({
     data: {
-      id: uuidv4(),
+      id: uuidv4(), 
       user_id: userId,
       comment,
       proof_of_ownership_file_path: url,
@@ -147,11 +147,54 @@ export const submitVerificationBadgePayment = async ({ userId, phone_number, amo
   };
 };
 
+export const updateVerificationRequest = async ({ userId, ownership_comment, file }) => {
+  const request = await prisma.account_verification_requests.findFirst({
+    where: {
+      user_id: userId,
+      is_deleted: false,
+    },
+    orderBy: { created_at: 'desc' },
+  });
+
+  if (!request) {
+    throw new NotFoundError('Verification request not found for this user', { field: 'User ID' });
+  }
+
+  // ✅ Lock update if already finalized
+  if (['approved', 'rejected'].includes(request.status)) {
+    throw new ForbiddenError('Cannot update a finalized verification request.', {
+      field: 'Verification Request Status',
+    });
+  }
+
+  // Upload new file if provided
+  let filePath = request.proof_of_ownership_file_path;
+  if (file) {
+    filePath = await uploadToStorage(file.buffer, file.originalname);
+  }
+
+  const updated = await prisma.account_verification_requests.update({
+    where: { id: request.id },
+    data: {
+      proof_of_ownership_file_path: filePath,
+      comment: ownership_comment ?? request.comment,
+      updated_at: new Date(),
+    },
+  });
+
+  return {
+    request_id: updated.id,
+    message: 'Verification request updated. Awaiting admin review.',
+  };
+};
+
+
 
 export default {
     getAccountVerificationStatus,
     submitVerificationRequest,
     getPropertyVerificationStatus,
     reviewVerificationRequest,
-    submitVerificationBadgePayment
+    submitVerificationBadgePayment,
+    updateVerificationRequest,
 }

@@ -16,13 +16,22 @@ import {
     updatePropertyUnitStatusHandler,
     generateShareLinkHandler,
     confirmOtpAndDeletePropertyHandler,
+    permanentlyDeletePropertyHandler,
+    permanentlyDeleteAllArchivedPropertiesHandler,
+    deletePropertyImagesHandler,
+    deleteSelectedPropertyUnitsHandler,
+    permanentlyDeleteSelectedUnitsHandler,
+    permanentlyDeleteAllArchivedUnitsHandler,
+    recoverPropertiesHandler,
+    recoverUnitsHandler,
+    deleteProperty3DTourHandler,
+    deletePropertyThumbnailHandler,
 } from './property-mngt.controller.js'
 
 import { validate } from '../../common/middleware/validate.middleware.js';
-import { landlordPropertySchema, getPropertyDetailsSchema, editPropertySchema, unitParamSchema, propertyThumbnailSchema, propertyImagesSchema, property3DTourSchema, editpropertyUnitSchema, updatePropertyStatusSchema, updateUnitStatusSchema } from './property-mngt.validator.js'
+import { landlordPropertySchema, recoverUnitsSchema, deleteUnitsBatchSchema, deletePropertiesSchema, getPropertyDetailsSchema, editPropertySchema, unitParamSchema, propertyThumbnailSchema, propertyImagesSchema, property3DTourSchema, editpropertyUnitSchema, updatePropertyStatusSchema, updateUnitStatusSchema, recoverPropertiesSchema } from './property-mngt.validator.js'
 
 const router = express.Router()
-
 
 router.get('/:landlordId/properties', authenticate, authorizeRoles('landlord'), validate(landlordPropertySchema), getLandlordPropertiesHandler);
 router.get('/:propertyId/details', authenticate, authorizeRoles('landlord'), validate(getPropertyDetailsSchema), getPropertyDetailsHandler);
@@ -35,6 +44,16 @@ router.delete('/unit/:unitId/remove', authenticate, authorizeRoles('landlord'), 
 router.patch('/:propertyId/status', authenticate, authorizeRoles('landlord'), validate(updatePropertyStatusSchema), updatePropertyStatusHandler);
 router.patch('/unit/:unitId/status', authenticate, authorizeRoles('landlord'), validate(updateUnitStatusSchema), updatePropertyUnitStatusHandler);
 router.get('/:propertyId/share-link', authenticate, authorizeRoles('landlord'), validate(getPropertyDetailsSchema), generateShareLinkHandler);
-router.delete('/:propertyId/remove', authenticate, authorizeRoles('landlord'), confirmOtpAndDeletePropertyHandler);
+router.delete('/remove', authenticate, authorizeRoles('landlord'), confirmOtpAndDeletePropertyHandler);
+router.delete('/permanent', authenticate, authorizeRoles('landlord'), validate(deletePropertiesSchema), permanentlyDeletePropertyHandler);
+router.delete('/archived/delete-all', authenticate, authorizeRoles('landlord'), permanentlyDeleteAllArchivedPropertiesHandler);
+router.delete('/media/images/delete', authenticate, authorizeRoles('landlord'), deletePropertyImagesHandler);
+router.delete('/unit/delete', authenticate, authorizeRoles('landlord'), validate(deleteUnitsBatchSchema), deleteSelectedPropertyUnitsHandler);
+router.delete('/unit/permanent/', authenticate, authorizeRoles('landlord'), validate(deleteUnitsBatchSchema), permanentlyDeleteSelectedUnitsHandler);
+router.delete('/unit/archived/delete-all', authenticate, authorizeRoles('landlord'), permanentlyDeleteAllArchivedUnitsHandler);
+router.post('/recover', authenticate, authorizeRoles('landlord'), validate(recoverPropertiesSchema), recoverPropertiesHandler );
+router.post( '/recover-units', authenticate, authorizeRoles('landlord'), validate(recoverUnitsSchema), recoverUnitsHandler );
+router.delete( '/:propertyId/media/3d-tour', authenticate, authorizeRoles('landlord'), validate(getPropertyDetailsSchema), deleteProperty3DTourHandler );
+router.delete('/:propertyId/media/thumbnail', authenticate, authorizeRoles('landlord'), validate(getPropertyDetailsSchema), deletePropertyThumbnailHandler );
 
-export default router;
+export default router;  

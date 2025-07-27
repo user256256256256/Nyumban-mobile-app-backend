@@ -131,14 +131,130 @@ export const generateShareLinkHandler = async (req, res) => {
 
 export const confirmOtpAndDeletePropertyHandler = async (req, res) => {
   try {
-    const { propertyId } = req.params;
-    const { otp_code, identifier } = req.body;
+    const { property_ids, otp_code, identifier } = req.body;
     const userId = req.user.id;
 
-    const result = await PropertyManagementService.confirmOtpAndDeleteProperty(userId, propertyId, otp_code, identifier);
-    return success(res, result, 'Property deleted successfully');
+    const result = await PropertyManagementService.confirmOtpAndDeleteProperty(userId, property_ids, otp_code, identifier);
+    return success(res, result, 'Properties deleted successfully');
   } catch (error) {
-    return handleControllerError(res, error, 'DELETE_PROPERTY_ERROR', 'Failed to delete property');
+    return handleControllerError(res, error, 'DELETE_PROPERTY_ERROR', 'Failed to delete properties');
   }
 };
 
+
+export const permanentlyDeletePropertyHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { property_ids } = req.body;
+
+    const result = await PropertyManagementService.permanentlyDeleteProperty(userId, property_ids);
+    return success(res, result, 'Properties permanently deleted successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'DELETE_PROPERTY_PERMANENTLY_ERROR', 'Failed to delete properties permanently');
+  }
+};
+
+export const permanentlyDeleteAllArchivedPropertiesHandler = async (req, res) => {
+  try {
+    const userId = req.user.id; 
+    const result = await PropertyManagementService.permanentlyDeleteAllArchivedProperties(userId);
+    return success(res, result, 'All permanently deleted successfully')
+  } catch (error) {
+    return handleControllerError(res, error, 'DELETE_PROPERTY_PERMANETLY_ERROR', 'Failed to delete properties permanently');
+  }
+}
+
+export const deletePropertyImagesHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { imageIds } = req.body; 
+    
+    const result = await PropertyManagementService.deletePropertyImages(userId, imageIds);
+
+    return success(res, result, 'Property images deleted successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'DELETE_PROPERTY_IMAGES_ERROR', 'Failed to delete property images');
+  }
+};
+
+export const deleteSelectedPropertyUnitsHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { unitIds } = req.body;
+
+    const result = await PropertyManagementService.deleteSelectedUnits(userId, unitIds);
+    return success(res, result, 'Selected property units deleted successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'DELETE_PROPERTY_UNITS_BATCH_ERROR', 'Failed to delete selected units');
+  }
+};
+
+export const permanentlyDeleteSelectedUnitsHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { unitIds } = req.body;
+
+    const result = await PropertyManagementService.permanentlyDeleteSelectedUnits(userId, unitIds);
+    return success(res, result, 'Selected units permanently deleted');
+  } catch (error) {
+    return handleControllerError(res, error, 'PERMANENT_DELETE_SELECTED_UNITS_ERROR', 'Failed to delete selected units');
+  }
+};
+
+export const permanentlyDeleteAllArchivedUnitsHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await PropertyManagementService.permanentlyDeleteAllArchivedUnits(userId);
+    return success(res, result, 'All archived units permanently deleted');
+  } catch (error) {
+    return handleControllerError(res, error, 'PERMANENT_DELETE_ALL_UNITS_ERROR', 'Failed to delete archived units');
+  }
+};
+
+export const recoverPropertiesHandler = async (req, res) => {
+  try {
+    const landlordId = req.user.id;
+    const { property_ids } = req.body;
+
+    const result = await PropertyService.recoverPropertiesBatch(property_ids, landlordId);
+    return success(res, result, 'Properties recovered successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'PROPERTY_RECOVERY_ERROR', 'Failed to recover properties');
+  }
+};
+
+export const recoverUnitsHandler = async (req, res) => {
+  try {
+    const landlordId = req.user.id;
+    const { unit_ids } = req.body;
+
+    const result = await UnitService.recoverUnitsBatch(unit_ids, landlordId);
+    return success(res, result, 'Units recovered successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'UNIT_RECOVERY_ERROR', 'Failed to recover units');
+  }
+};
+
+export const deleteProperty3DTourHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const propertyId = req.params.propertyId;
+
+    const result = await PropertyManagementService.delete3DTour(userId, propertyId);
+    return success(res, result, '3D tour deleted successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'DELETE_3D_TOUR_ERROR', 'Failed to delete 3D tour');
+  }
+};
+
+export const deletePropertyThumbnailHandler = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // Assuming req.user set by auth middleware
+    const { propertyId } = req.params;
+    const result = await PropertyManagementService.deletePropertyThumbnail(userId, propertyId);
+    return success(res, result, 'Property thumbnail deleted successfully');
+
+  } catch (error) {
+    return handleControllerError(res, error, 'DELETE_THUMBNAIL_ERROR', 'Failed to delete property thumbnail');
+  }
+};

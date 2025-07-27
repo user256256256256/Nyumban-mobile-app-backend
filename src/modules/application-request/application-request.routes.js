@@ -5,16 +5,18 @@ import { authorizeRoles } from '../../common/middleware/authorize-role.middlewar
 import {
     applicationRequestHandler,
     getApplicationsRequestHandler,
-    cancelApplicationRequestHanlder
+    cancelApplicationBatchRequestHandler,
+    deleteApplicationBatchRequestHandler,
 } from './application-request.controller.js'
 
 import { validate } from '../../common/middleware/validate.middleware.js';
-import { applicationRequestSchema, cancelApplicationSchema} from './application-request.validator.js'
+import { applicationRequestSchema, cancelApplicationBatchSchema, deleteApplicationBatchSchema} from './application-request.validator.js'
 
 const router = express.Router();
 
 router.post('/request', authenticate, authorizeRoles('tenant'), validate(applicationRequestSchema), applicationRequestHandler);
-router.post('/cancel', authenticate, authorizeRoles('tenant'), validate(cancelApplicationSchema), cancelApplicationRequestHanlder);
 router.get('/my-requests', authenticate, authorizeRoles('tenant'), getApplicationsRequestHandler);
+router.post('/cancel', authenticate, authorizeRoles('tenant'), validate(cancelApplicationBatchSchema), cancelApplicationBatchRequestHandler);
+router.post('/delete', authenticate, authorizeRoles('tenant'), validate(deleteApplicationBatchSchema), deleteApplicationBatchRequestHandler);
 
 export default router;

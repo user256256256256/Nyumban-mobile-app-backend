@@ -22,13 +22,27 @@ export const getApplicationsRequestHandler = async (req, res) => {
     }
 }
 
-export const cancelApplicationRequestHanlder = async (req, res) => {
+export const cancelApplicationBatchRequestHandler = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const { applicationId } = req.body;
-        const result = await ApplicationRequestService.cancelApplication(userId, applicationId)
-        return success(res, result, 'Application cancelled successfully')
+      const userId = req.user.id;
+      const { application_ids } = req.body;
+  
+      const result = await ApplicationRequestService.cancelApplicationBatch(userId, application_ids);
+      return success(res, result, 'Applications cancelled successfully');
     } catch (error) {
-        handleControllerError(res, error, 'APPLICATION_CANCEL_ERROR', 'Failed to cancel application request'); 
+      handleControllerError(res, error, 'APPLICATION_BATCH_CANCEL_ERROR', 'Failed to cancel applications');
     }
-}
+};
+  
+export const deleteApplicationBatchRequestHandler = async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { application_ids } = req.body;
+  
+      const result = await ApplicationRequestService.deleteApplicationBatch(userId, application_ids);
+      return success(res, result, 'Applications deleted successfully');
+    } catch (error) {
+      handleControllerError(res, error, 'APPLICATION_BATCH_DELETE_ERROR', 'Failed to delete applications');
+    }
+};
+  

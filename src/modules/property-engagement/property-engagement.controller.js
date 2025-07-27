@@ -53,7 +53,6 @@ export const unsavePropertyHandler = async (req, res) => {
 export const getLikedPropertiesHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    // Found a query
     const { offset = 0, limit = 10 } = req.query;
 
     const result = await PropertyEngagementService.getUserEngagedProperties(userId, 'liked', Number(offset), Number(limit));
@@ -66,7 +65,6 @@ export const getLikedPropertiesHandler = async (req, res) => {
 export const getSavedPropertiesHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    // Found a query
     const { offset = 0, limit = 10 } = req.query;
 
     const result = await PropertyEngagementService.getUserEngagedProperties(userId, 'saved', Number(offset), Number(limit));

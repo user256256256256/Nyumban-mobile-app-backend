@@ -94,7 +94,7 @@ export const addOwnershipInfo = async ({ userId, data }) => {
       });
     }
 
-    // (Optional: queue/send notification to landlord here)
+    // (Optional: queue/send notification to landlord here) request to send Ownership info. Payment is requested again
   }
 
   return created;

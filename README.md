@@ -1,5 +1,5 @@
 
-**NPS Backend - Nyumban Property Solutions ****  
+**NPS Core Engine ****  
 --  © 2025 Nyumban Property Solutions (NPS). All rights reserved.  
 --
 --  This codebase is confidential and proprietary to NPS.  

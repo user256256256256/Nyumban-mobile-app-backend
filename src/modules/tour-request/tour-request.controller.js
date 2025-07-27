@@ -23,14 +23,26 @@ export const getTourRequestsHandler = async (req, res) => {
     }
 };
   
-
-export const cancelTourRequestHandler = async (req, res) => {
+export const cancelTourRequestsHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { tour_id } = req.body;
-    const result = await TourRequestService.cancelTourRequest(userId, tour_id);
-    return success(res, result, 'Tour request cancelled successfully');
+    const { tour_ids } = req.body;
+
+    const result = await TourRequestService.cancelTourRequests(userId, tour_ids);
+    return success(res, result, 'Tour requests cancelled successfully');
   } catch (error) {
-    handleControllerError(res, error, 'TOUR_CANCEL_ERROR', 'Failed to cancel tour request');
+    handleControllerError(res, error, 'TOUR_CANCEL_ERROR', 'Failed to cancel tour requests');
+  }
+};
+
+export const deleteTourRequestsHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { tour_ids } = req.body;
+
+    const result = await TourRequestService.deleteTourRequests(userId, tour_ids);
+    return success(res, result, 'Tour requests cancelled successfully');
+  } catch (error) {
+    handleControllerError(res, error, 'TOUR_CANCEL_ERROR', 'Failed to cancel tour requests');
   }
 };

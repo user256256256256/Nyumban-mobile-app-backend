@@ -46,7 +46,7 @@ export const getLandlordTourRequests = async (landlordId, status) => {
         },
         tenant_info: req.users_property_tour_requests_requester_idTousers,
         tenant_message: req.message,
-        status: req.status,
+        status: req.status, 
         requested_datetime: req.requested_datetime,
         created_at: req.created_at,
       }));

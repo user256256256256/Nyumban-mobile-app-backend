@@ -2,13 +2,24 @@ import Joi from 'joi';
 
 export const verificationRequestSchema = {
   body: Joi.object({
-    ownership_comment: Joi.string().max(500).required().messages({
+    ownership_comment: Joi.string().max(500).optional().messages({
       'string.empty': 'Ownership comment is required',
       'string.max': 'Ownership comment must not exceed 500 characters',
     }),
   }),
   file: Joi.any().required().meta({ fileField: true }).label('Proof Document'),
 };
+
+export const updateVerificationRequestSchema = {
+  body: Joi.object({
+    ownership_comment: Joi.string().max(500).optional().messages({
+      'string.empty': 'Ownership comment is required',
+      'string.max': 'Ownership comment must not exceed 500 characters',
+    }),
+  }),
+  file: Joi.any().required().meta({ fileField: true }).label('Proof Document'),
+};
+
 
 export const adminVerificationRequestResponseSchema = {
   body: Joi.object({

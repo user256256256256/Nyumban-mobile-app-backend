@@ -94,37 +94,63 @@ export const getTourRequests = async (userId) => {
 
 };
 
-export const cancelTourRequest = async (userId, tourId) => {
+export const cancelTourRequests = async (userId, tourIds = []) => {
+  const updates = [];
 
-  const tour = await prisma.property_tour_requests.findFirst({
-    where: {
-      id: tourId,
-      requester_id: userId,
-      is_deleted: false,
-    },
-  });
+  for (const tourId of tourIds) {
+    const tour = await prisma.property_tour_requests.findFirst({
+      where: { id: tourId, requester_id: userId, is_deleted: false },
+    });
 
-  if (!tour)  throw new NotFoundError('Tour request not found', { field: 'Tour ID' });
+    if (!tour || tour.status !== 'pending') continue;
 
-  if (tour.status !== 'pending') {
-    throw new ForbiddenError('Only pending tour requests can be cancelled', { field: 'Tour ID', } );    
+    updates.push(
+      prisma.property_tour_requests.update({
+        where: { id: tourId },
+        data: { status: 'cancelled' },
+      })
+    );
   }
 
-  const updated = await prisma.property_tour_requests.update({
-    where: { id: tourId },
-    data: { status: 'cancelled', updated_at: new Date(), is_deleted: true, deleted_at: new Date(), },
-  });
+  const results = await prisma.$transaction(updates);
+  const cancelled = results.map(t => ({ tour_id: t.id, status: t.status }));
 
   return {
-    tour_id: updated.id,
-    status: updated.status,
-    message: 'Tour request cancelled and removed',
+    cancelled,
+    message: `${cancelled.length} tour request(s) cancelled `,
   };
+};
 
-}
+
+export const deleteTourRequests = async (userId, tourIds = []) => {
+  const deletions = [];
+
+  for (const tourId of tourIds) {
+    const tour = await prisma.property_tour_requests.findFirst({
+      where: { id: tourId, requester_id: userId, is_deleted: false },
+    });
+
+    if (!tour || tour.status !== 'pending') continue;
+
+    deletions.push(
+      prisma.property_tour_requests.delete({ where: { id: tourId } })
+    );
+  }
+
+  const results = await prisma.$transaction(deletions);
+  const deleted = results.map(t => ({ tour_id: t.id }));
+
+  return {
+    deleted,
+    message: `${deleted.length} tour request(s) permanently deleted`,
+  };
+};
+
+
 
 export default {
   tourRequest,
   getTourRequests,
-  cancelTourRequest
+  cancelTourRequests,
+  deleteTourRequests,
 }

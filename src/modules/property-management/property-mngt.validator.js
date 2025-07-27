@@ -24,6 +24,17 @@ export const getPropertyDetailsSchema = {
   }),
 };
 
+export const deletePropertiesSchema = {
+  body: Joi.object({
+    property_ids: Joi.array().items(Joi.string().uuid()).min(1).required().label('Property IDs').messages({
+      'array.base': 'Property IDs must be an array',
+      'array.min': 'At least one property ID is required',
+      'string.uuid': 'Each Property ID must be a valid UUID',
+    }),
+  }),
+};
+
+
 // ✏️ Body: Edit Property
 export const editPropertySchema = {
   body: Joi.object({
@@ -132,5 +143,40 @@ export const unitParamSchema = {
       'string.uuid': 'Unit ID must be a valid UUID',
       'any.required': 'Unit ID is required',
     }),
+  }),
+};
+
+export const deleteUnitsBatchSchema = Joi.object({
+  unitIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
+});
+
+export const recoverPropertiesSchema = {
+  body: Joi.object({
+    property_ids: Joi.array()
+      .items(Joi.string().uuid())
+      .min(1)
+      .required()
+      .label('Property IDs')
+      .messages({
+        'array.base': 'Property IDs must be an array',
+        'array.min': 'At least one property ID is required',
+        'string.uuid': 'Each Property ID must be a valid UUID',
+      }),
+  }),
+};
+
+
+export const recoverUnitsSchema = {
+  body: Joi.object({
+    unit_ids: Joi.array()
+      .items(Joi.string().uuid())
+      .min(1)
+      .required()
+      .label('Unit IDs')
+      .messages({
+        'array.base': 'Unit IDs must be an array',
+        'array.min': 'At least one Unit ID is required',
+        'string.uuid': 'Each Unit ID must be a valid UUID',
+      }),
   }),
 };

@@ -167,6 +167,13 @@ export const getUserEngagedProperties = async (userId, type, offset, limit) => {
   return engagements.map(e => e.property);
 };
 
+/* 
+* POSTPONED TO V2 
+* Distance features and geolocation are part of the upcoming 
+* version once structured data is guaranteed.
+* Use Open Cage Node.js with
+* Google Places Autocomplete API in UI → save full address + lat/long during entry → avoid fake inputs.
+*/
 export const getDistanceToProperty = async (propertyId, userLat, userLon) => {
   const property = await prisma.properties.findUnique({
     where: { id: propertyId },

@@ -66,3 +66,21 @@ export const submitVerificationBadgePaymentHandler = async (req, res) => {
         return handleControllerError(res, error, 'PAYMENT_INITIATION_ERROR', 'Failed to initiate payment request');
     }
 }
+
+export const updateVerificationRequestHandler = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const file = req.file;
+        const { ownership_comment } = req.body;
+    
+        const result = await AccountVerificationService.updateVerificationRequest({
+          userId,
+          ownership_comment,
+          file
+        });
+    
+        return success(res, result, 'Verification request updated successfully');
+    } catch (error) {
+        return handleControllerError(res, error, 'UPDATE_VERIFICATION_REQUEST_ERROR', 'Failed to update verification request');
+    }
+}

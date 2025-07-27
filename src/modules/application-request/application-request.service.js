@@ -162,37 +162,59 @@ export const getApplicationRequest = async(userId) => {
   }));
 }
 
-export const cancelApplication = async (userId, applicationId) => {
-  const application = await prisma.property_applications.findFirst({
-    where: {
-      id: applicationId,
-      user_id: userId,
-      is_deleted: false
-    },
-  })
+export const cancelApplicationBatch = async (userId, applicationIds = []) => {
+  const updates = [];
 
-  if (!application) throw new NotFoundError('Application not found', { field: 'Application ID' })
+  for (const id of applicationIds) {
+    const app = await prisma.property_applications.findFirst({
+      where: { id, user_id: userId, is_deleted: false },
+    });
 
-  if (application.status !== 'pending') throw new ValidationError('Application cannot be cancelled after approval or rejection', { field: 'Application Id' })
+    if (!app || app.status !== 'pending') continue;
 
-  const updated = await prisma.property_applications.update({
-    where: { id: applicationId },
-    data: {
-      status: 'cancelled',
-      is_deleted: true,
-      deleted_at: new Date(),
-    },
-  })
-
-  return {
-    message: 'Application cancelled and removed',
-    application_id: updated.id,
-    status: updated.status,
+    updates.push(
+      prisma.property_applications.update({
+        where: { id },
+        data: {
+          status: 'cancelled',
+        },
+      })
+    );
   }
-}
+
+  const results = await prisma.$transaction(updates);
+  return {
+    cancelled: results.map(a => ({ application_id: a.id, status: a.status })),
+    message: `${results.length} application(s) cancelled`,
+  };
+};
+
+export const deleteApplicationBatch = async (userId, applicationIds = []) => {
+  const deletions = [];
+
+  for (const id of applicationIds) {
+    const app = await prisma.property_applications.findFirst({
+      where: { id, user_id: userId, is_deleted: false },
+    });
+
+    if (!app || app.status !== 'pending') continue;
+
+    deletions.push(
+      prisma.property_applications.delete({ where: { id } })
+    );
+  }
+
+  const results = await prisma.$transaction(deletions);
+  return {
+    deleted: results.map(a => ({ application_id: a.id })),
+    message: `${results.length} application(s) permanently deleted`,
+  };
+};
+
 
 export default {
   applicationRequest,
   getApplicationRequest,
-  cancelApplication
+  cancelApplicationBatch,
+  deleteApplicationBatch
 };

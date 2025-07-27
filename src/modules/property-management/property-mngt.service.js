@@ -1,7 +1,7 @@
 import slugify from 'slugify';
 import prisma from '../../prisma-client.js';
 import OTPService from '../auth/otp.service.js';
-import { uploadToStorage, uploadMultipleImages, upload3DTourFile } from '../../common/services/s3.service.js';
+import { uploadToStorage, uploadMultipleImages, upload3DTourFile, deleteFromStorage } from '../../common/services/s3.service.js';
 
 import {
     ValidationError,
@@ -82,7 +82,7 @@ export const getPropertyDetails = async (propertyId) => {
     }
   });
 
-  if (!property) throw new NotFoundError('Property not found');
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID'});
   const hasUnits = property.has_units;
 
   const applications = property.property_applications || [];
@@ -163,7 +163,7 @@ export const getPropertyDetails = async (propertyId) => {
 
 export const updatePropertyDetails = async (propertyId, data) => {
   const existing = await prisma.properties.findUnique({ where: { id: propertyId, is_deleted: false } });
-  if(!existing) throw new NotFoundError('Property Not Found');
+  if(!existing) throw new NotFoundError('Property Not Found', { field: 'Property ID'});
 
   const updated = await prisma.properties.update({
     where: { id: propertyId },
@@ -288,7 +288,7 @@ export const updatePropertyStatus = async (propertyId, status) => {
 
 export const updatePropertyUnitStatus = async (unitId, status) => {
   const unit = await prisma.property_units.findUnique({ where: { id: unitId } });
-  if (!unit) throw new NotFoundError('Property unit not found');
+  if (!unit) throw new NotFoundError('Property unit not found', { field: 'Unit ID'});
 
   const updated = await prisma.property_units.update({
     where: ({ id: unitId }),
@@ -307,7 +307,7 @@ export const generateShareLink = async (propertyId) => {
     select: { id: true, property_name: true }
   });
 
-  if(!property) throw new NotFoundError('Property not found')
+  if(!property) throw new NotFoundError('Property not found', { field: 'Property ID'})
 
   const slug = slugify(property.property_name || 'property', {
     lower: true,
@@ -320,32 +320,160 @@ export const generateShareLink = async (propertyId) => {
   return { property_name: property.property_name, url: shareUrl }
 }
 
-export const confirmOtpAndDeleteProperty = async (userId, propertyId, otpCode, identifier) => {
-  const property = await prisma.properties.findUnique({
-    where: { id: propertyId },
-    select: { owner_id: true, is_deleted: true },
-  });
-  if (!property || property.is_deleted) throw new NotFoundError('Property not found or already deleted');
-  if (property.owner_id !== userId) throw new ForbiddenError('Access denied', { field: 'User ID' });
-
-  if (!identifier) throw new ValidationError('Identifier (email or phone) is required', { field: 'Identifier' });
+export const confirmOtpAndDeleteProperty = async (userId, propertyIds = [], otpCode, identifier) => {
+  if (!identifier) {
+    throw new ValidationError('Identifier (email or phone) is required', { field: 'Identifier' });
+  }
 
   const isValidOtp = await OTPService.verifyOtp(identifier, otpCode);
-  if (!isValidOtp) throw new AuthError('Invalid or expired OTP code');
+  if (!isValidOtp) {
+    throw new AuthError('Invalid or expired OTP code', { field: 'Otp' } );
+  }
 
   const now = new Date();
-  await prisma.properties.update({
-    where: { id: propertyId },
-    data: {
+  const deletedResults = [];
+
+  for (const propertyId of propertyIds) {
+    const property = await prisma.properties.findUnique({
+      where: { id: propertyId },
+      select: { owner_id: true, is_deleted: true },
+    });
+
+    if (!property || property.is_deleted) continue;
+    if (property.owner_id !== userId) continue;
+
+    await prisma.properties.update({
+      where: { id: propertyId },
+      data: {
+        is_deleted: true,
+        deleted_at: now,
+        status: 'archived',
+        updated_at: now,
+      },
+    });
+
+    await prisma.property_units.updateMany({
+      where: { property_id: propertyId },
+      data: {
+        is_deleted: true,
+        deleted_at: now,
+        updated_at: now,
+      },
+    });
+
+    deletedResults.push({ property_id: propertyId, status: 'deleted' });
+  }
+
+  return { deleted: deletedResults };
+};
+
+export const permanentlyDeleteProperty = async (userId, propertyIds = []) => {
+  const deletedResults = [];
+
+  for (const propertyId of propertyIds) {
+    const property = await prisma.properties.findUnique({
+      where: { id: propertyId },
+      select: { owner_id: true, is_deleted: true },
+    });
+
+    if (!property || !property.is_deleted) continue;
+    if (property.owner_id !== userId) continue;
+
+    const deleted = await prisma.properties.delete({ where: { id: propertyId } });
+    deletedResults.push({ property_id: deleted.id });
+  }
+
+  return { deleted: deletedResults };
+};
+
+
+export const permanentlyDeleteAllArchivedProperties = async (userId) => {
+
+  const archivedProperties = await prisma.properties.findMany({
+    where: {
+      owner_id: userId,
       is_deleted: true,
-      deleted_at: now,
-      status: 'archived',
-      updated_at: now,
     },
+    select: { id: true },
   });
+
+  if (archivedProperties.length === 0) {
+    throw new NotFoundError('No archived properties found for permanent deletion');
+  }
+
+  const propertyIds = archivedProperties.map(p => p.id);
+
+  await prisma.properties.deleteMany({
+    where: { id: { in: propertyIds } }
+  });
+
+  return { deleted_count: propertyIds.length };
+};
+
+export const deletePropertyImages = async (userId, imageIds) => {
+  // Find the images including URLs
+  const images = await prisma.property_images.findMany({
+    where: { 
+      id: { in: imageIds }
+    },
+    select: {
+      id: true,
+      property_id: true,
+      image_url: true,
+    }
+  });
+
+  if (images.length === 0) {
+    throw new NotFoundError('No property images found for deletion', { field: 'Images' });
+  }
+
+  // Check ownership of each image's property
+  const propertyIds = [...new Set(images.map(img => img.property_id))];
+  const properties = await prisma.properties.findMany({
+    where: {
+      id: { in: propertyIds },
+      owner_id: userId,
+    },
+    select: { id: true }
+  });
+
+  if (properties.length !== propertyIds.length) {
+    throw new ForbiddenError('You do not have permission to delete some images');
+  }
+
+  // Delete files from storage for each image URL
+  await Promise.all(
+    images
+      .filter(img => img.image_url)
+      .map(img => deleteFromStorage(img.image_url))
+  );
+
+  // Now delete the image records from DB
+  const deleted = await prisma.property_images.deleteMany({
+    where: { id: { in: imageIds } }
+  });
+
+  return { deleted_count: deleted.count };
+};
+
+export const deleteSelectedUnits = async ( unitIds) => {
+  if (!unitIds || unitIds.length === 0) {
+    throw new ValidationError('No units selected for deletion', { field: 'Unit ID(s)'});
+  }
+
+  const units = await prisma.property_units.findMany({
+    where: { id: { in: unitIds }, is_deleted: false },
+    select: { id: true, property_id: true },
+  });
+
+  if (units.length === 0) {
+    throw new NotFoundError('No valid units found to delete');
+  }
+
+  const now = new Date();
 
   await prisma.property_units.updateMany({
-    where: { property_id: propertyId },
+    where: { id: { in: units.map(u => u.id) } },
     data: {
       is_deleted: true,
       deleted_at: now,
@@ -353,8 +481,218 @@ export const confirmOtpAndDeleteProperty = async (userId, propertyId, otpCode, i
     },
   });
 
-  return { property_id: propertyId, status: 'deleted' };
+  const affectedPropertyIds = [...new Set(units.map(u => u.property_id))];
+
+  for (const propertyId of affectedPropertyIds) {
+    const activeUnits = await prisma.property_units.count({
+      where: {
+        property_id: propertyId,
+        is_deleted: false,
+      },
+    });
+
+    if (activeUnits === 0) {
+      await prisma.properties.update({
+        where: { id: propertyId },
+        data: { has_units: false },
+      });
+    }
+  }
+
+  return { deleted_count: units.length };
 };
+
+export const permanentlyDeleteSelectedUnits = async (userId, unitIds) => {
+  const units = await prisma.property_units.findMany({
+    where: {
+      id: { in: unitIds },
+      is_deleted: true,
+    },
+    include: { properties: true }
+  });
+
+  const ownedUnits = units.filter(u => u.properties?.owner_id === userId);
+
+  if (ownedUnits.length === 0) {
+    throw new NotFoundError('No deletable units found for this user');
+  }
+
+  await prisma.property_units.deleteMany({
+    where: { id: { in: ownedUnits.map(u => u.id) } },
+  });
+
+  return { deleted_count: ownedUnits.length };
+};
+
+export const permanentlyDeleteAllArchivedUnits = async (userId) => {
+  const units = await prisma.property_units.findMany({
+    where: {
+      is_deleted: true,
+      properties: { owner_id: userId }
+    },
+    select: { id: true }
+  });
+
+  if (units.length === 0) {
+    throw new NotFoundError('No archived units found to delete');
+  }
+
+  await prisma.property_units.deleteMany({
+    where: { id: { in: units.map(u => u.id) } }
+  });
+
+  return { deleted_count: units.length };
+};
+
+export const recoverPropertiesBatch = async (propertyIds = [], landlordId) => {
+  const recovered = [];
+
+  for (const id of propertyIds) {
+    const property = await prisma.properties.findFirst({
+      where: {
+        id,
+        owner_id: landlordId,
+        is_deleted: true,
+      },
+    });
+
+    if (!property) continue;
+
+    const updated = await prisma.properties.update({
+      where: { id },
+      data: {
+        is_deleted: false,
+        deleted_at: null,
+        updated_at: new Date(),
+      },
+    });
+
+    recovered.push({ property_id: updated.id, status: 'recovered' });
+  }
+
+  return {
+    recovered,
+    message: `${recovered.length} property(ies) recovered`,
+  };
+};
+
+export const recoverUnitsBatch = async (unitIds = [], landlordId) => {
+  const recovered = [];
+
+  for (const id of unitIds) {
+    const unit = await prisma.property_units.findFirst({
+      where: {
+        id,
+        is_deleted: true,
+        properties: {
+          owner_id: landlordId,
+        },
+      },
+      include: {
+        properties: true,
+      },
+    });
+
+    if (!unit) continue;
+
+    const updated = await prisma.property_units.update({
+      where: { id },
+      data: {
+        is_deleted: false,
+        deleted_at: null,
+        updated_at: new Date(),
+      },
+    });
+
+    recovered.push({ unit_id: updated.id, status: 'recovered' });
+  }
+
+  return {
+    recovered,
+    message: `${recovered.length} unit(s) recovered`,
+  };
+};
+
+
+export const delete3DTour = async (userId, propertyId) => {
+  const property = await prisma.properties.findUnique({
+    where: { id: propertyId },
+    select: {
+      owner_id: true,
+      tour_3d: true,
+      is_deleted: true,
+    },
+  });
+
+  if (!property || property.is_deleted) {
+    throw new NotFoundError('Property not found or already deleted', { field: 'Property ID' });
+  }
+
+  if (property.owner_id !== userId) {
+    throw new ForbiddenError('You do not have permission to delete this 3D tour', { field: 'User ID' });
+  }
+
+  if (!property.tour_3d) {
+    return { message: 'No 3D tour to delete' };
+  }
+
+  // Use shared simulated storage deletion logic
+  await deleteFromStorage(property.tour_3d);
+
+  const updated = await prisma.properties.update({
+    where: { id: propertyId },
+    data: {
+      tour_3d: null,
+      updated_at: new Date(),
+    },
+  });
+
+  return {
+    property_id: updated.id,
+    message: '3D tour removed successfully',
+  };
+};
+
+export const deletePropertyThumbnail = async (userId, propertyId) => {
+  const property = await prisma.properties.findUnique({
+    where: { id: propertyId },
+    select: {
+      owner_id: true,
+      thumbnail_image_path: true,
+      is_deleted: true,
+    },
+  });
+
+  if (!property || property.is_deleted) {
+    throw new NotFoundError('Property not found or already deleted', { field: 'Property ID' });
+  }
+
+  if (property.owner_id !== userId) {
+    throw new ForbiddenError('You do not have permission to delete this thumbnail', { field: 'User ID' });
+  }
+
+  if (!property.thumbnail_image_path) {
+    return { message: 'No thumbnail to delete' };
+  }
+
+  // Delete file from storage
+  await deleteFromStorage(property.thumbnail_image_path);
+
+  // Update DB to remove thumbnail
+  const updated = await prisma.properties.update({
+    where: { id: propertyId },
+    data: {
+      thumbnail_image_path: null,
+      updated_at: new Date(),
+    },
+  });
+
+  return {
+    property_id: updated.id,
+    message: 'Thumbnail deleted successfully',
+  };
+};
+
 
 export default {
   getLandlordProperties, 
@@ -369,4 +707,13 @@ export default {
   updatePropertyUnitStatus, 
   generateShareLink,
   confirmOtpAndDeleteProperty, 
+  permanentlyDeleteProperty,
+  permanentlyDeleteAllArchivedProperties,
+  deletePropertyImages, 
+  permanentlyDeleteSelectedUnits,
+  permanentlyDeleteAllArchivedUnits,
+  recoverPropertiesBatch,
+  recoverUnitsBatch,
+  delete3DTour,
+  deletePropertyThumbnail,
 };
