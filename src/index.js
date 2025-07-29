@@ -9,6 +9,7 @@ import './cron/scheduler.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js'
 import supportRoutes from './modules/support/support.route.js'
+import analyticsRoutes from './modules/analytics/analytics.routes.js'
 import tourRequestRoutes from './modules/tour-request/tour-request.route.js'
 import addPropertyRoutes from './modules/add-property/add-propery.routes.js'
 import evictTenantRoutes from './modules/evict-tenant/evict-tenant.routes.js'
@@ -44,6 +45,7 @@ const PORT = process.env.PORT || 5050;
 app.use(`${BASE_ROUTE_VERSION_1}/auth`, authRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/user`, userRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/support`, supportRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/analytics`, analyticsRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/add-property`, addPropertyRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/evict-tenant`, evictTenantRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/tour-request`, tourRequestRoutes);

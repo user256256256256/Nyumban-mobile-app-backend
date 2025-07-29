@@ -32,3 +32,4 @@ cron.schedule('0 4 * * 0', async () => {
     console.error('Error during notification cleanup cron:', error);
   }
 });
+

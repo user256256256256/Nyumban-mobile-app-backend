@@ -46,3 +46,37 @@ export const cancelAgreementHandler = async (req, res) => {
     return handleControllerError(res, error, 'CANCEL_AGREEMENT_ERROR', 'Failed to cancel agreement');
   }
 }
+
+export const deleteRentalAgreementHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { agreementId } = req.params;
+    const result = await RentalAgreementService.deleteAgreement(userId, agreementId);
+    return success(res, result, 'Agreement deleted successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'DELETE_AGREEMENT_ERROR');
+  }
+};
+
+export const deleteRentalAgreementsBatchHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { agreementIds } = req.body;
+    const result = await RentalAgreementService.deleteAgreementsBatch(userId, agreementIds);
+    return success(res, result, 'Agreements deleted successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'DELETE_AGREEMENTS_BATCH_ERROR');
+  }
+};
+
+export const cancelRentalAgreementsHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { agreementIds } = req.body;
+    const result = await RentalAgreementService.cancelAgreements(userId, agreementIds);
+    return success(res, result, 'Agreements cancelled successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'CANCEL_AGREEMENTS_ERROR');
+  }
+};
+

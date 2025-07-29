@@ -5,16 +5,24 @@ import { authorizeRoles } from '../../common/middleware/authorize-role.middlewar
 import {
     getLeaseAgreementHandler,
     getTenantAgreementsHandler,
-    cancelAgreementHandler
+    cancelAgreementHandler,
+    deleteRentalAgreementHandler,
+    deleteRentalAgreementsBatchHandler,
+    cancelRentalAgreementsHandler
 } from './agreement-management-tenant.controller.js';
 
 import { validate } from '../../common/middleware/validate.middleware.js';
-import { getLeaseAgreementSchema, cancelAgreementSchema } from './agreement-management-tenant.validator.js';
+import { propertyAgreementSchema, cancelAgreementSchema } from './agreement-management-tenant.validator.js';
 
 const router = express.Router();
 
 router.get('/tenants-agreements', authenticate, authorizeRoles('tenant'), getTenantAgreementsHandler);
-router.get('/properties/:propertyId', authenticate, authorizeRoles('tenant'), validate(getLeaseAgreementSchema), getLeaseAgreementHandler);
+router.get('/properties/:propertyId', authenticate, authorizeRoles('tenant'), validate(propertyAgreementSchema), getLeaseAgreementHandler);
 router.patch('/:agreementId/cancel', authenticate, authorizeRoles('tenant'), validate(cancelAgreementSchema), cancelAgreementHandler);
+router.delete('/:agreementId/delete', authenticate, authorizeRoles('tenant', 'landlord'), validate(propertyAgreementSchema), deleteRentalAgreementHandler);
+router.delete('/delete', authenticate, authorizeRoles('tenant', 'landlord'), deleteRentalAgreementsBatchHandler);
+router.patch('/cancel', authenticate, authorizeRoles('tenant'), cancelRentalAgreementsHandler);
+
+
 
 export default router;

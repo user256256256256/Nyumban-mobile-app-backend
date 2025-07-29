@@ -100,6 +100,8 @@ model properties {
   property_website           String?
   likes                      Int?
   saves                      Int?
+  application_requests       Int?                    
+  tour_requests              Int?                     
   ownership_file_path        String?
   has_units                  Boolean?                 @default(false)
   is_promoted                Boolean?                 @default(false)

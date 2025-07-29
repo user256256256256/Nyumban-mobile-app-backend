@@ -15,7 +15,7 @@ export const landlordPropertySchema = {
 };
 
 // 📄 Params: Property ID
-export const getPropertyDetailsSchema = {
+export const propertyParamSchema = {
   params: Joi.object({
     propertyId: Joi.string().uuid().required().label('Property ID').messages({
       'string.uuid': 'Property ID must be a valid UUID',

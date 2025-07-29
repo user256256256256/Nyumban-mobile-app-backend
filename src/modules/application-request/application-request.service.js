@@ -120,6 +120,16 @@ export const applicationRequest = async (payload, userId) => {
     }
   });
 
+  // 6. Increment application_requests count
+  await prisma.properties.update({
+    where: { id: propertyId },
+    data: {
+      application_requests: {
+        increment: 1
+      }
+    }
+  });
+
   return { application };
 };
 

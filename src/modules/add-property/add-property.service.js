@@ -196,7 +196,24 @@ export const addUnitToProperty = async (propertyId, unitData) => {
     include: { property_units: true },
   });
 
-  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
+  if (!property) {
+    throw new NotFoundError('Property not found', { field: 'Property ID' });
+  }
+
+  const existingUnit = await prisma.property_units.findFirst({
+    where: {
+      property_id: propertyId,
+      unit_number: unitData.unit_number,
+      is_deleted: false,
+    },
+  });
+
+  if (existingUnit) {
+    throw new ValidationError(
+      `Unit number "${unitData.unit_number}" already exists in this property`,
+      { field: 'Unit number' }
+    );
+  }
 
   const unit = await prisma.property_units.create({
     data: {
@@ -212,7 +229,7 @@ export const addUnitToProperty = async (propertyId, unitData) => {
     },
   });
 
-  // If this is the first unit, update has_units to true
+  // ✅ If this is the first unit, set has_units = true
   if (property.property_units.length === 0) {
     await prisma.properties.update({
       where: { id: propertyId },
@@ -222,7 +239,6 @@ export const addUnitToProperty = async (propertyId, unitData) => {
 
   return unit;
 };
-
 
 export default {
   addOwnershipInfo,

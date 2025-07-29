@@ -258,3 +258,28 @@ export const deletePropertyThumbnailHandler = async (req, res, next) => {
     return handleControllerError(res, error, 'DELETE_THUMBNAIL_ERROR', 'Failed to delete property thumbnail');
   }
 };
+
+export const getPropertyUnitsHandler = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { propertyId } = req.params;
+
+    const result = await PropertyManagementService.getPropertyUnits(userId, propertyId);
+
+    return success(res, result, 'Property units fetched successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'GET_PROPERTY_UNITS_ERROR', 'Failed to fetch property units');
+  }
+};
+
+export const getPropertyUnitHandler = async (req, res, next) => {
+  try {
+    const { unitId } = req.params;
+
+    const result = await PropertyManagementService.getPropertyUnit(unitId);
+
+    return success(res, result, 'Property unit fetched successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'GET_PROPERTY_UNIT_ERROR', 'Failed to fetch property unit');
+  }
+};

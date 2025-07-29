@@ -48,6 +48,16 @@ export const tourRequest = async (requesterId, propertyId, message) => {
         }
     })
 
+    await prisma.properties.update({
+      where: { id: propertyId },
+      data: {
+        tour_requests: {
+          increment: 1
+        }
+      }
+    });
+    
+
     return { tour_id: tour.id, status: tour.status, message: tour.message, requested_date: tour.created_at, property_name: property.property_name, property_thumbnail: property.thumbnail_image_path }
 }
 

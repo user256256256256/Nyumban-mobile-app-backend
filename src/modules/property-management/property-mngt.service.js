@@ -693,6 +693,98 @@ export const deletePropertyThumbnail = async (userId, propertyId) => {
   };
 };
 
+export const getPropertyUnits = async (userId, propertyId) => {
+  const property = await prisma.properties.findUnique({
+    where: { id: propertyId },
+    select: {
+      id: true,
+      property_name: true,
+      thumbnail_image_path: true,
+      owner_id: true,
+      property_units: {
+        where: {
+          is_deleted: false,
+        },
+        orderBy: {
+          created_at: 'desc',
+        },
+        select: {
+          id: true,
+          unit_number: true,
+          status: true,
+          price: true,
+          bedrooms: true,
+          bathrooms: true,
+          description: true,
+          created_at: true,
+          updated_at: true,
+        },
+      },
+    },
+  });
+
+  if (!property) {
+    throw new NotFoundError('Property not found', { field: 'Property ID' });
+  }
+
+  if (property.owner_id !== userId) throw new AuthError('Access Denied', { field: 'User ID' })
+
+  return {
+    property_id: property.id,
+    property_name: property.property_name,
+    total_units: property.property_units.length,
+    units: property.property_units,
+  };
+};
+
+export const getPropertyUnit = async (unitId) => {
+  const unit = await prisma.property_units.findUnique({
+    where: { id: unitId },
+    select: {
+      id: true,
+      unit_number: true,
+      status: true,
+      price: true,
+      bedrooms: true,
+      bathrooms: true,
+      description: true,
+      created_at: true,
+      updated_at: true,
+      is_deleted: true,
+      properties: {
+        select: {
+          id: true,
+          is_deleted: true,
+          property_name: true,
+          thumbnail_image_path: true,
+        }
+      },
+    }
+  });
+
+  if (!unit || unit.is_deleted || unit.properties?.is_deleted) {
+    throw new NotFoundError('Unit not found or associated property is deleted', { field: 'Unit ID' });
+  }
+
+  return {
+    id: unit.id,
+    unit_number: unit.unit_number,
+    status: unit.status,
+    price: unit.price,
+    bedrooms: unit.bedrooms,
+    bathrooms: unit.bathrooms,
+    description: unit.description,
+    created_at: unit.created_at,
+    updated_at: unit.updated_at,
+    property: {
+      id: unit.properties.id,
+      name: unit.properties.property_name,
+      thumbnail: unit.properties.thumbnail_image_path,
+    }
+  };
+};
+
+
 
 export default {
   getLandlordProperties, 
@@ -716,4 +808,6 @@ export default {
   recoverUnitsBatch,
   delete3DTour,
   deletePropertyThumbnail,
+  getPropertyUnits,
+  getPropertyUnit,
 };

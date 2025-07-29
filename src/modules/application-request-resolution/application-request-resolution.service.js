@@ -107,11 +107,25 @@ export const getLandlordApplicationRequests = async (landlordId, status) => {
 };
 
 export const resolveApplicationRequest = async (landlordId, applicationId, action, reason) => {
-  const applicationRequest = await prisma.property_applications.findUnique({ 
+  const applicationRequest = await prisma.property_applications.findUnique({
     where: { id: applicationId },
     include: {
-      properties: true
-    } 
+      properties: {
+        select: {
+          id: true,
+          owner_id: true,
+          has_agreement: true,
+          has_units: true,
+        }
+      },
+      property_units: {
+        select: {
+          id: true,
+          is_deleted: true,
+          status: true,
+        }
+      }
+    }
   });
 
   if (!applicationRequest) throw new NotFoundError('Application request not found', { field: 'Application ID' });
@@ -119,6 +133,14 @@ export const resolveApplicationRequest = async (landlordId, applicationId, actio
   if (!applicationRequest.properties?.has_agreement) 
     throw new ValidationError('Attach agreement before resolving application', { field: `has_agreement: ${applicationRequest.properties?.has_agreement}`}) // Send notification here 
   if (applicationRequest.status !== 'pending') throw new ForbiddenError('Application request has already been resolved and cannot be modified', { field: 'Application Status' })
+
+  if (properties.has_units) {
+    if (!property_units) throw new NotFoundError('Application references a unit, but no unit found', { field: 'Unit ID' });
+
+    if (property_units.is_deleted || property_units.status !== 'available') {
+      throw new ForbiddenError('Unit is not available for approval', { field: 'Unit status' });
+    }
+  }
 
   const updated = await prisma.property_applications.update({
     where: { id: applicationId },
@@ -135,6 +157,6 @@ export const resolveApplicationRequest = async (landlordId, applicationId, actio
 }
 
 export default {
-  getLandlordApplicationRequests,
   resolveApplicationRequest,
-};
+  getLandlordApplicationRequests,
+}

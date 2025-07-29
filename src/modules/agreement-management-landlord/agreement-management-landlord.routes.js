@@ -15,11 +15,8 @@ import { shareAgreementSchema, terminateAgreementSchema, downloadAgreementSchema
 const router = express.Router();
 
 router.get('/agreements', authenticate, authorizeRoles('landlord'), getAllLandlordAgreementsHandler);
-
-router.post('/:agreementId/share', authenticate, authorizeRoles('landlord'), validate(shareAgreementSchema), generateAgreementShareLinkHandler);
-
-router.get('/:agreementId/download', authenticate, authorizeRoles('landlord'), validate(downloadAgreementSchema), downloadAgreementPdfHandler);
-
-router.post('/:agreementId/terminate', authenticate, authorizeRoles('landlord'), validate(terminateAgreementSchema), terminateAgreementHandler);
+router.post('/:agreementId/share', authenticate, authorizeRoles('landlord', 'tenant'), validate(shareAgreementSchema), generateAgreementShareLinkHandler);
+router.get('/:agreementId/download', authenticate, authorizeRoles('landlord', 'tenant'), validate(downloadAgreementSchema), downloadAgreementPdfHandler);
+router.post('/:agreementId/terminate', authenticate, authorizeRoles('landlord', 'tenant'), validate(terminateAgreementSchema), terminateAgreementHandler);
 
 export default router;

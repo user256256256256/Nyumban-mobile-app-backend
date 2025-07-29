@@ -1,6 +1,6 @@
 import Joi from 'joi';
 
-export const getLeaseAgreementSchema = {
+export const propertyAgreementSchema = {
   params: Joi.object({
     propertyId: Joi.string().uuid().required().label('Property ID'),
   }),
