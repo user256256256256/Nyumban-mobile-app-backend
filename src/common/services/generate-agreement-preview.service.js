@@ -2,7 +2,7 @@ import prisma from '../../prisma-client.js';
 import Handlebars from 'handlebars';
 import {
     NotFoundError,
-} from '../../common/services/errors-builder.service.js';
+} from './errors-builder.service.js';
 
 export const generateAgreementPreview = async (agreementId) => {
   const agreement = await prisma.rental_agreements.findUnique({
@@ -55,7 +55,6 @@ export const generateAgreementPreview = async (agreementId) => {
     // 📄 Agreement Info
     security_deposit: agreement.security_deposit ?? '0',
     utility_responsibility: agreement.utility_responsibilities ?? 'N/A',
-    lease_duration: '12 months', // Optional: compute if needed
     date_rented: agreement.start_date?.toLocaleDateString() ?? now.toLocaleDateString(),
     monthly_rent: agreement.property_units?.rent_amount ?? agreement.properties?.price ?? 'N/A',
     pet_policy: agreement.properties?.pet_policy ?? 'Not specified',
@@ -72,5 +71,5 @@ export const generateAgreementPreview = async (agreementId) => {
   const compiled = Handlebars.compile(template);
   const rendered_html = compiled(data);
 
-  return { rendered_html };
+  return  rendered_html ;
 };

@@ -24,7 +24,7 @@ export const EmailService = {
   },
 
   async sendSupportEmail({ fromEmail, fromName, subject, message }) {
-    const supportEmail = 'support@nyumban.com';
+    const supportEmail = 'support@nyumbanapp.com';
 
     const composedSubject = `[Support Request] ${subject}`;
     const composedBody = `From: ${fromName} <${fromEmail}>\n\nMessage:\n${message}`;

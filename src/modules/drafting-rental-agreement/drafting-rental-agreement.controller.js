@@ -1,6 +1,7 @@
 import { success } from '../../common/utils/response-builder.util.js';
 import DraftingRentalAgreementService from './drafting-rental-agreement.service.js';
 import { handleControllerError } from '../../common/utils/handle-controller-error.util.js';
+import { generateAgreementPreview } from '../../common/services/generate-agreement-preview.service.js'
 
 export const checkAgreementExistsHandler = async (req, res) => {
     try {
@@ -32,7 +33,7 @@ export const createOrUpdateDraftHandler = async (req, res) => {
 export const generateAgreementPreviewHandler = async (req, res) => {
     try {
         const { agreementId } = req.params;
-        const result = await DraftingRentalAgreementService.generateAgreementPreview(agreementId) 
+        const result = await generateAgreementPreview(agreementId) 
         return success(res, result, 'Agreement preview retrieved successfully')
     } catch (error) {
         handleControllerError(res, error, 'AGREEMENT_PREVIEW_ERROR', 'Failed to preview agreement')

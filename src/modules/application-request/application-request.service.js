@@ -46,7 +46,7 @@ export const applicationRequest = async (payload, userId) => {
     where: {
       property_id: propertyId,
       unit_id: property.has_units ? unitId : null,
-      user_id: userId,
+      tenant_id: userId,
       status: 'approved',
       is_deleted: false,
     }
@@ -60,7 +60,7 @@ export const applicationRequest = async (payload, userId) => {
     where: {
       property_id: propertyId,
       unit_id: property.has_units ? unitId : null,
-      user_id: userId,
+      tenant_id: userId,
       status: 'pending',
       is_deleted: false,
     }
@@ -112,7 +112,7 @@ export const applicationRequest = async (payload, userId) => {
       id: uuidv4(),
       property_id: propertyId,
       unit_id: property.has_units ? unitId : null,
-      user_id: userId,
+      tenant_id: userId,
       landlord_id: landlordId,
       status: 'pending',
       tenant_message: tenantMessage || null,
@@ -136,7 +136,7 @@ export const applicationRequest = async (payload, userId) => {
 export const getApplicationRequest = async(userId) => {
   const applications = await prisma.property_applications.findMany({
     where: {
-      user_id: userId,
+      tenant_id: userId,
       is_deleted: false,
     },
     orderBy: {

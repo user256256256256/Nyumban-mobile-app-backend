@@ -110,51 +110,91 @@ export const resolveApplicationRequest = async (landlordId, applicationId, actio
   const applicationRequest = await prisma.property_applications.findUnique({
     where: { id: applicationId },
     include: {
-      properties: {
-        select: {
-          id: true,
-          owner_id: true,
-          has_agreement: true,
-          has_units: true,
-        }
-      },
-      property_units: {
-        select: {
-          id: true,
-          is_deleted: true,
-          status: true,
-        }
-      }
+      properties: { select: { id: true, owner_id: true, has_agreement: true, has_units: true } },
+      property_units: { select: { id: true, is_deleted: true, status: true } },
     }
   });
 
   if (!applicationRequest) throw new NotFoundError('Application request not found', { field: 'Application ID' });
-  if (applicationRequest.landlord_id !== landlordId) throw new AuthError('You are not authorized to resolve this application', { field: 'Landlord Id' })
-  if (!applicationRequest.properties?.has_agreement) 
-    throw new ValidationError('Attach agreement before resolving application', { field: `has_agreement: ${applicationRequest.properties?.has_agreement}`}) // Send notification here 
-  if (applicationRequest.status !== 'pending') throw new ForbiddenError('Application request has already been resolved and cannot be modified', { field: 'Application Status' })
+  if (applicationRequest.landlord_id !== landlordId) throw new AuthError('You are not authorized to resolve this application', { field: 'Landlord Id' });
+  if (!applicationRequest.properties?.has_agreement) {
+    throw new ValidationError('Attach agreement before resolving application', { field: `has_agreement: ${applicationRequest.properties?.has_agreement}` });
+  }
+  if (applicationRequest.status !== 'pending') {
+    throw new ForbiddenError('Application request has already been resolved', { field: 'Application Status' });
+  }
 
-  if (properties.has_units) {
-    if (!property_units) throw new NotFoundError('Application references a unit, but no unit found', { field: 'Unit ID' });
-
-    if (property_units.is_deleted || property_units.status !== 'available') {
+  if (applicationRequest.properties.has_units) {
+    if (!applicationRequest.property_units) {
+      throw new NotFoundError('Application references a unit, but no unit found', { field: 'Unit ID' });
+    }
+    if (applicationRequest.property_units.is_deleted || applicationRequest.property_units.status !== 'available') {
       throw new ForbiddenError('Unit is not available for approval', { field: 'Unit status' });
     }
   }
 
-  const updated = await prisma.property_applications.update({
-    where: { id: applicationId },
-    data: {
-      status: action === 'approved' ? 'approved' : 'rejected',
-      landlord_message: action === 'rejected' ? reason : null,
-      reviewed_at: new Date(),
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedApplication = await tx.property_applications.update({
+      where: { id: applicationId },
+      data: {
+        status: action === 'approved' ? 'approved' : 'rejected',
+        landlord_message: action === 'rejected' ? reason : null,
+        reviewed_at: new Date(),
+      }
+    });
+
+    if (action === 'approved') {
+      const agreement = await tx.rental_agreements.findFirst({
+        where: { property_id: applicationRequest.property_id }
+      });
+
+      if (!agreement) throw new NotFoundError('No rental agreement found for this property', { field: 'Agreement' });
+      if (agreement.tenant_id) throw new ForbiddenError('This agreement already has a tenant assigned', { field: 'tenant_id' });
+
+      await tx.rental_agreements.update({
+        where: { id: agreement.id },
+        data: { tenant_id: applicationRequest.tenant_id, status: 'pending_payment' }
+      });
+
+      if (applicationRequest.properties.has_units) {
+        await tx.property_units.update({
+          where: { id: applicationRequest.property_units.id },
+          data: { status: 'reserved' }
+        });
+      } else {
+        await tx.properties.update({
+          where: { id: applicationRequest.property_id },
+          data: { status: 'reserved' }
+        });
+      }
+
+      await tx.property_applications.updateMany({
+        where: {
+          property_id: applicationRequest.property_id,
+          id: { not: applicationId },
+          status: 'pending',
+          ...(applicationRequest.properties.has_units ? { unit_id: applicationRequest.unit_id } : {}),
+        },
+        data: {
+          status: 'rejected',
+          landlord_message: 'Application rejected: another tenant was approved',
+          reviewed_at: new Date(),
+        }
+      });
     }
-  })
 
-  // 🔔 TODO: sendNotification(updated.user_id, status, reason) here
+    return updatedApplication;
+  });
 
-  return updated
-}
+  // 🔔 Notification service placeholder
+  // sendNotification(updated.tenant_id, updated.status, reason);
+
+  return updated;
+};
+
+
+
+
 
 export default {
   resolveApplicationRequest,

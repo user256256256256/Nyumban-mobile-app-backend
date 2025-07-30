@@ -159,7 +159,7 @@ model property_applications {
   id                                             String              @id @db.Uuid
   property_id                                    String?             @db.Uuid
   unit_id                                        String?             @db.Uuid
-  user_id                                        String?             @db.Uuid
+  tenant_id                                      String?             @db.Uuid
   landlord_id                                    String?             @db.Uuid
   status                                         application_status?
   tenant_message                                 String?
@@ -171,7 +171,7 @@ model property_applications {
   users_property_applications_landlord_idTousers users?              @relation("property_applications_landlord_idTousers", fields: [landlord_id], references: [id], onUpdate: NoAction, map: "fk_pa_landlord")
   properties                                     properties?         @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pa_property")
   property_units                                 property_units?     @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "fk_pa_unit")
-  users_property_applications_user_idTousers     users?              @relation("property_applications_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction, map: "fk_pa_user")
+  users_property_applications_tenant_idTousers   users?              @relation("property_applications_tenant_idTousers", fields: [tenant_id], references: [id], onUpdate: NoAction, map: "fk_pa_user")
 }
 
 model property_images {
@@ -283,10 +283,8 @@ model rental_agreements {
   status                                   agreement_status?
   security_deposit                         String? 
   utility_responsibilities                 String? 
-  file_path                                String?
   tenant_accepted_agreement                Boolean?                    @default(false)
   start_date                               DateTime?                   @db.Date
-  end_date                                 DateTime?                   @db.Date
   created_at                               DateTime?                   @default(now()) @db.Timestamp(6)
   updated_at                               DateTime?                   @db.Timestamp(6)
   deleted_at                               DateTime?                   @db.Timestamp(6)
@@ -392,7 +390,7 @@ model users {
   notifications                                                                  notifications[]
   properties                                                                     properties[]
   property_applications_property_applications_landlord_idTousers                 property_applications[]         @relation("property_applications_landlord_idTousers")
-  property_applications_property_applications_user_idTousers                     property_applications[]         @relation("property_applications_user_idTousers")
+  property_applications_property_applications_tenant_idTousers                   property_applications[]         @relation("property_applications_tenant_idTousers")
   property_promotions                                                            property_promotions[]
   property_tour_requests_property_tour_requests_owner_idTousers                  property_tour_requests[]        @relation("property_tour_requests_owner_idTousers")
   property_tour_requests_property_tour_requests_requester_idTousers              property_tour_requests[]        @relation("property_tour_requests_requester_idTousers")

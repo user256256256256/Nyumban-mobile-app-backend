@@ -198,7 +198,7 @@ export const initiateRentPayment = async ({ userId, payment_method, amount }) =>
     message: 'Payment successful',
     status: paymentType,
     transaction_id: payment.transaction_id,
-    receipt_url: `https://nyumban.com/receipts/RENT-${dayjs().format('YYYYMMDD')}-${Math.floor(Math.random() * 1000)}.pdf`,
+    receipt_url: `https://nyumbanapp.com/receipts/RENT-${dayjs().format('YYYYMMDD')}-${Math.floor(Math.random() * 1000)}.pdf`,
   };
 };
 

@@ -116,63 +116,17 @@ export const createOrSaveDraft = async (userId, propertyId, unitId, payload) => 
     });
   }
 
+  await prisma.properties.update({
+    where: { id: propertyId },
+    data: { has_agreement: true },
+  });
+
   return {
     agreement_id: agreement.id,
     status: agreement.status
   };
 
 }
-
-export const generateAgreementPreview = async (agreementId) => {
-  const agreement = await prisma.rental_agreements.findUnique({
-    where: { id: agreementId },
-    include: {
-      rental_agreement_templates: true,
-      properties: true,
-      property_units: true,
-      users_rental_agreements_owner_idTousers: {
-        include: {
-          landlord_profiles: true, // <-- Include landlord profile here
-        }
-      },
-      users_rental_agreements_tenant_idTousers: true,
-    }
-  });
-
-  if (!agreement) {
-    throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
-  }
-
-  const template = agreement.rental_agreement_templates?.template_html;
-
-  if (!template) {
-    throw new NotFoundError('Agreement template not found');
-  }
-
-  const data = {
-    agreement_id: agreement.id,
-    property_name: agreement.properties?.property_name,
-    unit_name: agreement.property_units?.unit_number,
-    owner_name: agreement.users_rental_agreements_owner_idTousers?.landlord_profiles?.full_names ?? 'N/A',
-    landlord_name: agreement.users_rental_agreements_owner_idTousers?.landlord_profiles?.full_names ?? 'N/A',
-    landlord_contact: agreement.users_rental_agreements_owner_idTousers?.phone_number ?? 'N/A',
-    security_deposit: agreement.security_deposit,
-    utility_responsibilities: agreement.utility_responsibilities,
-    status: agreement.status,
-    ugandan_badge_url: 'https://example.com/ugandan-badge.png',
-    nps_logo_url: 'https://example.com/nps-logo.png',
-    agreement_signed_date: new Date().toLocaleDateString(),
-    agreement_signed_time: new Date().toLocaleTimeString(),
-    agreement_signed_timestamp: new Date().toISOString()
-  };
-
-  const compiled = Handlebars.compile(template);
-  const rendered_html = compiled(data);
-
-  console.log('[Compiled HTML]', rendered_html);
-
-  return { rendered_html };
-};
 
 export const finalizeAgreement = async (userId, propertyId, unitId, status) => {
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });
@@ -217,6 +171,5 @@ export const finalizeAgreement = async (userId, propertyId, unitId, status) => {
 export default {
     checkAgreementExists,
     createOrSaveDraft,
-    generateAgreementPreview,
     finalizeAgreement,
 }

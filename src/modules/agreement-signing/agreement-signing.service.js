@@ -41,14 +41,14 @@ export const acceptAgreement = async (userId, agreementId, payload) => {
 export const processInitialRentPayment = async ({ userId, agreementId, payment_method }) => {
   const agreement = await prisma.rental_agreements.findUnique({
     where: { id: agreementId },
-    include: {
-      properties: true,
-      property_units: true,
-    },
+    include: { properties: true, property_units: true },
   });
 
   if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
   if (agreement.tenant_id !== userId) throw new AuthError('Unauthorized to pay for this agreement', { field: 'User ID' });
+  if (agreement.status !== 'pending_payment') {
+    throw new ForbiddenError('Agreement must be in pending payment state before payment');
+  }
   if (!agreement.tenant_accepted_agreement) {
     throw new ForbiddenError('Tenant must accept the agreement before making payment');
   }
@@ -60,10 +60,7 @@ export const processInitialRentPayment = async ({ userId, agreementId, payment_m
     userId,
     agreementId,
     amount: rentAmount,
-    metadata: {
-      propertyId: agreement.property_id,
-      unitId: agreement.unit_id,
-    },
+    metadata: { propertyId: agreement.property_id, unitId: agreement.unit_id },
   });
 
   const now = new Date();
@@ -71,8 +68,7 @@ export const processInitialRentPayment = async ({ userId, agreementId, payment_m
   const periodCovered = generatePeriodCovered(now);
   const nextPeriod = generatePeriodCovered(nextDueDate);
 
-  const [initialPayment, _agreementUpdate, _nextDue] = await prisma.$transaction([
-    // Completed payment record
+  const [initialPayment] = await prisma.$transaction([
     prisma.rent_payments.create({
       data: {
         id: uuidv4(),
@@ -92,19 +88,14 @@ export const processInitialRentPayment = async ({ userId, agreementId, payment_m
         updated_at: now,
       },
     }),
-
-    // Activate agreement
     prisma.rental_agreements.update({
       where: { id: agreementId },
       data: {
         status: 'active',
         start_date: now,
-        end_date: addMonthsToDate(now, 12),
         updated_at: now,
       },
     }),
-
-    // Create next due rent
     prisma.rent_payments.create({
       data: {
         id: uuidv4(),
@@ -124,20 +115,17 @@ export const processInitialRentPayment = async ({ userId, agreementId, payment_m
         updated_at: now,
       },
     }),
+    agreement.properties.has_units
+      ? prisma.property_units.update({ where: { id: agreement.unit_id }, data: { status: 'occupied' } })
+      : prisma.properties.update({ where: { id: agreement.property_id }, data: { status: 'occupied' } }),
   ]);
 
-  return {
-    rent_payment: initialPayment,
-    next_due_date: nextDueDate,
-    agreement_status: 'active',
-  };
+  return { rent_payment: initialPayment, next_due_date: nextDueDate, agreement_status: 'active' };
 };
 
-// Utility functions
-function addMonthsToDate(date, months) {
-  return dayjs(date).add(months, 'month').toDate();
-}
 
+
+// Utility functions
 function generatePeriodCovered(date = new Date()) {
   const d = dayjs(date);
   return `${d.year()}-${String(d.month() + 1).padStart(2, '0')}`;
