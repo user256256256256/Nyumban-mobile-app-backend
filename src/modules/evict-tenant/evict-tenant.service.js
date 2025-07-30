@@ -23,8 +23,6 @@ export const evictTenant = async ({ landlordId, tenantId, propertyId, unitId, re
   // 2. Create audit record (optional table — here inline)
   const terminatedAt = new Date();
 
-  // Delete tenant application record also 
-
   // 3. Update agreement status
   await prisma.rental_agreements.update({
     where: { id: agreement.id },
@@ -52,6 +50,20 @@ export const evictTenant = async ({ landlordId, tenantId, propertyId, unitId, re
     where: { id: agreement.id },
     data: { tenant_id: null },
   });
+
+  // 6. 🔔 Notify tenant about eviction
+  void (async () => {
+    try {
+      await triggerNotification(
+        tenantId,
+        'TENANT_EVICTED',
+        'You Have Been Evicted',
+        `Your lease for the property has been terminated by the landlord. Reason: ${reason || 'No reason provided.'}`
+      );
+    } catch (err) {
+      console.error(`Failed to send eviction notification for tenant ${tenantId}:`, err);
+    }
+  })();
 
   return {
     status: 'success',

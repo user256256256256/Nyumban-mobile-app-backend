@@ -271,6 +271,27 @@ export const getRentStatus = async ({ userId }) => {
   else if (amountPaid > 0 && amountPaid < rentAmount) status = 'partially_paid';
   else if (amountPaid >= rentAmount) status = 'paid';
 
+  void (async () => {
+    try {
+      await Promise.all([
+        triggerNotification(
+          userId,
+          'RENT_PAYMENT_PROCESSED',
+          'Rent Payment Received',
+          `Your rent payment of $${amount} has been processed successfully.`
+        ),
+        triggerNotification(
+          agreement.owner_id,
+          'RENT_PAYMENT_PROCESSED',
+          'Rent Payment Received',
+          `Tenant ${userId} has made a rent payment of $${amount} for your property ${agreement.properties.title || 'Property'}.`
+        ),
+      ]);
+    } catch (err) {
+      console.error(`Failed to send rent payment notifications for agreement ${agreement.id}:`, err);
+    }
+  })();
+
   return {
     property_id: activeAgreement.property_id,
     unit: unit?.unit_number || 'N/A',

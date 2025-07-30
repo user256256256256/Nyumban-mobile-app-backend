@@ -95,31 +95,55 @@ export const reviewVerificationRequest = async ({ requestId, status, review_note
   const updated = await prisma.account_verification_requests.update({
     where: { id: requestId },
     data: {
-      status: status,
+      status,
       comment: review_notes,
       verified_by: adminId,
       verification_date: new Date(),
       updated_at: new Date()
-    }
+    },
+    include: { users: true }
   });
 
-  // Send a notifiaction on approve and failed with detailed message 
+  // 🔔 Non-blocking notification
+  const title = status === 'approved'
+    ? 'Verification Request Approved'
+    : 'Verification Request Rejected';
+
+  const body = status === 'approved'
+    ? 'Your verification request has been approved. Please proceed with the payment to get your verification badge.'
+    : `Your verification request was rejected. ${review_notes || 'Please review your submission or contact support for assistance.'}`;
+
+  void (async () => {
+    try {
+      await triggerNotification(updated.user_id, 'VERIFICATION_REVIEW', title, body);
+    } catch (err) {
+      console.error('Failed to send notification:', err);
+    }
+  })();
+
   return {
     request_id: updated.id,
     status: updated.status,
-    message: 
+    message:
       status === 'approved'
         ? 'Proceed to payment to get verification badge.'
         : 'Sorry, review your submission or contact us for guidance.'
   };
 };
 
+
+
 export const submitVerificationBadgePayment = async ({ userId, phone_number, amount, currency }) => {
-  
-  const payment = await simulateFlutterwaveVerificationBadgePayment({ userId, payment_type: 'ACCOUNT_VERIFICATION', amount, currency, metadata: { phone_number }, });
+  const payment = await simulateFlutterwaveVerificationBadgePayment({
+    userId,
+    payment_type: 'ACCOUNT_VERIFICATION',
+    amount,
+    currency,
+    metadata: { phone_number },
+  });
 
   const request = await prisma.account_verification_requests.findFirst({
-    where: { user_id: userId, status: 'approved', payment_id: null, is_deleted: false, },
+    where: { user_id: userId, status: 'approved', payment_id: null, is_deleted: false },
     orderBy: { created_at: 'desc' },
   });
 
@@ -140,12 +164,26 @@ export const submitVerificationBadgePayment = async ({ userId, phone_number, amo
     data: { is_verified: true },
   });
 
+  void (async () => {
+    try {
+      await triggerNotification(
+        userId,
+        'VERIFICATION_PAYMENT_SUCCESS',
+        'Verification Badge Payment Successful',
+        'Your payment for the verification badge was successful. Your account and properties are now verified.'
+      );
+    } catch (err) {
+      console.error('Failed to send notification:', err);
+    }
+  })();
+
   return {
     message: 'Verification badge payment successful',
     verification_badge_status: 'approved',
     properties_verified: true,
   };
 };
+
 
 export const updateVerificationRequest = async ({ userId, ownership_comment, file }) => {
   const request = await prisma.account_verification_requests.findFirst({

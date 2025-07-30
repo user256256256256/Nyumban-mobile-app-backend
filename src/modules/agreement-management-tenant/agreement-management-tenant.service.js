@@ -166,6 +166,35 @@ export const cancelAgreement = async ({ agreementId, userId }) => {
     return cancelledAgreement;
   });
 
+  const propertyName = agreement.properties?.name || 'Property';
+
+  // 🔔 Notifications (non-blocking)
+  void (async () => {
+    try {
+      await triggerNotification(
+        agreement.tenant_id,
+        'AGREEMENT_CANCELLED',
+        'Agreement cancelled',
+        `Your agreement for ${propertyName} has been cancelled.`
+      );
+    } catch (err) {
+      console.error('Failed to notify tenant on single agreement cancellation:', err);
+    }
+  })();
+
+  void (async () => {
+    try {
+      await triggerNotification(
+        agreement.owner_id,
+        'AGREEMENT_CANCELLED',
+        'Agreement cancelled',
+        `You have cancelled the agreement for ${propertyName}.`
+      );
+    } catch (err) {
+      console.error('Failed to notify landlord on single agreement cancellation:', err);
+    }
+  })();
+
   return { agreement_id: updated.id, status: updated.status };
 };
 
@@ -320,7 +349,6 @@ export const cancelAgreements = async (userId, agreementIds) => {
         },
       });
 
-      // Revert property or unit status
       if (agreement.properties.has_units && agreement.property_units) {
         await tx.property_units.update({
           where: { id: agreement.property_units.id },
@@ -333,7 +361,6 @@ export const cancelAgreements = async (userId, agreementIds) => {
         });
       }
 
-      // Reject related application
       await tx.property_applications.updateMany({
         where: { property_id: agreement.property_id, tenant_id: agreement.tenant_id },
         data: {
@@ -349,11 +376,43 @@ export const cancelAgreements = async (userId, agreementIds) => {
     return results;
   });
 
+  // 🔔 Notifications (non-blocking)
+  for (const agreement of cancellable) {
+    const propertyName = agreement.properties?.name || 'Property';
+
+    void (async () => {
+      try {
+        await triggerNotification(
+          agreement.tenant_id,
+          'AGREEMENT_CANCELLED',
+          'Agreement cancelled',
+          `Your agreement for ${propertyName} has been cancelled.`
+        );
+      } catch (err) {
+        console.error('Failed to notify tenant on agreement cancellation:', err);
+      }
+    })();
+
+    void (async () => {
+      try {
+        await triggerNotification(
+          agreement.owner_id,
+          'AGREEMENT_CANCELLED',
+          'Agreement cancelled',
+          `You have cancelled the agreement for ${propertyName}.`
+        );
+      } catch (err) {
+        console.error('Failed to notify landlord on agreement cancellation:', err);
+      }
+    })();
+  }
+
   return {
     cancelled_count: cancelledResults.length,
     cancelled_ids: cancelledResults.map(a => a.id),
   };
 };
+
 
 export default {
   getLeaseAgreement,

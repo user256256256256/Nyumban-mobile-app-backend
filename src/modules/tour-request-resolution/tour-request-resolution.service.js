@@ -53,10 +53,10 @@ export const getLandlordTourRequests = async (landlordId, status) => {
 }
 
 export const resolveTourRequest = async (landlordId, requestId, action, reason) => {
-  const request = await prisma.property_tour_requests.findUnique({ where: { id: requestId } })
-  if (!request) throw new NotFoundError('Tour request not found', { field: requestId })
-  if (request.owner_id !== landlordId) throw new ForbiddenError('You are not authorized to resolve this request', { field: 'Landlord ID' })
-  if (request.status !== 'pending') throw new ServerError('Tour request has already been resolved and cannot be modified', { field: 'Action' })
+  const request = await prisma.property_tour_requests.findUnique({ where: { id: requestId } });
+  if (!request) throw new NotFoundError('Tour request not found', { field: requestId });
+  if (request.owner_id !== landlordId) throw new ForbiddenError('You are not authorized to resolve this request', { field: 'Landlord ID' });
+  if (request.status !== 'pending') throw new ServerError('Tour request has already been resolved and cannot be modified', { field: 'Action' });
   
   const updated = await prisma.property_tour_requests.update({
     where: { id: requestId },
@@ -65,12 +65,25 @@ export const resolveTourRequest = async (landlordId, requestId, action, reason) 
       updated_at: new Date(),
       message: action === 'declined' && reason ? reason : request.message,
     }
-  })
+  });
 
-  // Send notification to the tenant
+  // 🔔 Notify tenant/requester about the resolution
+  void (async () => {
+    try {
+      await triggerNotification(
+        request.requester_id,
+        'TOUR_REQUEST_RESOLVED',
+        'Tour Request Update',
+        `Your tour request for property ${request.property_id} has been ${action}.` + (action === 'declined' && reason ? ` Reason: ${reason}` : '')
+      );
+    } catch (err) {
+      console.error(`Failed to send tour request resolution notification for request ${requestId}:`, err);
+    }
+  })();
 
-  return updated
-}
+  return updated;
+};
+
 
 export default {
     getLandlordTourRequests,

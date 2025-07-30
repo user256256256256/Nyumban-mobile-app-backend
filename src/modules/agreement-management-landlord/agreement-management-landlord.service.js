@@ -2,6 +2,8 @@ import prisma from '../../prisma-client.js';
 import puppeteer from 'puppeteer';
 import slugify from 'slugify';
 import { generateAgreementPreview } from '../../common/services/generate-agreement-preview.service.js'
+import { triggerNotification } from '../../modules/notifications/notification.service.js';
+
 
 import {
   NotFoundError,
@@ -172,9 +174,39 @@ export const terminateAgreement = async ({ agreementId, landlordId, reason }) =>
     });
   });
 
-  // 🔔 Notification service placeholder
-  // sendNotification(agreement.tenant_id, "Your agreement has been terminated", reason);
+  // 🔔 Notification Service (non-blocking)
+  const propertyName = agreement.properties?.name || 'Property';
+
+  if (agreement.tenant_id) {
+    void (async () => {
+      try {
+        await triggerNotification(
+          agreement.tenant_id,
+          'AGREEMENT_TERMINATED',
+          'Your rental agreement has been terminated',
+          `Your rental agreement for ${propertyName} has been terminated. Reason: ${reason || 'No reason provided.'}`
+        );
+      } catch (err) {
+        console.error('Failed to send termination notification to tenant:', err);
+      }
+    })();
+  }
+
+  void (async () => {
+    try {
+      await triggerNotification(
+        landlordId,
+        'AGREEMENT_TERMINATED',
+        'Agreement successfully terminated',
+        `You have successfully terminated the agreement for ${propertyName}.`
+      );
+    } catch (err) {
+      console.error('Failed to send termination notification to landlord:', err);
+    }
+  })();
 };
+
+
 
 
 export default {

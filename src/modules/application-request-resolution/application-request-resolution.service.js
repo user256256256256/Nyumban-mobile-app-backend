@@ -110,7 +110,7 @@ export const resolveApplicationRequest = async (landlordId, applicationId, actio
   const applicationRequest = await prisma.property_applications.findUnique({
     where: { id: applicationId },
     include: {
-      properties: { select: { id: true, owner_id: true, has_agreement: true, has_units: true } },
+      properties: { select: { id: true, owner_id: true, has_agreement: true, has_units: true, title: true } },
       property_units: { select: { id: true, is_deleted: true, status: true } },
     }
   });
@@ -186,8 +186,29 @@ export const resolveApplicationRequest = async (landlordId, applicationId, actio
     return updatedApplication;
   });
 
-  // 🔔 Notification service placeholder
-  // sendNotification(updated.tenant_id, updated.status, reason);
+  // 🔔 Notify tenant about the decision
+  const propertyName = applicationRequest.properties?.title || 'the property';
+  void (async () => {
+    try {
+      if (action === 'approved') {
+        await triggerNotification(
+          updated.tenant_id,
+          'APPLICATION_APPROVED',
+          'Your Application Has Been Approved',
+          `Good news! Your application for ${propertyName} has been approved. Please proceed with payment to finalize the agreement.`
+        );
+      } else {
+        await triggerNotification(
+          updated.tenant_id,
+          'APPLICATION_REJECTED',
+          'Your Application Has Been Rejected',
+          reason || `Unfortunately, your application for ${propertyName} has been rejected.`
+        );
+      }
+    } catch (err) {
+      console.error(`Failed to send notification for application ${applicationId}:`, err);
+    }
+  })();
 
   return updated;
 };

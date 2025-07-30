@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { expirePromotions } from '../cron/promotion-expiry.cron.js';
+import { expirePromotions, alertUpcomingExpirations } from '../cron/promotion-expiry.cron.js';
 import { permanentlyDeleteExpiredUsers } from '../cron/delete-user-permanently.cron.js';
 import { permanentlyDeleteOldNotifications } from '../cron/delete-notifications-permanently.cron.js';
 
@@ -33,3 +33,12 @@ cron.schedule('0 4 * * 0', async () => {
   }
 });
 
+// Run alert for upcoming expiry daily at 9 AM (for example)
+cron.schedule('0 9 * * *', async () => {
+  console.log(`[${new Date().toISOString()}] Running scheduled promotion expiry alert check...`);
+  try {
+    await alertUpcomingExpirations(3);  // Alerts 3 days before expiry
+  } catch (error) {
+    console.error('Error during promotion expiry alert cron:', error);
+  }
+});

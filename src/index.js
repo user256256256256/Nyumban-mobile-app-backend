@@ -6,6 +6,7 @@ import cors from 'cors';
 import { corsOptions } from './config/cors.config.js'
 import './cron/scheduler.js';
 
+import deviceRoutes from './routes/device.js'
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js'
 import supportRoutes from './modules/support/support.route.js'
@@ -44,6 +45,7 @@ const PORT = process.env.PORT || 5050;
 
 app.use(`${BASE_ROUTE_VERSION_1}/auth`, authRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/user`, userRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/device`, deviceRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/support`, supportRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/analytics`, analyticsRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/add-property`, addPropertyRoutes);

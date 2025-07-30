@@ -28,7 +28,7 @@ export const likeProperty = async (userId, propertyId) => {
     where: { user_id_property_id: { user_id: userId, property_id: propertyId } }
   });
 
-  if (existing?.liked) return existing; 
+  if (existing?.liked) return existing;
 
   const result = await prisma.$transaction([
     prisma.property_engagements.upsert({
@@ -42,8 +42,23 @@ export const likeProperty = async (userId, propertyId) => {
     })
   ]);
 
-  return result[0]; 
+  // 🔔 Notify landlord about the like
+  void (async () => {
+    try {
+      await triggerNotification(
+        property.owner_id,
+        'PROPERTY_LIKED',
+        'Your property was liked',
+        `A tenant liked your property: ${property.title || 'Property'}`
+      );
+    } catch (err) {
+      console.error(`Failed to send like notification for property ${propertyId}:`, err);
+    }
+  })();
+
+  return result[0];
 };
+
 
 export const unlikeProperty = async (userId, propertyId) => {
   const property = await getPropertyOrThrow(propertyId);
@@ -94,7 +109,6 @@ export const saveProperty = async (userId, propertyId) => {
 
   return engagement;
 };
-
 
 export const unsaveProperty = async (userId, propertyId) => {
   const property = await getPropertyOrThrow(propertyId);

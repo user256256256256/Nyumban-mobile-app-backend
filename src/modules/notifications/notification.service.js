@@ -1,139 +1,121 @@
 import prisma from '../../prisma-client.js';
-import { logNotification } from '../../common/utils/notification.logger.util.js';
-import { EmailService } from '../../common/services/email.service.js'
-import { SnsService }  from '../../common/services/sns.service.js'
-import { sendPushNotification } from '../../common/services/push.service.js'
-
+import notificationQueue from '../../queues/notification.queue.js'; 
 import { v4 as uuidv4 } from 'uuid';
-
 import {
-    ValidationError,
-    NotFoundError,
-    AuthError,
-    ForbiddenError,
-    ServerError,
+  ValidationError,
+  NotFoundError,
+  ServerError,
 } from '../../common/services/errors-builder.service.js';
 
+/**
+ * Get user notification preferences
+ */
 export const getUserNotificationSettings = async (userId) => {
   const prefs = await prisma.user_notification_preferences.findUnique({
-      where: {user_id: userId,},
-      select: {
-          notify_nyumban_updates: true,
-          notify_payment_sms: true,
-      }
-  })
+    where: { user_id: userId },
+    select: {
+      notify_nyumban_updates: true,
+      notify_payment_sms: true,
+    },
+  });
 
   if (!prefs) throw new NotFoundError('Notification preferences not found');
-  
-  return  prefs;
-}
+  return prefs;
+};
 
+/**
+ * Update user notification preferences
+ */
 export const updateUserNotificationSettings = async (userId, updates) => {
-    const existing = await prisma.user_notification_preferences.findUnique({ where: {user_id: userId } });
-    if (!existing) throw new NotFoundError('Notification preferences not found');
+  const existing = await prisma.user_notification_preferences.findUnique({ where: { user_id: userId } });
+  if (!existing) throw new NotFoundError('Notification preferences not found');
 
-    const updated = await prisma.user_notification_preferences.update({
-        where: {user_id: userId},
-        data: updates,
-    });
+  return prisma.user_notification_preferences.update({
+    where: { user_id: userId },
+    data: updates,
+  });
+};
 
-    return updated;
-}
-
+/**
+ * Trigger a notification (pushed to queue for async processing with retries)
+ */
 export const triggerNotification = async (userId, type, title, body, sendSms = false, sendEmail = false) => {
   const timestamp = new Date();
 
-  if (type !== 'user') {
-    throw new ValidationError('Invalid notification type for user notifications', { field: 'Notification type' });
-  }
-
   const userExists = await prisma.users.findUnique({ where: { id: userId } });
   if (!userExists) {
-    throw new NotFoundError(`User with id ${userId} does not exist`, {field: 'User ID'});
+    throw new NotFoundError(`User with id ${userId} does not exist`, { field: 'User ID' });
   }
 
-  let notification;
+  const notification = await prisma.notifications.create({
+    data: {
+      id: uuidv4(),
+      user_id: userId,
+      type,
+      title,
+      body,
+      sent_at: timestamp,
+    },
+  });
 
-  try {
-    notification = await prisma.notifications.create({
-      data: {
-        id: uuidv4(),  
-        user_id: userId,
-        type,   
-        title,
-        body,
-        sent_at: timestamp,
-      },
-    });
-  } catch (err) {
-    await logNotification({ userId, type, status: 'db_failure', sentAt: timestamp, error: err.message });
-    console.error('Prisma create notification error:', err);
-    throw new ServerError('Failed to create notification');
-  }
-
-  try {
-    await sendPushNotification(userId, { title, body, type });
-  } catch (err) {
-    await logNotification({ userId, type, status: 'push_failed', sentAt: timestamp, error: err.message });
-  }
-
-  if (sendSms) {
-    try {
-      await SnsService.sendSms({ toUserId: userId, message: body });
-    } catch (err) {
-      await logNotification({ userId, type, status: 'sms_failed', sentAt: timestamp, error: err.message });
+  await notificationQueue.add(
+    'sendNotification',
+    { userId, type, title, body, sendSms, sendEmail },
+    {
+      attempts: 5,
+      backoff: { type: 'exponential', delay: 2000 },
+      removeOnComplete: true,
+      removeOnFail: false,
     }
-  }
-
-  if (sendEmail) {
-    try {
-      await EmailService.sendNotificationEmail({ toUserId: userId, subject: title, body });
-    } catch (err) {
-      await logNotification({ userId, type, status: 'email_failed', sentAt: timestamp, error: err.message });
-    }
-  }
-
-  await logNotification({ userId, type, status: 'success', sentAt: timestamp });
+  );
 
   return notification;
 };
 
+/**
+ * Get user notifications
+ */
 export const getUserNotifications = async (userId, filter) => {
-  const where = {user_id: userId, is_deleted: false};
-
+  const where = { user_id: userId, is_deleted: false };
   if (filter === 'unread') where.is_read = false;
 
-  const notifications = await prisma.notifications.findMany({ where, orderBy: { sent_at: 'desc'}})
-  const unread_count = await prisma.notifications.count({
-    where: { user_id: userId, is_deleted: false, is_read: false}
+  const notifications = await prisma.notifications.findMany({
+    where,
+    orderBy: { sent_at: 'desc' },
   });
 
-  return {notifications, unread_count};
-}
+  const unread_count = await prisma.notifications.count({
+    where: { user_id: userId, is_deleted: false, is_read: false },
+  });
 
+  return { notifications, unread_count };
+};
+
+/**
+ * Mark all notifications as read
+ */
 export const markAllAsRead = async (userId) => {
-  const notifications = await prisma.notifications.updateMany({
-    where: {
-      user_id: userId,
-      is_deleted: false,
-      is_read: false
-    }, 
-    data: {
-      is_read: true,
-      read_at: new Date()
-    },
-  })
+  const result = await prisma.notifications.updateMany({
+    where: { user_id: userId, is_deleted: false, is_read: false },
+    data: { is_read: true, read_at: new Date() },
+  });
 
-  return {notifications, unread_count: 0}; 
-}
+  return { notifications: result, unread_count: 0 };
+};
 
+/**
+ * Clear all notifications
+ */
 export const clearAllNotifications = async (userId) => {
   await prisma.notifications.updateMany({
-    where: { user_id: userId, is_deleted: false},
-    data: { is_deleted: true, deleted_at: new Date() }
+    where: { user_id: userId, is_deleted: false },
+    data: { is_deleted: true, deleted_at: new Date() },
   });
-}
+};
 
+/**
+ * Search notifications
+ */
 export const searchNotifications = async (userId, query) => {
   const notifications = await prisma.notifications.findMany({
     where: {
@@ -144,45 +126,52 @@ export const searchNotifications = async (userId, query) => {
         { body: { contains: query, mode: 'insensitive' } },
       ],
     },
-    orderBy: { sent_at: 'desc'}
+    orderBy: { sent_at: 'desc' },
   });
 
-  const unread_count = await prisma.notifications.count({where: {user_id: userId, is_deleted: false, is_read: false}});
+  const unread_count = await prisma.notifications.count({
+    where: { user_id: userId, is_deleted: false, is_read: false },
+  });
 
-  return { notifications, unread_count};
-}
+  return { notifications, unread_count };
+};
 
+/**
+ * Mark specific notifications as read
+ */
 export const markAsRead = async (userId, ids = null) => {
   const where = {
     user_id: userId,
     is_read: false,
     is_deleted: false,
-    ...(ids ? { id: { in: ids } } : {})
+    ...(ids ? { id: { in: ids } } : {}),
   };
 
   const updated = await prisma.notifications.updateMany({
     where,
-    data: { is_read: true, read_at: new Date() }
+    data: { is_read: true, read_at: new Date() },
   });
 
   const unread_count = await prisma.notifications.count({
-    where: { user_id: userId, is_deleted: false, is_read: false }
+    where: { user_id: userId, is_deleted: false, is_read: false },
   });
 
   return { updated: updated.count, unread_count };
 };
 
-
+/**
+ * Clear specific notifications
+ */
 export const clearNotifications = async (userId, ids = null) => {
   const where = {
     user_id: userId,
     is_deleted: false,
-    ...(ids ? { id: { in: ids } } : {})
+    ...(ids ? { id: { in: ids } } : {}),
   };
 
   const result = await prisma.notifications.updateMany({
     where,
-    data: { is_deleted: true, deleted_at: new Date() }
+    data: { is_deleted: true, deleted_at: new Date() },
   });
 
   return { cleared: result.count };
@@ -190,12 +179,12 @@ export const clearNotifications = async (userId, ids = null) => {
 
 export default {
   getUserNotificationSettings,
-  updateUserNotificationSettings, 
+  updateUserNotificationSettings,
   triggerNotification,
   getUserNotifications,
-  markAllAsRead, 
+  markAllAsRead,
   clearAllNotifications,
   searchNotifications,
   markAsRead,
-  clearNotifications
-}
+  clearNotifications,
+};

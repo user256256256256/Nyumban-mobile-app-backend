@@ -130,6 +130,20 @@ export const applicationRequest = async (payload, userId) => {
     }
   });
 
+  // 🔔 Trigger notification (wrapped async IIFE)
+  void (async () => {
+    try {
+      await triggerNotification(
+        landlordId,
+        'APPLICATION_REQUEST',
+        'New Application Request',
+        `A tenant has submitted an application for your property "${property.name}".`
+      );
+    } catch (err) {
+      console.error('Failed to send notification:', err);
+    }
+  })();
+
   return { application };
 };
 
@@ -177,7 +191,8 @@ export const cancelApplicationBatch = async (userId, applicationIds = []) => {
 
   for (const id of applicationIds) {
     const app = await prisma.property_applications.findFirst({
-      where: { id, user_id: userId, is_deleted: false },
+      where: { id, tenant_id: userId, is_deleted: false },
+      include: { property: true }
     });
 
     if (!app || app.status !== 'pending') continue;
@@ -185,11 +200,23 @@ export const cancelApplicationBatch = async (userId, applicationIds = []) => {
     updates.push(
       prisma.property_applications.update({
         where: { id },
-        data: {
-          status: 'cancelled',
-        },
+        data: { status: 'cancelled' }
       })
     );
+
+    // 🔔 Trigger notification (wrapped async IIFE)
+    void (async () => {
+      try {
+        await triggerNotification(
+          app.landlord_id,
+          'APPLICATION_CANCELLED',
+          'Application Cancelled',
+          `The tenant has cancelled their application for your property "${app.property.name}".`
+        );
+      } catch (err) {
+        console.error('Failed to send notification:', err);
+      }
+    })();
   }
 
   const results = await prisma.$transaction(updates);
@@ -198,6 +225,7 @@ export const cancelApplicationBatch = async (userId, applicationIds = []) => {
     message: `${results.length} application(s) cancelled`,
   };
 };
+
 
 export const deleteApplicationBatch = async (userId, applicationIds = []) => {
   const deletions = [];

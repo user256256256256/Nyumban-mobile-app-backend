@@ -11,32 +11,45 @@ import {
 
 export const acceptAgreement = async (userId, agreementId, payload) => {
   const { accepted } = payload;
-  if (!accepted) throw new AuthError('You must accept the ageement to proceed', { field: 'Accepted: true'})
-  
-  const agreement = await prisma.rental_agreements.findUnique({ 
+  if (!accepted) throw new AuthError('You must accept the agreement to proceed', { field: 'Accepted: true' });
+
+  const agreement = await prisma.rental_agreements.findUnique({
     where: { id: agreementId },
-    include: { users_rental_agreements_tenant_idTousers: true }
-  })
+    include: { users_rental_agreements_tenant_idTousers: true, properties: true }
+  });
 
-  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID'} )
-  
+  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
   if (agreement.status !== 'ready') throw new ForbiddenError('Agreement is not yet ready for acceptance');
-
-  if (agreement.tenant_id !== userId)   throw new AuthError('You are not authorized to accept this agreement');
-
+  if (agreement.tenant_id !== userId) throw new AuthError('You are not authorized to accept this agreement');
   if (agreement.tenant_accepted_agreement) throw new ForbiddenError('Agreement has already been accepted');
 
   const updatedAgreement = await prisma.rental_agreements.update({
-    where: { id: agreementId }, 
+    where: { id: agreementId },
     data: {
       tenant_accepted_agreement: true,
       updated_at: new Date(),
       status: 'completed',
     }
-  })
+  });
+
+  const propertyName = agreement.properties?.name || 'Property';
+
+  // 🔔 Notification (non-blocking)
+  void (async () => {
+    try {
+      await triggerNotification(
+        agreement.owner_id,
+        'AGREEMENT_ACCEPTED',
+        'Agreement accepted by tenant',
+        `Your agreement for ${propertyName} was accepted by the tenant.`
+      );
+    } catch (err) {
+      console.error('Failed to notify landlord on agreement acceptance:', err);
+    }
+  })();
 
   return updatedAgreement;
-}
+};
 
 export const processInitialRentPayment = async ({ userId, agreementId, payment_method }) => {
   const agreement = await prisma.rental_agreements.findUnique({
@@ -120,10 +133,24 @@ export const processInitialRentPayment = async ({ userId, agreementId, payment_m
       : prisma.properties.update({ where: { id: agreement.property_id }, data: { status: 'occupied' } }),
   ]);
 
+  const propertyName = agreement.properties?.name || 'Property';
+
+  // 🔔 Notification (non-blocking)
+  void (async () => {
+    try {
+      await triggerNotification(
+        agreement.tenant_id,
+        'RENT_PAYMENT_SUCCESS',
+        'Initial rent payment successful',
+        `Your initial rent payment for ${propertyName} was successful.`
+      );
+    } catch (err) {
+      console.error('Failed to send rent payment notification:', err);
+    }
+  })();
+
   return { rent_payment: initialPayment, next_due_date: nextDueDate, agreement_status: 'active' };
 };
-
-
 
 // Utility functions
 function generatePeriodCovered(date = new Date()) {

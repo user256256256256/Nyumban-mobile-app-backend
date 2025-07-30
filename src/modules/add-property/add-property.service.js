@@ -94,7 +94,20 @@ export const addOwnershipInfo = async ({ userId, data }) => {
       });
     }
 
-    // (Optional: queue/send notification to landlord here) request to send Ownership info. Payment is requested again
+    // 🔔 Notification (non-blocking)
+    void (async () => {
+      try {
+        await triggerNotification(
+          userId,
+          'user',
+          'Ownership Verification Required',
+          `Ownership verification is required again after adding a new property. Please submit the necessary documents.`
+        );
+      } catch (err) {
+        console.error('Failed to notify landlord on agreement acceptance:', err);
+      }
+    })();
+    
   }
 
   return created;

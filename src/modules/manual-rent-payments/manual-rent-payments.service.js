@@ -12,7 +12,6 @@ import {
 
 // Main function to manually record a rent payment
 export const markManualPayment = async ({ tenantId, amount, method, notes, landlordId }) => {
-  
   // 1. Fetch all due or overdue rent payments for the tenant
   const duePayments = await prisma.rent_payments.findMany({
     where: {
@@ -114,6 +113,20 @@ export const markManualPayment = async ({ tenantId, amount, method, notes, landl
     nextDueDate = nextDueDate.add(1, 'month');
   }
 
+  // 🔔 Trigger notification to tenant (async IIFE pattern)
+  void (async () => {
+    try {
+      await triggerNotification(
+        tenantId,
+        'RENT_PAYMENT_RECORDED',
+        'Manual Rent Payment Recorded',
+        `Your landlord has recorded a rent payment of $${amount.toFixed(2)} (${paymentType}).`
+      );
+    } catch (err) {
+      console.error('Failed to send notification:', err);
+    }
+  })();
+
   // 9. Return a summary of the payment made
   return {
     status: paymentType,
@@ -121,6 +134,7 @@ export const markManualPayment = async ({ tenantId, amount, method, notes, landl
     amount_paid: amount,
   };
 };
+
 
 // Helper to generate a string like "2025-07" based on a given date
 function generatePeriodCovered(date = new Date()) {
