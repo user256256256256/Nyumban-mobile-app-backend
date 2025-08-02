@@ -67,6 +67,8 @@ export const getTenants = async (landlordId) => {
         : null,
       agreement: {
         agreement_status: a.status,
+        start_date: a.start_date
+        
       },
       payment_info: {
         amount_due: latestPayment?.amount_due || 0,
@@ -79,53 +81,67 @@ export const getTenants = async (landlordId) => {
 
 }
 
-export const getTenantRentHistory = async (tenantId) => {
-  const payments = await prisma.rent_payments.findMany({
-    where: {
-      tenant_id: tenantId,
-      is_deleted: false,
-    },
-    orderBy: {
-      payment_date: 'desc',
-    },
-    include: {
-      properties: {
-        select: {
-          id: true,
-          property_name: true,
+export const getTenantRentHistory = async (tenantId, { page = 1, limit = 20 } = {}) => {
+  const offset = (page - 1) * limit;
+
+  const [payments, total] = await Promise.all([
+    prisma.rent_payments.findMany({
+      where: {
+        tenant_id: tenantId,
+        is_deleted: false,
+      },
+      orderBy: { payment_date: 'desc' },
+      skip: offset,
+      take: limit,
+      include: {
+        properties: {
+          select: {
+            id: true,
+            property_name: true,
+          },
+        },
+        property_units: {
+          select: {
+            id: true,
+            unit_number: true,
+          },
         },
       },
-      property_units: {
-        select: {
-          id: true,
-          unit_number: true,
-        },
-      },
+    }),
+
+    prisma.rent_payments.count({
+      where: { tenant_id: tenantId, is_deleted: false },
+    }),
+  ]);
+
+  const formattedPayments = payments.map((payment) => ({
+    payment_id: payment.id,
+    property_id: payment.property_id,
+    unit_id: payment.unit_id,
+    property: {
+      id: payment.property_id,
+      property_name: payment.properties?.property_name || 'N/A',
     },
-  });
+    unit: payment.property_units
+      ? { id: payment.property_units.id, unit_number: payment.property_units.unit_number }
+      : null,
+    amount_paid: parseFloat(payment.amount_paid || 0),
+    due_amount: parseFloat(payment.due_amount || 0),
+    period_covered: payment.period_covered,
+    payment_method: payment.method || 'N/A',
+    payment_date: payment.payment_date,
+    status: payment.status, 
+    notes: payment.notes || null,
+  }));
 
-  return payments.map(payment => {
-
-    return {
-      payment_id: payment.id,
-      property_id: payment.property_id,
-      unit_id: payment.unit_id,
-      property: {
-        property_name: payment.properties?.property_name || 'N/A',
-      },
-      unit: payment.property_units
-        ? { unit_name: payment.property_units.unit_number }
-        : null,
-      amount_paid: payment.amount_paid,
-      due_amount: payment.due_amount,
-      period_covered: payment.period_covered,
-      payment_method: payment.method || 'N/A',
-      payment_date: payment.payment_date,
-      status: payment.payment_status,
-      notes: payment.notes || null,
-    };
-  });
+  return {
+    total,
+    page,
+    limit,
+    data: formattedPayments,
+  };
 };
+
 
 export default {
   getTenants,

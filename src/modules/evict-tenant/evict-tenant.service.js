@@ -1,83 +1,97 @@
 import prisma from '../../prisma-client.js';
 import dayjs from 'dayjs';
-import {
-  NotFoundError,
-  ForbiddenError,
-  ServerError,
-} from '../../common/services/errors-builder.service.js';
+import { NotFoundError, ForbiddenError } from '../../common/services/errors-builder.service.js';
+import { triggerNotification } from '../../common/services/notification.service.js';
 
-export const evictTenant = async ({ landlordId, tenantId, propertyId, unitId, reason }) => {
-  // 1. Locate active lease
+const GRACE_PERIOD_DAYS = 7; // configurable
+
+export const initiateEviction = async ({ landlordId, tenantId, propertyId, unitId, reason }) => {
   const agreement = await prisma.rental_agreements.findFirst({
-    where: {
-      tenant_id: tenantId,
-      property_id: propertyId,
-      unit_id: unitId || undefined,
-      owner_id: landlordId,
-      status: 'active',
-      is_deleted: false,
-    },
+    where: { tenant_id: tenantId, property_id: propertyId, unit_id: unitId || undefined, owner_id: landlordId, status: 'active', is_deleted: false },
   });
   if (!agreement) throw new NotFoundError('No active agreement found for eviction');
 
-  // 2. Create audit record (optional table — here inline)
-  const terminatedAt = new Date();
+  // 1. Check unpaid rent
+  const unpaidRent = await prisma.rent_payments.findFirst({
+    where: { tenant_id: tenantId, property_id: propertyId, status: 'unpaid' },
+  });
+  if (!unpaidRent) throw new ForbiddenError('Tenant has no unpaid rent, eviction not allowed.');
 
-  // 3. Update agreement status
-  await prisma.rental_agreements.update({
-    where: { id: agreement.id },
+  const gracePeriodEnd = dayjs().add(GRACE_PERIOD_DAYS, 'day').toDate();
+
+  // 2. Create eviction log
+  const evictionLog = await prisma.eviction_logs.create({
     data: {
-      status: 'terminated',
-      updated_at: terminatedAt,
+      tenant_id: tenantId,
+      landlord_id: landlordId,
+      property_id: propertyId,
+      unit_id: unitId,
+      reason,
+      status: 'WARNING',
+      warning_sent_at: new Date(),
+      grace_period_end: gracePeriodEnd,
     },
   });
 
-  // 4. Mark property or unit available
-  if (unitId) {
-    await prisma.property_units.update({
-      where: { id: unitId },
-      data: { status: 'available' },
-    });
-  } else {
-    await prisma.properties.update({
-      where: { id: propertyId },
-      data: { status: 'available' },
-    });
-  }
-
-  // 5. Optionally clear tenant fields (security)
-  await prisma.rental_agreements.update({
-    where: { id: agreement.id },
-    data: { tenant_id: null },
-  });
-
-  // 6. 🔔 Notify tenant about eviction
-  void (async () => {
-    try {
-      await triggerNotification(
-        tenantId,
-        'TENANT_EVICTED',
-        'You Have Been Evicted',
-        `Your lease for the property has been terminated by the landlord. Reason: ${reason || 'No reason provided.'}`
-      );
-    } catch (err) {
-      console.error(`Failed to send eviction notification for tenant ${tenantId}:`, err);
-    }
-  })();
+  // 3. Send eviction warning notification
+  await triggerNotification(
+    tenantId,
+    'EVICTION_WARNING',
+    'Eviction Warning Issued',
+    `You have ${GRACE_PERIOD_DAYS} days to resolve unpaid rent or eviction will be enforced. Reason: ${reason || 'Unpaid rent'}`
+  );
 
   return {
-    status: 'success',
-    message: 'Tenant eviction processed. Lease agreement terminated.',
-    eviction_record: {
-      tenant_id: tenantId,
-      property_unit_id: unitId ?? null,
-      terminated_at: terminatedAt.toISOString(),
-      terminated_by: landlordId,
-      reason: reason || '',
-    },
+    status: 'warning_issued',
+    grace_period_end: gracePeriodEnd,
+    eviction_log: evictionLog,
   };
 };
 
-export default {
-  evictTenant,
+export const finalizeEviction = async ({ landlordId, evictionLogId }) => {
+  const log = await prisma.eviction_logs.findUnique({ where: { id: evictionLogId } });
+
+  if (!log || log.status !== 'WARNING') throw new NotFoundError('No active eviction warning found.');
+  if (log.landlord_id !== landlordId) throw new ForbiddenError('You cannot finalize an eviction you did not initiate.');
+
+  if (dayjs().isBefore(log.grace_period_end)) {
+    throw new ForbiddenError('Grace period has not expired yet.');
+  }
+
+  const agreement = await prisma.rental_agreements.findFirst({
+    where: {
+      tenant_id: log.tenant_id,
+      property_id: log.property_id,
+      unit_id: log.unit_id || undefined,
+      owner_id: landlordId,
+      status: 'active',
+    },
+  });
+
+  if (agreement) {
+    await prisma.rental_agreements.update({
+      where: { id: agreement.id },
+      data: { status: 'terminated', updated_at: new Date() },
+    });
+  }
+
+  if (log.unit_id) {
+    await prisma.property_units.update({ where: { id: log.unit_id }, data: { status: 'available' } });
+  } else {
+    await prisma.properties.update({ where: { id: log.property_id }, data: { status: 'available' } });
+  }
+
+  await prisma.eviction_logs.update({
+    where: { id: evictionLogId },
+    data: { status: 'EVICTED', updated_at: new Date() },
+  });
+
+  await triggerNotification(
+    log.tenant_id,
+    'TENANT_EVICTED',
+    'Eviction Finalized',
+    'Your grace period has expired. Your lease has been terminated.'
+  );
+
+  return { status: 'evicted', eviction_log_id: evictionLogId };
 };

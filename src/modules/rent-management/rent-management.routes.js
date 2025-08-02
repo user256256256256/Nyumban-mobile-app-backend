@@ -7,7 +7,8 @@ import {
     initiateRentPaymentHandler,
     getPaymentHistoryHandler,
     getRentStatusHandler,
-    checkAdvanceEligibilityHandler
+    checkAdvanceEligibilityHandler,
+    getRentAndDepositHandler
 } from './rent-management.controller.js';
 
 import { validate } from '../../common/middleware/validate.middleware.js';
@@ -20,5 +21,7 @@ router.get('/properties/:propertyId', authenticate, authorizeRoles('tenant'), va
 router.post('/pay', authenticate, authorizeRoles('tenant'), validate(initiateRentPaymentSchema), initiateRentPaymentHandler);
 router.get('/status', authenticate, authorizeRoles('tenant'), getRentStatusHandler);
 router.get('/advance/check/:propertyId', authenticate, authorizeRoles('tenant'), validate(propertyParamSchema), checkAdvanceEligibilityHandler);
+router.get('/properties/:propertyId/rent-and-deposit', authenticate, authorizeRoles('tenant'), validate(propertyParamSchema), getRentAndDepositHandler);
+
 
 export default router;

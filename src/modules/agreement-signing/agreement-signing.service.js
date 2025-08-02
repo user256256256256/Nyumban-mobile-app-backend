@@ -51,7 +51,7 @@ export const acceptAgreement = async (userId, agreementId, payload) => {
   return updatedAgreement;
 };
 
-export const processInitialRentPayment = async ({ userId, agreementId, payment_method }) => {
+export const processInitialRentPayment = async ({ userId, agreementId, payment_method, amount_paid }) => {
   const agreement = await prisma.rental_agreements.findUnique({
     where: { id: agreementId },
     include: { properties: true, property_units: true },
@@ -67,73 +67,130 @@ export const processInitialRentPayment = async ({ userId, agreementId, payment_m
   }
 
   const rentAmount = parseFloat(agreement.properties?.price || 0);
+  const securityDeposit = parseFloat(agreement.security_deposit || '0');
+  const totalDue = rentAmount + securityDeposit;
+
   if (!rentAmount) throw new ServerError('Monthly rent amount not set for this property');
+  if (amount_paid < totalDue) {
+    throw new ForbiddenError(`Initial payment must be at least ${totalDue}.`);
+  }
 
   const payment = await simulateFlutterwaveRentPayment({
     userId,
     agreementId,
-    amount: rentAmount,
+    amount: amount_paid,
     metadata: { propertyId: agreement.property_id, unitId: agreement.unit_id },
   });
 
   const now = new Date();
-  const nextDueDate = dayjs(now).add(1, 'month').toDate();
   const periodCovered = generatePeriodCovered(now);
-  const nextPeriod = generatePeriodCovered(nextDueDate);
 
-  const [initialPayment] = await prisma.$transaction([
-    prisma.rent_payments.create({
-      data: {
-        id: uuidv4(),
-        rental_agreement_id: agreementId,
-        tenant_id: userId,
-        property_id: agreement.property_id,
-        unit_id: agreement.unit_id,
-        payment_date: now,
-        due_date: now,
-        amount_paid: rentAmount,
-        due_amount: rentAmount,
-        method: payment_method,
-        transaction_id: payment.transaction_id,
-        period_covered: periodCovered,
-        status: 'completed',
-        created_at: now,
-        updated_at: now,
-      },
-    }),
-    prisma.rental_agreements.update({
-      where: { id: agreementId },
-      data: {
-        status: 'active',
-        start_date: now,
-        updated_at: now,
-      },
-    }),
-    prisma.rent_payments.create({
-      data: {
-        id: uuidv4(),
-        rental_agreement_id: agreementId,
-        tenant_id: userId,
-        property_id: agreement.property_id,
-        unit_id: agreement.unit_id,
-        due_date: nextDueDate,
-        due_amount: rentAmount,
-        amount_paid: 0,
-        method: null,
-        transaction_id: null,
-        period_covered: nextPeriod,
-        status: 'pending',
-        is_deleted: false,
-        created_at: now,
-        updated_at: now,
-      },
-    }),
-    agreement.properties.has_units
-      ? prisma.property_units.update({ where: { id: agreement.unit_id }, data: { status: 'occupied' } })
-      : prisma.properties.update({ where: { id: agreement.property_id }, data: { status: 'occupied' } }),
+  // Record initial rent payment (full rent amount)
+  const rentPaymentData = {
+    id: uuidv4(),
+    rental_agreement_id: agreementId,
+    tenant_id: userId,
+    property_id: agreement.property_id,
+    unit_id: agreement.unit_id,
+    payment_date: now,
+    due_date: now,
+    amount_paid: rentAmount,
+    due_amount: rentAmount,
+    method: payment_method,
+    transaction_id: payment.transaction_id,
+    period_covered: periodCovered,
+    status: 'completed',
+    type: 'rent',
+    created_at: now,
+    updated_at: now,
+  };
+
+  // Record security deposit payment (full deposit)
+  const securityDepositData = {
+    id: uuidv4(),
+    rental_agreement_id: agreementId,
+    tenant_id: userId,
+    property_id: agreement.property_id,
+    unit_id: agreement.unit_id,
+    payment_date: now,
+    due_date: now,
+    amount_paid: securityDeposit,
+    due_amount: securityDeposit,
+    method: payment_method,
+    transaction_id: payment.transaction_id,
+    period_covered: null,
+    status: 'completed',
+    type: 'security_deposit',
+    created_at: now,
+    updated_at: now,
+  };
+
+  // Update agreement to active and set start_date
+  const updateAgreement = prisma.rental_agreements.update({
+    where: { id: agreementId },
+    data: {
+      status: 'active',
+      start_date: now,
+      updated_at: now,
+    },
+  });
+
+  // Update property/unit status to occupied
+  const updatePropertyStatus = agreement.properties.has_units
+    ? prisma.property_units.update({ where: { id: agreement.unit_id }, data: { status: 'occupied' } })
+    : prisma.properties.update({ where: { id: agreement.property_id }, data: { status: 'occupied' } });
+
+  // Now allocate any excess amount towards future months (partial or full)
+
+  let excessAmount = amount_paid - totalDue;
+  let futureDueDate = dayjs(now).add(1, 'month');
+
+  const futurePayments = [];
+
+  while (excessAmount > 0) {
+    const dueDate = futureDueDate.toDate();
+    const period = generatePeriodCovered(futureDueDate);
+
+    const amountToApply = Math.min(excessAmount, rentAmount);
+    const status = amountToApply < rentAmount ? 'partially_paid' : 'completed';
+
+    futurePayments.push(
+      prisma.rent_payments.create({
+        data: {
+          id: uuidv4(),
+          rental_agreement_id: agreementId,
+          tenant_id: userId,
+          property_id: agreement.property_id,
+          unit_id: agreement.unit_id,
+          due_date: dueDate,
+          due_amount: rentAmount,
+          amount_paid: amountToApply,
+          method: payment_method,
+          transaction_id: payment.transaction_id,
+          period_covered: period,
+          status,
+          is_deleted: false,
+          type: 'rent',
+          created_at: now,
+          updated_at: now,
+        },
+      })
+    );
+
+    excessAmount -= amountToApply;
+    futureDueDate = futureDueDate.add(1, 'month');
+  }
+
+  // Run all DB ops in one transaction
+  const [initialRentPayment, securityDepositPayment, , propertyStatusUpdate, ...futureRentPayments] = await prisma.$transaction([
+    prisma.rent_payments.create({ data: rentPaymentData }),
+    prisma.rent_payments.create({ data: securityDepositData }),
+    updateAgreement,
+    updatePropertyStatus,
+    ...futurePayments,
   ]);
 
-  const propertyName = agreement.properties?.name || 'Property';
+  const propertyName = agreement.properties?.property_name || 'Property';
 
   // 🔔 Notification (non-blocking)
   void (async () => {
@@ -142,15 +199,23 @@ export const processInitialRentPayment = async ({ userId, agreementId, payment_m
         agreement.tenant_id,
         'RENT_PAYMENT_SUCCESS',
         'Initial rent payment successful',
-        `Your initial rent payment for ${propertyName} was successful.`
+        `Your initial rent and security deposit payment for ${propertyName} was successful.`
       );
     } catch (err) {
       console.error('Failed to send rent payment notification:', err);
     }
   })();
 
-  return { rent_payment: initialPayment, next_due_date: nextDueDate, agreement_status: 'active' };
+  return {
+    rent_payment: initialRentPayment,
+    security_deposit_payment: securityDepositPayment,
+    future_payments: futureRentPayments,
+    agreement_status: 'active',
+  };
 };
+
+
+
 
 // Utility functions
 function generatePeriodCovered(date = new Date()) {
@@ -163,4 +228,5 @@ export default {
   acceptAgreement,
   processInitialRentPayment, 
 }
+
 

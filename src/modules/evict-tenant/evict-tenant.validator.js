@@ -10,3 +10,9 @@ export const evictTenantSchema = {
     reason: Joi.string().max(500).optional(),
   }),
 };
+
+export const finalizeEvictionSchema = {
+  params: Joi.object({
+    evictionLogId: Joi.string().uuid().required().label('Eviction Log ID'),
+  }),
+};

@@ -70,3 +70,17 @@ export const checkAdvanceEligibilityHandler = async (req, res) => {
     return handleControllerError(res, error, 'ADVANCE_ELIGIBILITY_ERROR', 'Failed to fetch advance eligibility');
   }
 };
+
+export const getRentAndDepositHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { propertyId } = req.params;
+    const { unitId } = req.query;
+
+    const result = await RentManagementService.getRentAndDeposit({ userId, propertyId, unitId });
+
+    return success(res, result, 'Monthly rent and security deposit fetched successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'GET_RENT_DEPOSIT_ERROR', 'Failed to fetch rent and deposit');
+  }
+};

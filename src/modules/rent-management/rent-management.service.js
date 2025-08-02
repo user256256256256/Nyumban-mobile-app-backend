@@ -337,6 +337,43 @@ export const checkAdvanceEligibility = async ({ userId, propertyId }) => {
   };
 };
 
+export const getRentAndDeposit = async ({ userId, propertyId, unitId }) => {
+  // Check if user has an active agreement for this property/unit
+  const agreement = await prisma.rental_agreements.findFirst({
+    where: {
+      tenant_id: userId,
+      property_id: propertyId,
+      is_deleted: false,
+      status: { in: ['active', 'completed'] },
+      ...(unitId ? { unit_id: unitId } : {}),
+    },
+    include: {
+      properties: true,
+      property_units: true,
+    },
+  });
+
+  if (!agreement) {
+    throw new NotFoundError('Rental agreement not found for this property (and unit)', { field: 'Property ID or User ID'});
+  }
+
+  // Determine monthly rent
+  const monthlyRent = parseFloat(
+    agreement.property_units?.price ??
+    agreement.properties?.price ??
+    0
+  );
+
+  // Security deposit for this agreement
+  const securityDeposit = parseFloat(agreement.security_deposit ?? 0);
+
+  return {
+    monthly_rent: monthlyRent,
+    security_deposit: securityDeposit,
+  };
+};
+
+
 
 function generatePeriodCovered(date = new Date()) {
   const d = dayjs(date);
@@ -351,10 +388,12 @@ function formatMonthlyPeriod(date) {
   return `${start} - ${end}`;
 }
 
+
 export default {
   getCurrentRentalDetails,
   initiateRentPayment,
   getPaymentHistory,
   getRentStatus, 
   checkAdvanceEligibility,
+  getRentAndDeposit
 };

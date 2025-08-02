@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { expirePromotions, alertUpcomingExpirations } from '../cron/promotion-expiry.cron.js';
 import { permanentlyDeleteExpiredUsers } from '../cron/delete-user-permanently.cron.js';
 import { permanentlyDeleteOldNotifications } from '../cron/delete-notifications-permanently.cron.js';
+import { finalizeExpiredEvictions } from '../cron/finalize-expired-evictions.cron.js';
 
 // Every 5 mins — promotions
 cron.schedule('*/5 * * * *', async () => {
@@ -40,5 +41,15 @@ cron.schedule('0 9 * * *', async () => {
     await alertUpcomingExpirations(3);  // Alerts 3 days before expiry
   } catch (error) {
     console.error('Error during promotion expiry alert cron:', error);
+  }
+});
+
+// Every 5 minutes — eviction check
+cron.schedule('*/5 * * * *', async () => {
+  console.log(`[${new Date().toISOString()}] Checking for expired eviction warnings...`);
+  try {
+    await finalizeExpiredEvictions();
+  } catch (error) {
+    console.error('Error finalizing expired evictions:', error);
   }
 });
