@@ -203,16 +203,12 @@ export const initiateRentPayment = async ({ userId, payment_method, amount }) =>
 };
 
 
-export const getPaymentHistory = async ({ userId, month, year, status }) => {
+export const getPaymentHistory = async ({ userId, month, year, status, limit = 10, cursor }) => {
   const where = {
     tenant_id: userId,
     is_deleted: false,
+    ...(status && { status }),
   };
-
-  // Filter by status if provided
-  if (status) {
-    where.status = status;
-  }
 
   // Filter by month/year if provided
   if (month && year) {
@@ -225,6 +221,7 @@ export const getPaymentHistory = async ({ userId, month, year, status }) => {
     where.payment_date = { gte: startDate, lte: endDate };
   }
 
+  // Fetch one extra record for pagination
   const payments = await prisma.rent_payments.findMany({
     where,
     include: {
@@ -232,22 +229,30 @@ export const getPaymentHistory = async ({ userId, month, year, status }) => {
       rental_agreements: true,
       property_units: true,
     },
-    orderBy: {
-      payment_date: 'desc',
-    },
+    orderBy: { payment_date: 'desc' },
+    take: Number(limit) + 1,
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
   });
 
-  return payments.map((payment) => ({
-    property_name: payment.properties?.property_name || 'N/A',
-    unit: payment.property_units?.unit_number || '',
-    period_covered: formatMonthlyPeriod(payment.due_date),
-    payment_date: payment.payment_date?.toISOString(),
-    amount_paid: parseFloat(payment.amount_paid || 0),
-    method: payment.method || 'N/A',
-    status: payment.status, // use actual status instead of static "paid"
-    notes: payment.notes || '',
-    transaction_id: payment.transaction_id || '',
-  }));
+  const hasMore = payments.length > limit;
+  const slicedPayments = payments.slice(0, limit);
+  const nextCursor = hasMore ? slicedPayments[slicedPayments.length - 1].id : null;
+
+  return {
+    results: slicedPayments.map((payment) => ({
+      property_name: payment.properties?.property_name || 'N/A',
+      unit: payment.property_units?.unit_number || '',
+      period_covered: formatMonthlyPeriod(payment.due_date),
+      payment_date: payment.payment_date?.toISOString(),
+      amount_paid: parseFloat(payment.amount_paid || 0),
+      method: payment.method || 'N/A',
+      status: payment.status,
+      notes: payment.notes || '',
+      transaction_id: payment.transaction_id || '',
+    })),
+    nextCursor,
+    hasMore,
+  };
 };
 
 

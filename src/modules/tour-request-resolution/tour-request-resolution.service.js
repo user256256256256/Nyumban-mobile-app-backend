@@ -8,49 +8,60 @@ import {
     ServerError,
 } from '../../common/services/errors-builder.service.js';
 
-export const getLandlordTourRequests = async (landlordId, status) => {
-    const whereClause = { owner_id: landlordId, is_deleted: false }
-    if (status) whereClause.status = status
+export const getLandlordTourRequests = async (landlordId, { status, cursor, limit = 20 }) => {
+  const whereClause = { owner_id: landlordId, is_deleted: false };
+  if (status) whereClause.status = status;
 
-    const requests = await prisma.property_tour_requests.findMany({
-        where: whereClause,
-        orderBy: { created_at: 'desc' },
+  const requests = await prisma.property_tour_requests.findMany({
+    where: whereClause,
+    orderBy: { created_at: 'desc' },
+    take: Number(limit) + 1, // fetch one extra record for pagination
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+    select: {
+      id: true,
+      message: true,
+      status: true,
+      created_at: true,
+      requested_datetime: true,
+      properties: {
         select: {
           id: true,
-          message: true,
-          status: true,
-          created_at: true,
-          properties: {
-            select: {
-              id: true,
-              property_name: true,
-              thumbnail_image_path: true,
-            },
-          },
-          users_property_tour_requests_requester_idTousers: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-            },
-          },
+          property_name: true,
+          thumbnail_image_path: true,
         },
-      });
-    
-      return requests.map((req) => ({
-        request_id: req.id,
-        property: {
-          property_id: req.properties?.id,
-          property_name: req.properties?.property_name,
-          thumbnail_url: req.properties?.thumbnail_image_path || null,
+      },
+      users_property_tour_requests_requester_idTousers: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
         },
-        tenant_info: req.users_property_tour_requests_requester_idTousers,
-        tenant_message: req.message,
-        status: req.status, 
-        requested_datetime: req.requested_datetime,
-        created_at: req.created_at,
-      }));
-}
+      },
+    },
+  });
+
+  const data = requests.slice(0, limit).map((req) => ({
+    request_id: req.id,
+    property: {
+      property_id: req.properties?.id,
+      property_name: req.properties?.property_name,
+      thumbnail_url: req.properties?.thumbnail_image_path || null,
+    },
+    tenant_info: req.users_property_tour_requests_requester_idTousers,
+    tenant_message: req.message,
+    status: req.status,
+    requested_datetime: req.requested_datetime,
+    created_at: req.created_at,
+  }));
+
+  const nextCursor = requests.length > limit ? requests[limit].id : null;
+
+  return {
+    results: data,
+    nextCursor,
+    hasMore: Boolean(nextCursor),
+  };
+};
 
 export const resolveTourRequest = async (landlordId, requestId, action, reason) => {
   const request = await prisma.property_tour_requests.findUnique({ where: { id: requestId } });

@@ -147,18 +147,18 @@ export const applicationRequest = async (payload, userId) => {
   return { application };
 };
 
-export const getApplicationRequests = async (userId, status) => {
+export const getApplicationRequests = async (userId, { status, cursor, limit = 20 }) => {
   const where = {
     tenant_id: userId,
     is_deleted: false,
-    ...(status && { status }) // Apply status filter if provided
+    ...(status && { status }),
   };
 
   const applications = await prisma.property_applications.findMany({
     where,
-    orderBy: {
-      submitted_at: 'desc',
-    },
+    orderBy: { submitted_at: 'desc' },
+    take: Number(limit) + 1,
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     include: {
       properties: {
         select: {
@@ -177,7 +177,7 @@ export const getApplicationRequests = async (userId, status) => {
     },
   });
 
-  return applications.map(app => ({
+  const data = applications.slice(0, limit).map(app => ({
     application_id: app.id,
     property_id: app.property_id,
     property_name: app.properties?.property_name || null,
@@ -187,7 +187,16 @@ export const getApplicationRequests = async (userId, status) => {
     status: app.status,
     submitted_at: app.submitted_at,
   }));
+
+  const nextCursor = applications.length > limit ? applications[limit].id : null;
+
+  return {
+    results: data,
+    nextCursor,
+    hasMore: Boolean(nextCursor),
+  };
 };
+
 
 
 export const cancelApplicationBatch = async (userId, applicationIds = []) => {

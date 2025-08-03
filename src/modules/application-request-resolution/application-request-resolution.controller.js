@@ -4,16 +4,21 @@ import { handleControllerError } from '../../common/utils/handle-controller-erro
 
 export const getLandlordApplicationRequestsHandler = async (req, res) => {
     try {
-        const landlordId = req.user.id;  
+      const landlordId = req.user.id;
+      const { status, cursor, limit } = req.query;
   
-        const { status } = req.query;
-        const result = await ApplicationRequestResolutionService.getLandlordApplicationRequests(landlordId, status)
-        return success(res, result, 'Landlord Property Application requests retrieved successfully');
-    } catch (error) {        
-        return handleControllerError(res, error, 'GET_APPLICATION_REQUESTS_ERROR', 'Failed to get landlord properties application requests');
+      const result = await ApplicationRequestResolutionService.getLandlordApplicationRequests(landlordId, {
+        status,
+        cursor,
+        limit: Number(limit) || 20,
+      });
+  
+      return success(res, result, 'Landlord Property Application requests retrieved successfully');
+    } catch (error) {
+      return handleControllerError(res, error, 'GET_APPLICATION_REQUESTS_ERROR', 'Failed to get landlord properties application requests');
     }
-}
-
+  };
+  
 export const resolveApplicationRequestHandler = async (req, res) => {
     try {
         const landlordId = req.user.id;  

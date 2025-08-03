@@ -14,16 +14,16 @@ export const getTenantsHandler = async (req, res) => {
 
 export const getTenantRentHistoryHandler = async (req, res) => {
     try {
-        const { tenantId } = req.params;
-        const { month, year, status, page, limit } = req.query;
-      
-        const result = await TenantManagementService.getTenantRentHistory(tenantId, {
-          page: parseInt(page) || 1,
-          limit: parseInt(limit) || 20,
-          month: month ? parseInt(month) : undefined,
-          year: year ? parseInt(year) : undefined,
-          status,
-        });
+      const { tenantId } = req.params;
+      const { month, year, status, limit = 20, cursor } = req.query;
+  
+      const result = await TenantManagementService.getTenantRentHistory(tenantId, {
+        limit: Number(limit),
+        cursor,
+        month: month ? parseInt(month, 10) : undefined,
+        year: year ? parseInt(year, 10) : undefined,
+        status,
+      });
       
         return success(res, result, 'Tenants rent history retrieved successfully');
       } catch (error) {

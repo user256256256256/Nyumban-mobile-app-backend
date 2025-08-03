@@ -34,17 +34,25 @@ export const triggerNotificationHandler = async (req, res) => {
     }
 }
 
-export const getUserNotifications = async (req, res) => {
+export const getUserNotificationsHandler = async (req, res) => {
     try {
-        const userId = req.user?.id;
+      const userId = req.user?.id;
   
-        const { filter = 'all' } = req.query;
-        const result = await NotificationService.getUserNotifications(userId, filter);
-        return success(res, result, 'Notification fetched successfully');
+      const { filter = 'all', cursor, limit = 20 } = req.query;
+  
+      const result = await NotificationService.getUserNotifications(
+        userId,
+        filter,
+        cursor,
+        parseInt(limit, 10)
+      );
+  
+      return success(res, result, 'Notifications fetched successfully');
     } catch (error) {
-        return handleControllerError(res, error, 'FAILED_TO_GET', 'Failed to get notifications');
+      return handleControllerError(res, error, 'FAILED_TO_GET', 'Failed to get notifications');
     }
-}
+  };
+  
 
 export const markAllAsReadHandler = async (req, res) => {
     try {

@@ -46,43 +46,43 @@ export const getLeaseAgreement = async (userId, propertyId, unitId = null) => {
     };
 };
 
-export const getTenantAgreements = async ({ userId, status, limit = 10, offset = 0 }) => {
+export const getTenantAgreements = async ({ userId, status, limit = 10, cursor }) => {
   const whereClause = {
     tenant_id: userId,
     is_deleted: false,
+    ...(status && { status }),
   };
 
-  if (status) {
-    whereClause.status = status;
-  }
-
-  const [total, agreements] = await Promise.all([
-    prisma.rental_agreements.count({ where: whereClause }),
-    prisma.rental_agreements.findMany({
-      where: whereClause,
-      include: {
-        properties: {
-          select: {
-            id: true,
-            property_name: true,
-            thumbnail_image_path: true,
-          },
-        },
-        users_rental_agreements_owner_idTousers: {
-          select: {
-            id: true,
-            username: true,
-            phone_number: true,
-          },
+  // Fetch one extra record for nextCursor determination
+  const agreements = await prisma.rental_agreements.findMany({
+    where: whereClause,
+    include: {
+      properties: {
+        select: {
+          id: true,
+          property_name: true,
+          thumbnail_image_path: true,
         },
       },
-      orderBy: { created_at: 'desc' },
-      skip: offset,
-      take: limit,
-    }),
-  ]);
+      users_rental_agreements_owner_idTousers: {
+        select: {
+          id: true,
+          username: true,
+          phone_number: true,
+          full_name: true,
+        },
+      },
+    },
+    orderBy: { created_at: 'desc' },
+    take: Number(limit) + 1,
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+  });
 
-  const formatted = agreements.map((agreement) => ({
+  const hasMore = agreements.length > limit;
+  const slicedAgreements = agreements.slice(0, limit);
+  const nextCursor = hasMore ? slicedAgreements[slicedAgreements.length - 1].id : null;
+
+  const formatted = slicedAgreements.map((agreement) => ({
     agreement_id: agreement.id,
     status: agreement.status,
     start_date: agreement.start_date?.toISOString().split('T')[0],
@@ -95,7 +95,7 @@ export const getTenantAgreements = async ({ userId, status, limit = 10, offset =
     },
     owner: {
       id: agreement.users_rental_agreements_owner_idTousers?.id,
-      name: agreement.users_rental_agreements_owner_idTousers?.full_name,
+      name: agreement.users_rental_agreements_owner_idTousers?.full_name || agreement.users_rental_agreements_owner_idTousers?.username,
       contact: agreement.users_rental_agreements_owner_idTousers?.phone_number,
     },
     created_at: agreement.created_at?.toISOString(),
@@ -103,12 +103,12 @@ export const getTenantAgreements = async ({ userId, status, limit = 10, offset =
   }));
 
   return {
-    total,
-    limit,
-    offset,
-    agreements: formatted,
+    results: formatted,
+    nextCursor,
+    hasMore,
   };
 };
+
 
 export const cancelAgreement = async ({ agreementId, userId }) => {
   const agreement = await prisma.rental_agreements.findUnique({

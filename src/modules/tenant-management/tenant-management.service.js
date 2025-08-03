@@ -83,19 +83,13 @@ export const getTenants = async (landlordId) => {
 
 export const getTenantRentHistory = async (
   tenantId,
-  { page = 1, limit = 20, month, year, status } = {}
+  { limit = 20, cursor, month, year, status } = {}
 ) => {
-  const offset = (page - 1) * limit;
-
   const where = {
     tenant_id: tenantId,
     is_deleted: false,
+    ...(status && { status }),
   };
-
-  // Filter by status if provided
-  if (status) {
-    where.status = status;
-  }
 
   // Filter by month/year if provided
   if (month && year) {
@@ -104,36 +98,37 @@ export const getTenantRentHistory = async (
     where.payment_date = { gte: startDate, lte: endDate };
   } else if (year) {
     const startDate = new Date(year, 0, 1);
-    const endDate = new Date(year, 11, 31, 23, 59, 59); // Full year
+    const endDate = new Date(year, 11, 31, 23, 59, 59);
     where.payment_date = { gte: startDate, lte: endDate };
   }
 
-  const [payments, total] = await Promise.all([
-    prisma.rent_payments.findMany({
-      where,
-      orderBy: { payment_date: 'desc' },
-      skip: offset,
-      take: limit,
-      include: {
-        properties: {
-          select: {
-            id: true,
-            property_name: true,
-          },
-        },
-        property_units: {
-          select: {
-            id: true,
-            unit_number: true,
-          },
+  // Fetch limit + 1 for pagination check
+  const payments = await prisma.rent_payments.findMany({
+    where,
+    orderBy: { payment_date: 'desc' },
+    take: Number(limit) + 1,
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+    include: {
+      properties: {
+        select: {
+          id: true,
+          property_name: true,
         },
       },
-    }),
+      property_units: {
+        select: {
+          id: true,
+          unit_number: true,
+        },
+      },
+    },
+  });
 
-    prisma.rent_payments.count({ where }),
-  ]);
+  const hasMore = payments.length > limit;
+  const slicedPayments = payments.slice(0, limit);
+  const nextCursor = hasMore ? slicedPayments[slicedPayments.length - 1].id : null;
 
-  const formattedPayments = payments.map((payment) => ({
+  const formattedPayments = slicedPayments.map((payment) => ({
     payment_id: payment.id,
     property_id: payment.property_id,
     unit_id: payment.unit_id,
@@ -154,10 +149,10 @@ export const getTenantRentHistory = async (
   }));
 
   return {
-    total,
-    page,
-    limit,
     data: formattedPayments,
+    nextCursor,
+    hasMore,
+    limit: Number(limit),
   };
 };
 

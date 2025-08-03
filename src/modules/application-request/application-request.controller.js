@@ -15,9 +15,14 @@ export const applicationRequestHandler = async (req, res) => {
 export const getApplicationsRequestHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { status } = req.query; // ?status=pending
+    const { status, cursor, limit } = req.query;
 
-    const result = await ApplicationRequestService.getApplicationRequests(userId, status);
+    const result = await ApplicationRequestService.getApplicationRequests(userId, {
+      status,
+      cursor,
+      limit: Number(limit) || 20,
+    });
+
     return success(res, result, 'Application requests retrieved successfully');
   } catch (error) {
     handleControllerError(res, error, 'GET_APPLICATION_REQUEST_ERROR', 'Failed to get application requests.');

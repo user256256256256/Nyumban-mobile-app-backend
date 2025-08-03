@@ -16,14 +16,20 @@ export const tourRequestHandler = async (req, res) => {
 export const getTourRequestsHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { status } = req.query; // ?status=accepted or ?status=pending
+    const { status, cursor, limit } = req.query;
 
-    const result = await TourRequestService.getTourRequests(userId, status);
+    const result = await TourRequestService.getTourRequests(userId, {
+      status,
+      cursor,
+      limit: Number(limit) || 20,
+    });
+
     return success(res, result, 'Tour requests retrieved successfully');
   } catch (error) {
     handleControllerError(res, error, 'GET_TOUR_REQUESTS_ERROR', 'Failed to get tour requests');
   }
 };
+
 
   
 export const cancelTourRequestsHandler = async (req, res) => {

@@ -75,14 +75,23 @@ export const triggerNotification = async (userId, type, title, body, sendSms = f
 /**
  * Get user notifications
  */
-export const getUserNotifications = async (userId, filter) => {
+export const getUserNotifications = async (userId, filter, cursor, limit = 20) => {
   const where = { user_id: userId, is_deleted: false };
   if (filter === 'unread') where.is_read = false;
 
-  const notifications = await prisma.notifications.findMany({
+  const queryOptions = {
     where,
     orderBy: { sent_at: 'desc' },
-  });
+    take: limit,
+  };
+
+  if (cursor) {
+    // cursor should be an object with unique field, e.g., id or sent_at + id
+    queryOptions.cursor = { id: cursor };
+    queryOptions.skip = 1; // skip the cursor itself
+  }
+
+  const notifications = await prisma.notifications.findMany(queryOptions);
 
   const unread_count = await prisma.notifications.count({
     where: { user_id: userId, is_deleted: false, is_read: false },
@@ -90,6 +99,7 @@ export const getUserNotifications = async (userId, filter) => {
 
   return { notifications, unread_count };
 };
+
 
 /**
  * Mark all notifications as read

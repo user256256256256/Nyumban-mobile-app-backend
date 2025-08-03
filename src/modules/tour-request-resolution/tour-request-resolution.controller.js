@@ -4,10 +4,14 @@ import { handleControllerError } from '../../common/utils/handle-controller-erro
 
 export const getLandlordTourRequestsHandler = async (req, res) => {
     try {
-        const landlordId = req.user.id;  
-  
-        const { status } = req.query;
-        const result = await TourRequestResolutionService.getLandlordTourRequests(landlordId, status);
+        const landlordId = req.user.id;
+        const { status, cursor, limit } = req.query;
+    
+        const result = await TourRequestResolutionService.getLandlordTourRequests(landlordId, {
+          status,
+          cursor,
+          limit: Number(limit) || 20,
+        });
         return success(res, result, 'Landlord Property Tour requests retrieved successfully');
     } catch (error) {
         return handleControllerError(res, error, 'GET_TOUR_REQUESTS_ERROR', 'Failed to get landlord properties tour requests');

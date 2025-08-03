@@ -20,14 +20,13 @@ export const getLeaseAgreementHandler = async (req, res) => {
 export const getTenantAgreementsHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    // Found a query
-    const { status, limit = 10, offset = 0 } = req.query;
+    const { status, limit = 10, cursor } = req.query;
 
     const result = await AgreementManagementService.getTenantAgreements({
       userId,
       status,
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10),
+      limit: Number(limit),
+      cursor,
     });
 
     return success(res, result, 'Tenant agreements fetched successfully');
@@ -35,6 +34,7 @@ export const getTenantAgreementsHandler = async (req, res) => {
     return handleControllerError(res, error, 'GET_TENANT_AGREEMENTS_ERROR', 'Failed to fetch tenant agreements');
   }
 };
+
 
 export const cancelAgreementHandler = async (req, res) => {
   try {

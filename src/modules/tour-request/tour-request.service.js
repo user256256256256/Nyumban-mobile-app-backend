@@ -78,7 +78,7 @@ export const tourRequest = async (requesterId, propertyId, message) => {
 };
 
 
-export const getTourRequests = async (userId, status) => {
+export const getTourRequests = async (userId, { status, cursor, limit = 20 }) => {
   const where = {
     requester_id: userId,
     is_deleted: false,
@@ -88,6 +88,8 @@ export const getTourRequests = async (userId, status) => {
   const tours = await prisma.property_tour_requests.findMany({
     where,
     orderBy: { created_at: 'desc' },
+    take: Number(limit) + 1, // Fetch one extra record for pagination
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     select: {
       id: true,
       property_id: true,
@@ -101,15 +103,15 @@ export const getTourRequests = async (userId, status) => {
           users: {
             select: {
               phone_number: true,
-              email: true
-            }
-          }
-        }
-      }
-    }
+              email: true,
+            },
+          },
+        },
+      },
+    },
   });
 
-  return tours.map(t => ({
+  const data = tours.slice(0, limit).map((t) => ({
     tour_id: t.id,
     property_id: t.property_id,
     property: {
@@ -119,8 +121,16 @@ export const getTourRequests = async (userId, status) => {
     },
     status: t.status,
     requested_date: t.created_at,
-    message: ['accepted', 'declined'].includes(t.status) ? t.message : undefined
+    message: ['accepted', 'declined'].includes(t.status) ? t.message : undefined,
   }));
+
+  const nextCursor = tours.length > limit ? tours[limit].id : null;
+
+  return {
+    results: data,
+    nextCursor,
+    hasMore: Boolean(nextCursor),
+  };
 };
 
 export const cancelTourRequests = async (userId, tourIds = []) => {
