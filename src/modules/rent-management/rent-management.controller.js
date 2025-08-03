@@ -42,12 +42,21 @@ export const initiateRentPaymentHandler = async (req, res) => {
 export const getPaymentHistoryHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    const result = await RentManagementService.getPaymentHistory({ userId });
-    return success(res, result, 'Payment history fetched successfully')
+    const { month, year, status } = req.query;
+
+    const result = await RentManagementService.getPaymentHistory({
+      userId,
+      month: month ? parseInt(month) : undefined,
+      year: year ? parseInt(year) : undefined,
+      status,
+    });
+
+    return success(res, result, 'Payment history fetched successfully');
   } catch (error) {
-    handleControllerError(res, error, 'GET_PAYMENTS_ERROR', 'Failed to ger payments history');
+    handleControllerError(res, error, 'GET_PAYMENTS_ERROR', 'Failed to get payments history');
   }
-}
+};
+
 
 export const getRentStatusHandler = async (req, res) => {
   try {

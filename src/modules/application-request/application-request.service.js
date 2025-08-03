@@ -147,12 +147,15 @@ export const applicationRequest = async (payload, userId) => {
   return { application };
 };
 
-export const getApplicationRequest = async(userId) => {
+export const getApplicationRequests = async (userId, status) => {
+  const where = {
+    tenant_id: userId,
+    is_deleted: false,
+    ...(status && { status }) // Apply status filter if provided
+  };
+
   const applications = await prisma.property_applications.findMany({
-    where: {
-      tenant_id: userId,
-      is_deleted: false,
-    },
+    where,
     orderBy: {
       submitted_at: 'desc',
     },
@@ -180,11 +183,12 @@ export const getApplicationRequest = async(userId) => {
     property_name: app.properties?.property_name || null,
     thumbnail_url: app.properties?.thumbnail_image_path || null,
     unit_id: app.unit_id || null,
-    unit_number: app.property_units?.unit_number || null, 
+    unit_number: app.property_units?.unit_number || null,
     status: app.status,
     submitted_at: app.submitted_at,
   }));
-}
+};
+
 
 export const cancelApplicationBatch = async (userId, applicationIds = []) => {
   const updates = [];
@@ -252,7 +256,7 @@ export const deleteApplicationBatch = async (userId, applicationIds = []) => {
 
 export default {
   applicationRequest,
-  getApplicationRequest,
+  getApplicationRequests,
   cancelApplicationBatch,
   deleteApplicationBatch
 };

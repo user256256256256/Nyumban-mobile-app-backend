@@ -693,7 +693,17 @@ export const deletePropertyThumbnail = async (userId, propertyId) => {
   };
 };
 
-export const getPropertyUnits = async (userId, propertyId) => {
+export const getPropertyUnits = async (userId, propertyId, sortBy = 'created_at', order = 'desc') => {
+  const validSortFields = {
+    price: 'price',
+    date: 'created_at',
+    name: 'unit_number'
+  };
+
+  // Map `sortBy` to a real field, default to date
+  const sortField = validSortFields[sortBy] || 'created_at';
+  const sortOrder = ['asc', 'desc'].includes(order) ? order : 'desc';
+
   const property = await prisma.properties.findUnique({
     where: { id: propertyId },
     select: {
@@ -702,12 +712,8 @@ export const getPropertyUnits = async (userId, propertyId) => {
       thumbnail_image_path: true,
       owner_id: true,
       property_units: {
-        where: {
-          is_deleted: false,
-        },
-        orderBy: {
-          created_at: 'desc',
-        },
+        where: { is_deleted: false },
+        orderBy: { [sortField]: sortOrder },
         select: {
           id: true,
           unit_number: true,
@@ -723,11 +729,8 @@ export const getPropertyUnits = async (userId, propertyId) => {
     },
   });
 
-  if (!property) {
-    throw new NotFoundError('Property not found', { field: 'Property ID' });
-  }
-
-  if (property.owner_id !== userId) throw new AuthError('Access Denied', { field: 'User ID' })
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
+  if (property.owner_id !== userId) throw new AuthError('Access Denied', { field: 'User ID' });
 
   return {
     property_id: property.id,

@@ -263,14 +263,16 @@ export const getPropertyUnitsHandler = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { propertyId } = req.params;
+    const { sortBy, order } = req.query;
 
-    const result = await PropertyManagementService.getPropertyUnits(userId, propertyId);
+    const result = await PropertyManagementService.getPropertyUnits(userId, propertyId, sortBy, order);
 
     return success(res, result, 'Property units fetched successfully');
   } catch (error) {
     return handleControllerError(res, error, 'GET_PROPERTY_UNITS_ERROR', 'Failed to fetch property units');
   }
 };
+
 
 export const getPropertyUnitHandler = async (req, res, next) => {
   try {

@@ -13,14 +13,17 @@ export const applicationRequestHandler = async (req, res) => {
 }
 
 export const getApplicationsRequestHandler = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const result = await ApplicationRequestService.getApplicationRequest(userId)
-        return success(res, result, '')
-    } catch (error) {
-        handleControllerError(res, error, 'GET_APPLICATION_REQUEST_ERROR', 'Failed to get application requests.')
-    }
-}
+  try {
+    const userId = req.user.id;
+    const { status } = req.query; // ?status=pending
+
+    const result = await ApplicationRequestService.getApplicationRequests(userId, status);
+    return success(res, result, 'Application requests retrieved successfully');
+  } catch (error) {
+    handleControllerError(res, error, 'GET_APPLICATION_REQUEST_ERROR', 'Failed to get application requests.');
+  }
+};
+
 
 export const cancelApplicationBatchRequestHandler = async (req, res) => {
     try {

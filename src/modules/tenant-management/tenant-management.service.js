@@ -81,15 +81,36 @@ export const getTenants = async (landlordId) => {
 
 }
 
-export const getTenantRentHistory = async (tenantId, { page = 1, limit = 20 } = {}) => {
+export const getTenantRentHistory = async (
+  tenantId,
+  { page = 1, limit = 20, month, year, status } = {}
+) => {
   const offset = (page - 1) * limit;
+
+  const where = {
+    tenant_id: tenantId,
+    is_deleted: false,
+  };
+
+  // Filter by status if provided
+  if (status) {
+    where.status = status;
+  }
+
+  // Filter by month/year if provided
+  if (month && year) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59); // Last day of month
+    where.payment_date = { gte: startDate, lte: endDate };
+  } else if (year) {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59); // Full year
+    where.payment_date = { gte: startDate, lte: endDate };
+  }
 
   const [payments, total] = await Promise.all([
     prisma.rent_payments.findMany({
-      where: {
-        tenant_id: tenantId,
-        is_deleted: false,
-      },
+      where,
       orderBy: { payment_date: 'desc' },
       skip: offset,
       take: limit,
@@ -109,9 +130,7 @@ export const getTenantRentHistory = async (tenantId, { page = 1, limit = 20 } = 
       },
     }),
 
-    prisma.rent_payments.count({
-      where: { tenant_id: tenantId, is_deleted: false },
-    }),
+    prisma.rent_payments.count({ where }),
   ]);
 
   const formattedPayments = payments.map((payment) => ({
@@ -130,7 +149,7 @@ export const getTenantRentHistory = async (tenantId, { page = 1, limit = 20 } = 
     period_covered: payment.period_covered,
     payment_method: payment.method || 'N/A',
     payment_date: payment.payment_date,
-    status: payment.status, 
+    status: payment.status,
     notes: payment.notes || null,
   }));
 

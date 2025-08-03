@@ -12,20 +12,10 @@ import {
 
 export const getAllLandlordAgreements = async ({
   landlordId,
-  sortBy,
-  order,
   status,
   limit,
   offset
 }) => {
-  const sortFieldMap = {
-    date: 'created_at',
-    status: 'status',
-    property_name: 'properties.property_name'
-  };
-
-  const sortField = sortFieldMap[sortBy] || 'created_at';
-
   const where = {
     owner_id: landlordId,
     is_deleted: false,
@@ -54,7 +44,7 @@ export const getAllLandlordAgreements = async ({
         }
       },
       orderBy: {
-        [sortField]: order
+        created_at: 'desc'
       },
       skip: offset,
       take: limit
@@ -86,6 +76,7 @@ export const getAllLandlordAgreements = async ({
     agreements: formatted
   };
 };
+
 
 export const generateAgreementShareLink = async ({ agreementId }) => {
   const agreement = await prisma.rental_agreements.findUnique({

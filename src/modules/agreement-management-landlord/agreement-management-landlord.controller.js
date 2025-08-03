@@ -5,8 +5,8 @@ import { handleControllerError } from '../../common/utils/handle-controller-erro
 export const getAllLandlordAgreementsHandler = async (req, res) => {
     try {
         const landlordId = req.user.id;
-        const { sort_by = 'date', order = 'desc', status, limit = 10, offset = 0 } = req.query
-        const result = await AgreementManagementService.getAllLandlordAgreements({ landlordId, sortBy: sort_by, order, status, limit: parseInt(limit), offset: parseInt(offset) })
+        const {status, limit = 10, offset = 0 } = req.query
+        const result = await AgreementManagementService.getAllLandlordAgreements({ landlordId, status, limit: parseInt(limit), offset: parseInt(offset) })
         return success(res, result, 'Agreements fetched successfully')
     } catch (error) {
         return handleControllerError(res, error, 'GET_AGREEMENT_FAILED', 'Failed to fetch agreement')

@@ -78,47 +78,49 @@ export const tourRequest = async (requesterId, propertyId, message) => {
 };
 
 
-export const getTourRequests = async (userId) => {
-    const tours = await prisma.property_tour_requests.findMany({
-      where: {
-        requester_id: userId,
-        is_deleted: false
-      },
-      orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        property_id: true,
-        status: true,
-        created_at: true,
-        message: true,
-        properties: {
-          select: {
-            property_name: true,
-            thumbnail_image_path: true,
-            users: {
-              select: {
-                phone_number: true,
-                email: true
-              }
+export const getTourRequests = async (userId, status) => {
+  const where = {
+    requester_id: userId,
+    is_deleted: false,
+    ...(status && { status }) // Apply status filter if provided
+  };
+
+  const tours = await prisma.property_tour_requests.findMany({
+    where,
+    orderBy: { created_at: 'desc' },
+    select: {
+      id: true,
+      property_id: true,
+      status: true,
+      created_at: true,
+      message: true,
+      properties: {
+        select: {
+          property_name: true,
+          thumbnail_image_path: true,
+          users: {
+            select: {
+              phone_number: true,
+              email: true
             }
           }
         }
       }
-    });
-  
-    return tours.map(t => ({
-        tour_id: t.id,
-        property_id: t.property_id,
-        property: {
-          property_name: t.properties?.property_name || null,
-          thumbnail_url: t.properties?.thumbnail_image_path || null,
-          landlord_contact: t.properties?.users?.phone_number || t.properties?.users?.email || null,
-        },
-        status: t.status,
-        requested_date: t.created_at,
-        message: ['accepted', 'declined'].includes(t.status) ? t.message : undefined
-    }));
+    }
+  });
 
+  return tours.map(t => ({
+    tour_id: t.id,
+    property_id: t.property_id,
+    property: {
+      property_name: t.properties?.property_name || null,
+      thumbnail_url: t.properties?.thumbnail_image_path || null,
+      landlord_contact: t.properties?.users?.phone_number || t.properties?.users?.email || null,
+    },
+    status: t.status,
+    requested_date: t.created_at,
+    message: ['accepted', 'declined'].includes(t.status) ? t.message : undefined
+  }));
 };
 
 export const cancelTourRequests = async (userId, tourIds = []) => {

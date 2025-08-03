@@ -203,13 +203,30 @@ export const initiateRentPayment = async ({ userId, payment_method, amount }) =>
 };
 
 
-export const getPaymentHistory = async ({ userId }) => {
+export const getPaymentHistory = async ({ userId, month, year, status }) => {
+  const where = {
+    tenant_id: userId,
+    is_deleted: false,
+  };
+
+  // Filter by status if provided
+  if (status) {
+    where.status = status;
+  }
+
+  // Filter by month/year if provided
+  if (month && year) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59); // Last day of the month
+    where.payment_date = { gte: startDate, lte: endDate };
+  } else if (year) {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59);
+    where.payment_date = { gte: startDate, lte: endDate };
+  }
+
   const payments = await prisma.rent_payments.findMany({
-    where: {
-      tenant_id: userId,
-      is_deleted: false,
-      status: 'completed',
-    },
+    where,
     include: {
       properties: true,
       rental_agreements: true,
@@ -220,20 +237,19 @@ export const getPaymentHistory = async ({ userId }) => {
     },
   });
 
-  return payments.map(payment => {
-    return {
-      property_name: payment.properties?.property_name || 'N/A',
-      unit: payment.property_units?.unit_number || '',
-      period_covered: formatMonthlyPeriod(payment.due_date),
-      payment_date: payment.payment_date?.toISOString(),
-      amount_paid: parseFloat(payment.amount_paid || 0),
-      method: payment.method || 'N/A',
-      status: 'paid',
-      notes: payment.notes || '',
-      transaction_id: payment.transaction_id || '',
-    };
-  });
+  return payments.map((payment) => ({
+    property_name: payment.properties?.property_name || 'N/A',
+    unit: payment.property_units?.unit_number || '',
+    period_covered: formatMonthlyPeriod(payment.due_date),
+    payment_date: payment.payment_date?.toISOString(),
+    amount_paid: parseFloat(payment.amount_paid || 0),
+    method: payment.method || 'N/A',
+    status: payment.status, // use actual status instead of static "paid"
+    notes: payment.notes || '',
+    transaction_id: payment.transaction_id || '',
+  }));
 };
+
 
 export const getRentStatus = async ({ userId }) => {
   const activeAgreement = await prisma.rental_agreements.findFirst({

@@ -14,10 +14,19 @@ export const getTenantsHandler = async (req, res) => {
 
 export const getTenantRentHistoryHandler = async (req, res) => {
     try {
-        const { tenantId } = req.params
-        const result = await TenantManagementService.getTenantRentHistory(tenantId);
+        const { tenantId } = req.params;
+        const { month, year, status, page, limit } = req.query;
+      
+        const result = await TenantManagementService.getTenantRentHistory(tenantId, {
+          page: parseInt(page) || 1,
+          limit: parseInt(limit) || 20,
+          month: month ? parseInt(month) : undefined,
+          year: year ? parseInt(year) : undefined,
+          status,
+        });
+      
         return success(res, result, 'Tenants rent history retrieved successfully');
-    } catch (error) {
+      } catch (error) {
         handleControllerError(res, error, 'GET_TENANTS_RENT_HISTORY_ERROR', 'Failed to retrieve tenant rent history');
-    }
+      }      
 }
