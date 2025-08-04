@@ -1,5 +1,5 @@
 import prisma from '../../prisma-client.js';
-import { generateAgreementPreview } from './generate-agreement-preview.service.js';
+import { generateAgreementPreview } from '../../common/services/generate-agreement-preview.service.js';
 
 import {
   NotFoundError,
@@ -108,7 +108,6 @@ export const getTenantAgreements = async ({ userId, status, limit = 10, cursor }
     hasMore,
   };
 };
-
 
 export const cancelAgreement = async ({ agreementId, userId }) => {
   const agreement = await prisma.rental_agreements.findUnique({

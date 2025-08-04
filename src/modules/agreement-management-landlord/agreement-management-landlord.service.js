@@ -4,7 +4,6 @@ import slugify from 'slugify';
 import { generateAgreementPreview } from '../../common/services/generate-agreement-preview.service.js'
 import { triggerNotification } from '../../modules/notifications/notification.service.js';
 
-
 import {
   NotFoundError,
   ForbiddenError,
@@ -100,7 +99,6 @@ export const generateAgreementShareLink = async ({ agreementId }) => {
   };
 };
 
-
 export const downloadAgreementPdf = async ({ agreementId }) => {
   const agreement = await prisma.rental_agreements.findUnique({
     where: { id: agreementId, is_deleted: false },
@@ -191,9 +189,6 @@ export const terminateAgreement = async ({ agreementId, landlordId, reason }) =>
     }
   })();
 };
-
-
-
 
 export default {
   getAllLandlordAgreements, 

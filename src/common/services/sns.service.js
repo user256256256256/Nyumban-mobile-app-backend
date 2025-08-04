@@ -1,14 +1,30 @@
-import AWS from 'aws-sdk';
+// sns.service.js (Mock Implementation)
+// Temporary simulation until AWS SDK integration is added.
+
+
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
 
-const sns = new AWS.SNS({ region: process.env.AWS_REGION });
+// Simulated SNS Service
+const sns = {
+  createPlatformEndpoint: async ({ PlatformApplicationArn, Token }) => {
+    console.log('[SNS MOCK] Creating platform endpoint:', { PlatformApplicationArn, Token });
+    return { EndpointArn: `mock-endpoint-${uuidv4()}` };
+  },
 
+  publish: async ({ Message, MessageStructure, TargetArn }) => {
+    console.log('[SNS MOCK] Publishing message:', { TargetArn, MessageStructure });
+    console.log('Message content:', Message);
+    return { MessageId: `mock-message-${uuidv4()}` };
+  },
+};
+
+// Register a device token (mock SNS endpoint)
 export const registerDeviceToken = async (userId, deviceToken, platformApplicationArn) => {
   const { EndpointArn } = await sns.createPlatformEndpoint({
     PlatformApplicationArn: platformApplicationArn,
     Token: deviceToken,
-  }).promise();
+  });
 
   await prisma.device_tokens.upsert({
     where: { endpoint_arn: EndpointArn },
@@ -32,6 +48,7 @@ export const registerDeviceToken = async (userId, deviceToken, platformApplicati
   return EndpointArn;
 };
 
+// Get user endpoints
 export const getUserEndpoints = async (userId) => {
   return prisma.device_tokens.findMany({
     where: { user_id: userId, is_active: true },
@@ -39,6 +56,7 @@ export const getUserEndpoints = async (userId) => {
   });
 };
 
+// Send push notification (mock)
 export const sendRemotePush = async (endpointArn, payload) => {
   const message = {
     default: payload.body,
@@ -56,9 +74,10 @@ export const sendRemotePush = async (endpointArn, payload) => {
     Message: JSON.stringify(message),
     MessageStructure: 'json',
     TargetArn: endpointArn,
-  }).promise();
+  });
 };
 
+// Deactivate endpoint
 export const deactivateEndpoint = async (endpointArn) => {
   await prisma.device_tokens.updateMany({
     where: { endpoint_arn: endpointArn },
@@ -66,14 +85,15 @@ export const deactivateEndpoint = async (endpointArn) => {
   });
 };
 
+// Send SMS (mock simulation)
 export const sendSms = async ({ toUserId, message }) => {
   const user = await prisma.users.findUnique({ where: { id: toUserId } });
   if (!user?.phone_number) {
-    console.warn(`[SNS SIMULATION] No phone number found for user ${toUserId}`);
+    console.warn(`[SNS MOCK] No phone number found for user ${toUserId}`);
     return { success: false };
   }
 
-  console.log(`[SNS SIMULATION] Sending SMS to ${user.phone_number}`);
+  console.log(`[SNS MOCK] Sending SMS to ${user.phone_number}`);
   console.log(`Message: ${message}`);
   return { success: true, delivered: true };
 };

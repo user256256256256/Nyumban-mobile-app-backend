@@ -100,7 +100,6 @@ export const markAsReadHandler = async (req, res) => {
     }
   };
   
-  
 
 export const clearNotificationHandler = async (req, res) => {
     try {

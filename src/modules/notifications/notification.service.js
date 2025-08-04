@@ -1,5 +1,5 @@
 import prisma from '../../prisma-client.js';
-import notificationQueue from '../../queues/notification.queue.js'; 
+import { notificationQueue } from '../../queues/notification.queue.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   ValidationError,

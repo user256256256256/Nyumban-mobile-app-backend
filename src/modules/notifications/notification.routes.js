@@ -5,7 +5,7 @@ import {
     getNotificationSettingsHandler,
     updateNotificationSettingsHandler,
     triggerNotificationHandler,
-    getUserNotifications,
+    getUserNotificationsHandler,
     clearAllNotificationsHandler,
     searchNotificationsHandler,
     markAsReadHandler, 
@@ -22,7 +22,7 @@ const router = express.Router();
 router.get('/settings', authenticate, getNotificationSettingsHandler);
 router.post('/settings', authenticate, validate(updateNotificationSchema), updateNotificationSettingsHandler)
 router.post('/trigger',  authenticate, validate(triggerNotificationSchema), triggerNotificationHandler)
-router.get('/notifications', authenticate, validate(notificationFilterSchema), getUserNotifications);
+router.get('/notifications', authenticate, validate(notificationFilterSchema), getUserNotificationsHandler);
 router.post('/read-all', authenticate, markAllAsReadHandler)
 router.patch('/mark-read', authenticate, validate(markAsReadSchema), markAsReadHandler);
 router.delete('/clear-all', authenticate, clearAllNotificationsHandler)

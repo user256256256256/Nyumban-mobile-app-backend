@@ -1,7 +1,7 @@
 import prisma from '../../prisma-client.js';
 import dayjs from 'dayjs';
 import { NotFoundError, ForbiddenError } from '../../common/services/errors-builder.service.js';
-import { triggerNotification } from '../../common/services/notification.service.js';
+import { triggerNotification } from '../notifications/notification.service.js';
 
 const GRACE_PERIOD_DAYS = 7; // configurable
 
@@ -95,3 +95,8 @@ export const finalizeEviction = async ({ landlordId, evictionLogId }) => {
 
   return { status: 'evicted', eviction_log_id: evictionLogId };
 };
+
+export default {
+  initiateEviction,
+  finalizeEviction
+}
