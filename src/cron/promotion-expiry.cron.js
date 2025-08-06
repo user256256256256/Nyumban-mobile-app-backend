@@ -17,10 +17,10 @@ export const alertUpcomingExpirations = async (daysBefore = 3) => {
     select: {
       id: true,
       property_id: true,
-      property: {
+      properties: {
         select: {
           owner_id: true,
-          title: true,
+          property_name: true,
         },
       },
       end_date: true,
@@ -31,7 +31,7 @@ export const alertUpcomingExpirations = async (daysBefore = 3) => {
 
   for (const promo of soonToExpire) {
     const landlordId = promo.property?.owner_id;
-    const propertyTitle = promo.property?.title || 'your property';
+    const propertyTitle = promo.properties?.property_name || 'your property';
     const daysLeft = dayjs(promo.end_date).diff(dayjs(now), 'day');
 
     if (landlordId) {
