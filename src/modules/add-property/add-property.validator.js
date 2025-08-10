@@ -33,14 +33,12 @@ export const propertyPhysicalAttrSchema = {
 export const propertyThumbnailSchema = {
   body: Joi.object({
     property_id: Joi.string().uuid().required(),
-    thumbnail: Joi.any().required().meta({ fileField: true }).label('Thumbnail Image'),
   }),
 };
 
 export const propertyImagesSchema = {
   body: Joi.object({
     property_id: Joi.string().uuid().required(),
-    images: Joi.any().required().meta({ fileField: true }).label('Property Images'),
   }),
 };
 

@@ -20,10 +20,10 @@ export const sendSupportMessage = async (userId, subject, message) => {
         fromEmail: user.email,
         fromName: user.username,
         subject,
-        message: `${message}\n\nYour ticket ID is: ${ticketId}`,
+        message: `${message}\n\nTicket ID is: ${ticketId}`,
     });
 
-    return { success: true };
+    return { success: true, ticket: ticketId };
 }
 
 export default {

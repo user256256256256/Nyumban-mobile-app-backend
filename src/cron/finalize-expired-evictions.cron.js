@@ -4,8 +4,8 @@ import EvictionService from '../modules/evict-tenant/evict-tenant.service.js';
 export const finalizeExpiredEvictions = async () => {
   const expiredWarnings = await prisma.eviction_logs.findMany({
     where: {
-      status: 'WARNING',
-      grace_period_end: { lte: new Date() },
+      status: 'warning',
+      gracePeriodEnd: { lte: new Date() },
     },
   });
 

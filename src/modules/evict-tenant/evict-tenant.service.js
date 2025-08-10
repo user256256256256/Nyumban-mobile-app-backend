@@ -27,23 +27,23 @@ export const initiateEviction = async ({ landlordId, tenantId, propertyId, unitI
       property_id: propertyId,
       unit_id: unitId,
       reason,
-      status: 'WARNING',
+      status: 'warning',
       warning_sent_at: new Date(),
-      grace_period_end: gracePeriodEnd,
+      gracePeriodEnd: gracePeriodEnd,
     },
   });
 
   // 3. Send eviction warning notification
   await triggerNotification(
     tenantId,
-    'EVICTION_WARNING',
+    'user',
     'Eviction Warning Issued',
     `You have ${GRACE_PERIOD_DAYS} days to resolve unpaid rent or eviction will be enforced. Reason: ${reason || 'Unpaid rent'}`
   );
 
   return {
     status: 'warning_issued',
-    grace_period_end: gracePeriodEnd,
+    gracePeriodEnd: gracePeriodEnd,
     eviction_log: evictionLog,
   };
 };
@@ -51,10 +51,10 @@ export const initiateEviction = async ({ landlordId, tenantId, propertyId, unitI
 export const finalizeEviction = async ({ landlordId, evictionLogId }) => {
   const log = await prisma.eviction_logs.findUnique({ where: { id: evictionLogId } });
 
-  if (!log || log.status !== 'WARNING') throw new NotFoundError('No active eviction warning found.');
+  if (!log || log.status !== 'warning') throw new NotFoundError('No active eviction warning found.');
   if (log.landlord_id !== landlordId) throw new ForbiddenError('You cannot finalize an eviction you did not initiate.');
 
-  if (dayjs().isBefore(log.grace_period_end)) {
+  if (dayjs().isBefore(log.gracePeriodEnd)) {
     throw new ForbiddenError('Grace period has not expired yet.');
   }
 
@@ -83,12 +83,12 @@ export const finalizeEviction = async ({ landlordId, evictionLogId }) => {
 
   await prisma.eviction_logs.update({
     where: { id: evictionLogId },
-    data: { status: 'EVICTED', updated_at: new Date() },
+    data: { status: 'evicted', updated_at: new Date() },
   });
 
   await triggerNotification(
     log.tenant_id,
-    'TENANT_EVICTED',
+    'user',
     'Eviction Finalized',
     'Your grace period has expired. Your lease has been terminated.'
   );

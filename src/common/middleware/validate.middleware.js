@@ -9,9 +9,16 @@ export const validate = (schemas) => {
 
           if (validationError) {
             const first = validationError.details[0];
-            return error(res, 'FORM_400_VALIDATION_FAILED', first.message, {
-              field: first.context.key,
-              help_url: ''
+            console.log('Validation failed:', first.message); // ✅ confirm it hits here
+
+            return error(res, {
+              code: 'FORM_400_VALIDATION_FAILED',
+              message: first.message,
+              status: 400,
+              details: {
+                field: first.context.key,
+                help_url: ''
+              }
             });
           }
         }

@@ -12,63 +12,92 @@ import {
 } from '../../common/services/errors-builder.service.js';
 
 export const getLandlordProperties = async ({ landlordId, sortBy: sort_by, order = 'desc', filterStatus: filter_status }) => {
-    const where = {
-      owner_id: landlordId,
-      is_deleted: false,
-    };
-  
-    const sortFieldMap = {
-      date: 'created_at',
-      likes: 'likes',
-      saves: 'saves',
-      title: 'property_name',
-    };
-  
-    const useCountSort = ['applications', 'tours'].includes(sort_by);
-    const sortField = sortFieldMap[sort_by] || 'created_at';
-  
-    const properties = await prisma.properties.findMany({
-      where,
-      orderBy: useCountSort
-        ? { _count: { [sort_by === 'applications' ? 'property_applications' : 'property_tour_requests']: order } }
-        : { [sortField]: order },
-      select: {
-        id: true,
-        property_name: true,
-        created_at: true,
-        likes: true,
-        saves: true,
-        is_verified: true,
-        has_units: true,
-        price: true,
-        _count: {
-          select: {
-            property_applications: true,
-            property_tour_requests: true,
-            property_units: true,
-          },
+  const where = {
+    owner_id: landlordId,
+    is_deleted: false,
+  };
+
+  if (filter_status) {
+    switch (filter_status) {
+      case 'verified':
+        where.is_verified = true;
+        break;
+      case 'pending_verification':
+        where.is_verified = false;
+        break;
+      case 'with_units':
+        where.property_units = { some: {} };
+        break;
+      case 'available':
+      case 'occupied':
+      case 'archived':
+        where.status = filter_status;
+        break;
+      case 'unit_available':
+        where.property_units = { some: { status: 'available' } };
+        break;
+      case 'unit_occupied':
+        where.property_units = { some: { status: 'occupied' } };
+        break;
+        
+      default:
+        // no filter
+        break;
+    }
+  }
+
+  const sortFieldMap = {
+    date: 'created_at',
+    likes: 'likes',
+    saves: 'saves',
+    applications: 'application_requests',
+    tours: 'tour_requests',
+    title: 'property_name',
+  };
+
+  const sortField = sortFieldMap[sort_by] || 'created_at';
+
+  const properties = await prisma.properties.findMany({
+    where,
+    orderBy: { [sortField]: order },
+    select: {
+      id: true,
+      property_name: true,
+      created_at: true,
+      likes: true,
+      saves: true,
+      application_requests: true,
+      tour_requests: true,
+      is_verified: true,
+      has_units: true,
+      price: true,
+      status: true,
+      _count: {
+        select: {
+          property_units: true,
         },
       },
-    });
-  
-    return properties.map((prop) => {
-      const hasUnits = prop.has_units;
-      const unitCount = prop._count.property_units || 0;
-  
-      return {
-        property_id: prop.id,
-        title: prop.property_name,
-        created_at: prop.created_at,
-        likes: prop.likes || 0,
-        saves: prop.saves || 0,
-        applications: prop._count.property_applications || 0,
-        tours: prop._count.property_tour_requests || 0,
-        verified: prop.is_verified,
-        has_units: hasUnits,
-        status: hasUnits ? `Status: ${unitCount} units available` : undefined,
-        price: !hasUnits ? prop.price : undefined,
-      };
-    });
+    },
+  });
+
+  return properties.map((prop) => {
+    const hasUnits = prop.has_units;
+    const unitCount = prop._count.property_units || 0;
+
+    return {
+      property_id: prop.id,
+      title: prop.property_name,
+      created_at: prop.created_at,
+      likes: prop.likes || 0,
+      saves: prop.saves || 0,
+      applications: prop.application_requests || 0,
+      tours: prop.tour_requests || 0,
+      verified: prop.is_verified,
+      has_units: hasUnits,
+      status: hasUnits ? `Status: ${unitCount} units available` : prop.status,
+      price: !hasUnits ? prop.price : undefined,
+    };
+  });
 };
 
 export const getPropertyDetails = async (propertyId) => {
@@ -113,7 +142,7 @@ export const getPropertyDetails = async (propertyId) => {
     },
     media: {
       thumbnail_image_path: property.thumbnail_image_path,
-      gallery: property.property_images.map(img => img.image_path),
+      gallery: property.property_images.map(img => img.image_url),
       tour_3d_url: property.tour_3d_url
     },
     legal: {
@@ -385,7 +414,6 @@ export const permanentlyDeleteProperty = async (userId, propertyIds = []) => {
 
   return { deleted: deletedResults };
 };
-
 
 export const permanentlyDeleteAllArchivedProperties = async (userId) => {
 
@@ -786,8 +814,6 @@ export const getPropertyUnit = async (unitId) => {
     }
   };
 };
-
-
 
 export default {
   getLandlordProperties, 

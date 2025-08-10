@@ -38,7 +38,7 @@ export const alertUpcomingExpirations = async (daysBefore = 3) => {
       try {
         await triggerNotification(
           landlordId,
-          'PROMOTION_EXPIRY_ALERT',
+          'user',
           'Promotion Expiry Reminder',
           `The promotion for ${propertyTitle} will expire in ${daysLeft} day(s). Consider renewing to keep it active.`
         );
@@ -64,10 +64,10 @@ export const expirePromotions = async () => {
     select: {
       id: true,
       property_id: true,
-      property: {           // Fetch landlord information
+      properties: {           
         select: {
           owner_id: true,
-          title: true,
+          property_name: true,
         },
       },
     },
@@ -100,14 +100,14 @@ export const expirePromotions = async () => {
   // 🔔 Send notifications to landlords
   for (const promo of expiredPromotions) {
     const landlordId = promo.property?.owner_id;
-    const propertyTitle = promo.property?.title || 'your property';
+    const propertyTitle = promo.properties?.property_name || 'your property';
 
     if (landlordId) {
       void (async () => {
         try {
           await triggerNotification(
             landlordId,
-            'PROMOTION_EXPIRED',
+            'user',
             'Promotion Expired',
             `The promotion for ${propertyTitle} has expired. You can renew it to keep your property highlighted.`
           );

@@ -16,12 +16,11 @@ import { propertyOwnershipSchema, propertyPhysicalAttrSchema, propertyImagesSche
 
 const router = express.Router()
 
-
 router.post('/ownership', authenticate, authorizeRoles('landlord'), validate(propertyOwnershipSchema), addOwnershipInfoHandler);
 router.post('/physical-attributes', authenticate, authorizeRoles('landlord'), validate(propertyPhysicalAttrSchema), addPhysicalAttributesHandler);
-router.post('/media/thumbnail', authenticate, authorizeRoles('landlord'), uploadImage.single('thumbnail'), validate(propertyThumbnailSchema), uploadPropertyThumbnailHandler);
-router.post('/media/images', authenticate, authorizeRoles('landlord'), uploadImage.array('images', 5), validate(propertyImagesSchema), uploadPropertyImagesHandler);
-router.post('/media/3d-tour', authenticate, authorizeRoles('landlord'), upload3DTour.single('tour_3d'), validate(property3DTourSchema), uploadPropertyTourHandler);
+router.post('/media-thumbnail', authenticate, authorizeRoles('landlord'), uploadImage.single('thumbnail'), validate(propertyThumbnailSchema), uploadPropertyThumbnailHandler);
+router.post('/media-images', authenticate, authorizeRoles('landlord'), uploadImage.array('images', 20), validate(propertyImagesSchema), uploadPropertyImagesHandler);
+router.post('/media-3d-tour', authenticate, authorizeRoles('landlord'), upload3DTour.single('tour_3d'), validate(property3DTourSchema), uploadPropertyTourHandler);
 router.post('/:propertyId/unit', authenticate, authorizeRoles('landlord'), validate(propertyUnitSchema), addPropertyUnitHandler);
 
 export default router;

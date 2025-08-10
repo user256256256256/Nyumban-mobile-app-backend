@@ -19,7 +19,7 @@ export const getUserNotificationSettings = async (userId) => {
     },
   });
 
-  if (!prefs) throw new NotFoundError('Notification preferences not found');
+  if (!prefs) throw new NotFoundError('Notification preferences for User not found', { field: 'User ID'});
   return prefs;
 };
 

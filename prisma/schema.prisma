@@ -135,11 +135,11 @@ model properties {
   year_built                 Int?
   parking_spaces             Int?
   thumbnail_image_path       String?
-  energy_efficiency_features String?
-  amenities                  String?
+  energy_efficiency_features String[]
+  amenities                  String[]
   tour_3d_url                String?
   status                     property_status?
-  open_house_dates           String?
+  open_house_dates           String[]
   description                String?
   pet_policy                 String?
   smoking_policy             String?
@@ -390,9 +390,9 @@ model user_roles {
 
 model users {
   id                                                                             String                          @id @default(uuid()) @db.Uuid
-  username                                                                       String
-  email                                                                          String                          @unique(map: "users_email_idx")
-  phone_number                                                                   String                          @unique(map: "users_phone_number_idx")
+  username                                                                       String?
+  email                                                                          String?                         @unique(map: "users_email_idx")
+  phone_number                                                                   String?                         @unique(map: "users_phone_number_idx")
   is_email_confirmed                                                             Boolean?                        @default(false)
   is_phone_number_confirmed                                                      Boolean?                        @default(false)
   is_profile_complete                                                            Boolean?                        @default(false)
@@ -425,6 +425,21 @@ model users {
   tenant_profiles                                                                tenant_profiles?
   notification_preferences                                                       user_notification_preferences?
   user_role_assignments                                                          user_role_assignments[]
+  device_tokens                                                                  device_tokens[]
+}
+
+model device_tokens {
+  id           String   @id @default(uuid()) @db.Uuid
+  user_id      String   @db.Uuid // <-- Must have @db.Uuid here
+  device_token String
+  endpoint_arn String   @unique
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
 }
 
 enum agreement_status {

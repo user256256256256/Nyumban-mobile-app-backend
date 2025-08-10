@@ -219,7 +219,45 @@ async function main() {
     
     console.log('✅ Seeded admin role and user');
 
-  */
+    // Upsert a device token for that user
+    const userId = '56140da1-9010-4466-a9b2-8b80d0bff87b';
+
+      // Upsert the user
+      await prisma.users.upsert({
+        where: { id: userId },
+        update: {},
+        create: {
+          id: userId,
+          username: 'mockuser',
+          email: 'mockuser@example.com',
+          phone_number: '+1234567890',
+          is_email_confirmed: true,
+          is_phone_number_confirmed: true,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+
+
+    await prisma.device_tokens.upsert({
+      where: { endpoint_arn: 'mock-endpoint-1234' },
+      update: {
+        device_token: 'mock-device-token-xyz',
+        is_active: true,
+        updated_at: new Date(),
+      },
+      create: {
+        id: uuidv4(),
+        user_id: userId,
+        device_token: 'mock-device-token-xyz',
+        endpoint_arn: 'mock-endpoint-1234',
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    });
+
+    */
 
 }
 

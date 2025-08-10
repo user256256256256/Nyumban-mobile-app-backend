@@ -8,7 +8,7 @@ let redis;
 if (process.env.REDIS_URL) {
   redis = new Redis(process.env.REDIS_URL);
 } else {
-  console.warn('[REDIS MOCK] Redis URL not found. Using in-memory mock for user activity.');
+  // console.warn('[REDIS MOCK] Redis URL not found. Using in-memory mock for user activity.');
   const mockStore = new Map();
 
   redis = {

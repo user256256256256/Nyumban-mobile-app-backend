@@ -20,7 +20,7 @@ import { updateNotificationSchema, triggerNotificationSchema, notificationFilter
 const router = express.Router();
 
 router.get('/settings', authenticate, getNotificationSettingsHandler);
-router.post('/settings', authenticate, validate(updateNotificationSchema), updateNotificationSettingsHandler)
+router.post('/update-settings', authenticate, validate(updateNotificationSchema), updateNotificationSettingsHandler)
 router.post('/trigger',  authenticate, validate(triggerNotificationSchema), triggerNotificationHandler)
 router.get('/notifications', authenticate, validate(notificationFilterSchema), getUserNotificationsHandler);
 router.post('/read-all', authenticate, markAllAsReadHandler)

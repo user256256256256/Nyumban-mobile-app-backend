@@ -14,7 +14,6 @@ import {
   getRolesHandler,
   switchRoleHandler,
   addRoleHandler,
-  getUserRolesHandler,
   getActiveUserRoleHandler
 } from './auth.controller.js';
 
@@ -34,14 +33,13 @@ router.post('/profile/complete', authenticate, authorizeRoles('tenant', 'landlor
 
 // Onboarding 
 router.get('/slides', authenticate, authorizeRoles('tenant', 'landlord'), getSliderHandler);
-router.post('/complete/onboarding', authorizeRoles('tenant', 'landlord'), authenticate, completeOnboardingHandler);
+router.post('/complete', authenticate, authorizeRoles('tenant', 'landlord'), completeOnboardingHandler);
 
 // Role Handling & Switching
-router.get('/roles', authenticate, getRolesHandler);
-router.post('/roles/switch', authenticate, authorizeRoles('tenant', 'landlord'), validate({ body: switchRoleSchema }), switchRoleHandler)
-router.post('/roles/add', authenticate, authorizeRoles('tenant', 'landlord'), validate({ body: addRoleSchema }), addRoleHandler)
-router.get('/roles/user', authenticate, authorizeRoles('tenant', 'landlord'), getUserRolesHandler);
-router.get('/role/active', authenticate, authorizeRoles('tenant', 'landlord'), getActiveUserRoleHandler);
+router.get('/user-roles', authenticate, authorizeRoles('tenant', 'landlord'), getRolesHandler);
+router.post('/switch-role', authenticate, authorizeRoles('tenant', 'landlord'), validate({ body: switchRoleSchema }), switchRoleHandler)
+router.post('/add-role', authenticate, authorizeRoles('tenant', 'landlord'), validate({ body: addRoleSchema }), addRoleHandler)
+router.get('/active-role', authenticate, authorizeRoles('tenant', 'landlord'), getActiveUserRoleHandler);
 
 export default router;
 

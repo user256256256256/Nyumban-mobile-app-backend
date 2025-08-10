@@ -7,9 +7,6 @@ import { generateUniquePropertyCode } from '../../common/utils/generate-property
 import {
   ValidationError,
   NotFoundError,
-  AuthError,
-  ForbiddenError,
-  ServerError,
 } from '../../common/services/errors-builder.service.js';
 
 export const addOwnershipInfo = async ({ userId, data }) => {
@@ -19,6 +16,20 @@ export const addOwnershipInfo = async ({ userId, data }) => {
   if (!user) throw new ValidationError('User not found', { field: 'User ID'})
   
   await ensureProfileIsComplete(user.email || user.phone_number);
+
+  // 🔍 Check for global duplicate property name (case-insensitive)
+  const duplicateName = await prisma.properties.findFirst({
+    where: {
+      property_name: {
+        equals: data.property_name,
+        mode: 'insensitive'
+      }
+    }
+  });
+
+  if (duplicateName) {
+    throw new ValidationError('A property with this name already exists', { field: 'property_name' });
+  }
 
   const {
     property_name,
@@ -113,7 +124,6 @@ export const addOwnershipInfo = async ({ userId, data }) => {
   return created;
 };
 
-
 export const addPhysicalAttributes = async ({ userId, propertyId, data }) => {
   const {
     bedrooms,
@@ -191,6 +201,7 @@ export const uploadPropertyImages = async (property_id, files) => {
   const urls = await uploadMultipleImages(files);
 
   const imageRecords = urls.map(url => ({
+    id: uuidv4(),
     property_id,
     image_url: url,
     created_at: new Date(),
@@ -200,8 +211,6 @@ export const uploadPropertyImages = async (property_id, files) => {
 
   return { propertyId: property_id, images: urls };
 };
-
-
 
 export const addUnitToProperty = async (propertyId, unitData) => {
   const property = await prisma.properties.findUnique({

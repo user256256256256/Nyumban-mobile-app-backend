@@ -1,18 +1,31 @@
 import Joi from 'joi';
 
 // 🧾 Query: Landlord property filters
+// 🧾 Query: Landlord property filters
 export const landlordPropertySchema = {
   query: Joi.object({
-    sort_by: Joi.string().valid('date', 'likes', 'saves', 'applications', 'tours', 'title').default('date'),
+    sort_by: Joi.string()
+      .valid('date', 'likes', 'saves', 'applications', 'tours', 'title')
+      .default('date'),
     order: Joi.string().valid('asc', 'desc').default('desc'),
-    filter_status: Joi.string().valid('verified', 'with_units', 'pending_verification').optional(),
+    filter_status: Joi.string()
+      .valid(
+        'verified',
+        'with_units',
+        'pending_verification',
+        'available',
+        'occupied',
+        'archived',
+        'unit_available',
+        'unit_occupied'
+      )
+      .optional(),
   }),
   params: Joi.object({
     landlordId: Joi.string().uuid().required().label('Landlord ID'),
   }),
-  
-
 };
+
 
 // 📄 Params: Property ID
 export const propertyParamSchema = {

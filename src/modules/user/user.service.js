@@ -36,8 +36,6 @@ export const requestEmailOtp = async (userId, old_email, new_email) => {
 
     if (!user || user.email !== old_email) throw new NotFoundError('Old email does not match our records', { field: 'Old email' });
 
-    // Send notification to old email when email is updated.
-
     await OTPService.sendOtp(new_email);
 
     return { otp_sent: true, sent_otp_to: new_email }
@@ -80,6 +78,7 @@ export const requestPhoneOtp = async (userId, old_phone, new_phone) => {
 
 export const confirmPhoneOtpAndUpdate = async (userId, otp, new_phone) => {
     const isValid = await  OTPService.verifyOtp(new_phone, otp);
+    
     if (!isValid) throw new AuthError('Invalid or expired OTP', { field: 'Otp' });
 
     await validatePhoneNumber(new_phone)
@@ -158,7 +157,7 @@ export const sendOtpToContact = async (identifier) => {
 }
 
 export const updateProfilePicture = async (userId, profileFile) => {
-    const profilePicUrl = await uploadToStorage(profileFile.buffer, profileFile.originalName);
+    const profilePicUrl = await uploadToStorage(profileFile.buffer, profileFile.originalname);
 
     const updateUser = await prisma.users.update({
         where: {id: userId, is_deleted: false},
@@ -167,7 +166,6 @@ export const updateProfilePicture = async (userId, profileFile) => {
             updated_at: new Date(),
         },
         select: {
-            id: true,
             profile_picture_path: true,
         },
     });
@@ -215,9 +213,8 @@ export const permanentlyDeleteUser = async (userId) => {
   
     await prisma.users.delete({ where: { id: userId } });
 };
-  
 
-export const getUserContact = async (userId) => {
+export const getUser = async (userId) => {
     const user = await prisma.users.findUnique({
       where: { id: userId },
       select: {
@@ -267,6 +264,37 @@ export const recoverAccount = async (userId) => {
   return { message: 'Account recovered successfully' };
 };
 
+export const getAccountDeletionInfo = async (userId) => {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: {
+      is_deleted: true,
+      deleted_at: true,
+    }
+  });
+
+  if (!user) throw new NotFoundError('User not found', { field: 'User ID' });
+
+  if (!user.is_deleted || !user.deleted_at) {
+    return {
+      is_deleted: false,
+      deleted_at: null,
+      time_remaining: null
+    };
+  }
+
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  const deletedAt = new Date(user.deleted_at);
+  const timeElapsed = Date.now() - deletedAt.getTime();
+  const timeRemaining = Math.max(0, THIRTY_DAYS_MS - timeElapsed);
+
+  return {
+    is_deleted: true,
+    deleted_at: deletedAt,
+    time_remaining: timeRemaining // milliseconds
+  };
+};
+
 
 export default {
     updateUsername,
@@ -278,7 +306,8 @@ export default {
     sendOtpToContact,
     updateProfilePicture,
     deleteAccount,
-    getUserContact,
+    getUser,
     permanentlyDeleteUser,
     recoverAccount,
+    getAccountDeletionInfo, 
 }

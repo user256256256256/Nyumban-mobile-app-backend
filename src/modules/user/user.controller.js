@@ -89,7 +89,7 @@ export const updateProfilePicture = async (req, res) => {
         const userId = req.user?.id;
         const profileFile = req.file;
 
-        if (!file) {
+        if (!profileFile) {
             return handleControllerError(res, {
                 code: 'BAD_REQUEST',
                 message: 'Profile picture is required',
@@ -135,12 +135,23 @@ export const recoverAccountHandler = async (req, res) => {
       return handleControllerError(res, error, 'ACCOUNT_RECOVERY_FAILED', 'Failed to recover account');
     }
 };  
-export const getUserContactHandler = async (req, res) => {
+export const getUserHandler = async (req, res) => {
     try {
       const userId = req.user?.id;
-      const contact = await UserService.getUserContact(userId);
+      const contact = await UserService.getUser(userId);
       return success(res, contact, 'User contact fetched successfully');
     } catch (err) {
       return handleControllerError(res, err, 'GET_CONTACT_FAILED', 'Failed to retrieve user contact');
     }
 };
+
+export const getAccountDeletionInfoHandler = async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const result = await UserService.getAccountDeletionInfo(userId);
+      return success(res, result, 'Account deletion info retrieved');
+    } catch (error) {
+      return handleControllerError(res, error, 'GET_DELETION_INFO_FAILED', 'Failed to retrieve account deletion info');
+    }
+  };
+  

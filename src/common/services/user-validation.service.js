@@ -1,5 +1,5 @@
 import prisma from '../../prisma-client.js';
-import { ValidationError } from './errors-builder.service.js';
+import { ValidationError, ForbiddenError } from './errors-builder.service.js';
 import { isEmail } from '../utils/check-user-identifier.utiil.js'
 import Joi from 'joi';
 
@@ -46,7 +46,7 @@ export const validateUsername = async (username) => {
     throw new ValidationError(error.message, { field: 'username' });
   }
 
-  const exists = await prisma.users.findUnique({ where: { username } });
+  const exists = await prisma.users.findFirst({ where: { username } });
   if (exists) {
     throw new ValidationError('Username is already taken', { field: 'username' });
   }

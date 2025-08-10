@@ -34,7 +34,7 @@ const proofDocFilter = (req, file, cb) => {
 export const uploadImage = multer({
   storage,
   fileFilter: imageFilter,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
 export const upload3DTour = multer({

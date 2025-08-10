@@ -34,7 +34,7 @@ export const verifyOtp = async (identifier, otp) => {
   // Step 1: Validate OTP
   const isValid = await OTPService.verifyOtp(identifier, otp);
   if (!isValid) {
-    throw new AuthError('Invalid or expired OTP', { field: 'otp' });
+    throw new AuthError('Invalid or expired OTP', { field: 'Otp' });
   }
 
   // Step 2: Find or create user
@@ -53,6 +53,16 @@ export const verifyOtp = async (identifier, otp) => {
       : { phone_number: identifier, is_phone_number_confirmed: true };
 
     user = await prisma.users.create({ data });
+
+      // Create default notification preferences
+      await prisma.user_notification_preferences.create({
+        data: {
+          user_id: user.id,
+          notify_nyumban_updates: true,
+          notify_payment_sms: true,
+        },
+      });
+      
   } else {
     // Update confirmation flags if user exists
     await prisma.users.update({
@@ -103,6 +113,24 @@ export const setUserRole = async (userId, roleInput) => {
     throw new ValidationError('Invalid role(s) specified', { field: 'Role Input' });
   }
 
+  const existingAssignments = await prisma.user_role_assignments.findMany({
+    where: {
+      user_id: userId,
+      role_id: { in: roleRecords.map(r => r.id) }
+    }
+  });
+
+  if (existingAssignments.length > 0) {
+    const alreadyAssignedRoles = existingAssignments
+      .map(assignment => roleRecords.find(r => r.id === assignment.role_id)?.role)
+      .filter(Boolean);
+
+    throw new ValidationError(
+      `User already has the following role(s): ${alreadyAssignedRoles.join(', ')}`,
+      { field: 'Role Input' }
+    );
+  }
+
   const createAssignments = roleRecords.map((role) =>
     prisma.user_role_assignments.create({
       data: { id: uuidv4(), user_id: userId, role_id: role.id },
@@ -111,7 +139,7 @@ export const setUserRole = async (userId, roleInput) => {
 
   const updateUserActiveRole = prisma.users.update({
     where: { id: userId },
-    data: { active_role: roles[0], updated_at: new Date(), },
+    data: { active_role: roles[0], updated_at: new Date() },
   });
 
   await prisma.$transaction([...createAssignments, updateUserActiveRole]);
@@ -134,7 +162,7 @@ export const completeProfile = async (userId, userName, profileFile) => {
   await validateUsername(userName)
 
   if (profileFile) {
-    profilePicUrl = await uploadToStorage(profileFile.buffer, profileFile.originalName);
+    profilePicUrl = await uploadToStorage(profileFile.buffer, profileFile.originalname );
   }
 
   // Update user profile
@@ -155,15 +183,9 @@ export const completeProfile = async (userId, userName, profileFile) => {
   });
 
   let redirectTo = '/dashboard';
-  if (user?.active_role) {
-    const role = await prisma.user_roles.findUnique({
-      where: { id: user.active_role },
-      select: { role: true },
-    });
 
-    if (role?.role) {
-      redirectTo = `/dashboard/${role.role.toLowerCase()}`;
-    }
+  if (user?.active_role) {
+    redirectTo = `/dashboard/${user.active_role.toLowerCase()}`;
   }
 
   return {
@@ -171,7 +193,6 @@ export const completeProfile = async (userId, userName, profileFile) => {
     redirect_to: redirectTo,
   };
 };
-
 
 export const getSlidesByRole = async (role) => {
   const roleRecord = await prisma.user_roles.findFirst({ where: { role } });
@@ -327,31 +348,6 @@ const createTenantProfile = async (userId) => {
   });
 };
 
-export const getUserRoles = async (userId) => {
-  if (!userId) {
-    throw new AuthError('User not authenticated', { field: 'User ID' } );
-  }
-
-  const roleAssignments = await prisma.user_role_assignments.findMany({
-    where: { user_id: userId },
-    include: {
-      user_roles: true,
-    },
-  });
-
-  const roles = roleAssignments.map((assignment) => ({
-    role_id: assignment.role_id,
-    role: assignment.user_roles?.role,
-    assigned_at: assignment.assigned_at,
-  }));
-
-  return {
-    user_id: userId,
-    roles,
-    total: roles.length,
-  };
-};
-
 export const getActiveUserRole = async (userId) => {
   if (!userId) {
     throw new AuthError('User not authenticated',  { field: 'User ID' });
@@ -369,22 +365,8 @@ export const getActiveUserRole = async (userId) => {
     throw new NotFoundError('Active role not set for user');
   }
 
-  const role = await prisma.user_roles.findUnique({
-    where: { id: user.active_role },
-    select: {
-      id: true,
-      role: true,
-    },
-  });
-
-  if (!role) {
-    throw new NotFoundError('Active role not found in roles table');
-  }
-
   return {
-    user_id: user.id,
-    role_id: role.id,
-    role: role.role,
+    active_role: user.active_role
   };
 };
 
@@ -400,6 +382,5 @@ export default {
   switchRole,
   addRole,
   checkProfileStatus,
-  getUserRoles,
   getActiveUserRole,
 };

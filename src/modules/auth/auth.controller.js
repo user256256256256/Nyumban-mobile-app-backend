@@ -144,21 +144,11 @@ export const addRoleHandler = async (req, res) => {
   }
 };
 
-export const getUserRolesHandler = async (req, res) => {
-  try {
-    const userId = req.user.id; 
-    const roles = await AuthService.getUserRoles(userId);
-    return success(res, roles, 'User roles fetched successfully');
-  } catch (err) {
-    return handleControllerError(res, err, 'FETCH_USER_ROLES_FAILED', 'Failed to fetch user roles');
-  }
-};
-
 export const getActiveUserRoleHandler = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const activeRole = await AuthService.getActiveUserRole(userId);
-    return success(res, activeRole, 'Active user role fetched successfully');
+    const result = await AuthService.getActiveUserRole(userId);
+    return success(res, result, 'Active user role fetched successfully');
   } catch (err) {
     return handleControllerError(res, err, 'FETCH_ACTIVE_ROLE_FAILED', 'Failed to fetch active role');
   }

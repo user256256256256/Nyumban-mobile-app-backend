@@ -3,16 +3,23 @@ import PropertyManagementService from './property-mngt.service.js';
 import { handleControllerError } from '../../common/utils/handle-controller-error.util.js';
 
 export const getLandlordPropertiesHandler = async (req, res) => {
-    try {
-      const { landlordId } = req.params;
-      const { sort_by, order, filter_status } = req.query;
-  
-      const result = await PropertyManagementService.getLandlordProperties({ landlordId, sortBy: sort_by, order, filterStatus: filter_status });
-      return success(res, result, 'Properties fetched successfully');
-    } catch (error) {
-      return handleControllerError(res, error, 'FETCH_PROPERTIES_ERROR', 'Failed to fetch landlord properties');
-    }
-}
+  try {
+    const { landlordId } = req.params;
+    const { sort_by, order, filter_status } = req.query;
+
+    const result = await PropertyManagementService.getLandlordProperties({
+      landlordId,
+      sortBy: sort_by,
+      order,
+      filterStatus: filter_status
+    });
+
+    return success(res, result, 'Properties fetched successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'FETCH_PROPERTIES_ERROR', 'Failed to fetch landlord properties');
+  }
+};
+
 
 export const getPropertyDetailsHandler = async (req, res) => {
   try {
@@ -259,7 +266,7 @@ export const deletePropertyThumbnailHandler = async (req, res, next) => {
   }
 };
 
-export const getPropertyUnitsHandler = async (req, res, next) => {
+export const getPropertyUnitsHandler = async (req, res) => {
   try {
     const userId = req.user.id;
     const { propertyId } = req.params;
@@ -274,7 +281,7 @@ export const getPropertyUnitsHandler = async (req, res, next) => {
 };
 
 
-export const getPropertyUnitHandler = async (req, res, next) => {
+export const getPropertyUnitHandler = async (req, res) => {
   try {
     const { unitId } = req.params;
 

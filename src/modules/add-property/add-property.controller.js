@@ -1,6 +1,7 @@
 import { success } from '../../common/utils/response-builder.util.js'
 import AddPropertyService from './add-property.service.js';
 import { handleControllerError } from '../../common/utils/handle-controller-error.util.js';
+import { ServerError } from '../../common/services/errors-builder.service.js'
 
 export const addOwnershipInfoHandler = async (req, res) => {
     try {
@@ -26,11 +27,11 @@ export const addPhysicalAttributesHandler = async (req, res) => {
 
 export const uploadPropertyThumbnailHandler = async (req, res) => {
     try {
-      const { file, body: { property_id } } = req;
-      if (!file) {
-        return handleControllerError(res, err, 'MISSING_FILE', 'Thumbnail file is required');
+      const { property_id  } = req.body;
+      if (!req.file) {
+        throw new ServerError('MISSING_FILE: Thumbnail file is required', { field: 'Thumbnail'});
       }
-      const result = await AddPropertyService.uploadPropertyThumbnail(property_id, file);
+      const result = await AddPropertyService.uploadPropertyThumbnail(property_id, req.file);
       return success(res, result, 'Thumbnail uploaded successfully');
     } catch (err) {
       return handleControllerError(res, err, 'UPLOAD_ERROR', 'Failed to upload thumbnail');
