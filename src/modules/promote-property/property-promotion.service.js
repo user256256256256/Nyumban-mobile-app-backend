@@ -64,7 +64,6 @@ export const promoteProperty = async  (userId, propertyId, planId, paymentMethod
     },
   });
 
-
   if (activePromotion) {
     const currentPlanId = activePromotion.payments?.metadata?.planId;
     const currentPrice = activePromotion.payments?.amount;

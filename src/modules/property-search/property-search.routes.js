@@ -15,5 +15,4 @@ const router = express.Router()
 router.get('/search', authenticate, authorizeRoles('tenant'), searchPropertiesHandler);
 router.get('/feed', authenticate, authorizeRoles('tenant'), rankedPropertyFeedHandler);
 
-
 export default router;

@@ -1,5 +1,6 @@
 import slugify from 'slugify';
 import prisma from '../../prisma-client.js';
+import { v4 as uuidv4 } from 'uuid';
 import OTPService from '../auth/otp.service.js';
 import { uploadToStorage, uploadMultipleImages, upload3DTourFile, deleteFromStorage } from '../../common/services/s3.service.js';
 
@@ -171,7 +172,6 @@ export const getPropertyDetails = async (propertyId) => {
         pending: applications.filter(a => a.status === 'pending').length,
         declined: applications.filter(a => a.status === 'declined').length
       },
-      average_rating: 4.5 // Optional: Replace with actual logic if implemented
     },
     has_units: hasUnits,
     units: hasUnits
@@ -190,9 +190,11 @@ export const getPropertyDetails = async (propertyId) => {
   return response;
 }
 
-export const updatePropertyDetails = async (propertyId, data) => {
+export const updatePropertyDetails = async (userId, propertyId, data) => {
   const existing = await prisma.properties.findUnique({ where: { id: propertyId, is_deleted: false } });
   if(!existing) throw new NotFoundError('Property Not Found', { field: 'Property ID'});
+
+  if(existing.owner_id !== userId) throw new AuthError('Authentication Denied', { field: 'User ID'})
 
   const updated = await prisma.properties.update({
     where: { id: propertyId },
@@ -236,10 +238,8 @@ export const updatePropertyTour = async (propertyId, file) => {
 export const updatePropertyImages = async (propertyId, files) => {
   const imageUrls = await uploadMultipleImages(files);
 
-  // Optionally clear existing images (if this is a true "update" instead of append)
-  await prisma.property_images.deleteMany({ where: { property_id: propertyId } });
-
   const records = imageUrls.map(url => ({
+    id: uuidv4(),
     property_id: propertyId,
     image_url: url,
     created_at: new Date(),
@@ -349,7 +349,7 @@ export const generateShareLink = async (propertyId) => {
   return { property_name: property.property_name, url: shareUrl }
 }
 
-export const confirmOtpAndDeleteProperty = async (userId, propertyIds = [], otpCode, identifier) => {
+export const confirmOtpAndDeleteSelectedProperties = async (userId, propertyIds = [], otpCode, identifier) => {
   if (!identifier) {
     throw new ValidationError('Identifier (email or phone) is required', { field: 'Identifier' });
   }
@@ -396,7 +396,7 @@ export const confirmOtpAndDeleteProperty = async (userId, propertyIds = [], otpC
   return { deleted: deletedResults };
 };
 
-export const permanentlyDeleteProperty = async (userId, propertyIds = []) => {
+export const permanentlyDeleteSelectedProperties = async (userId, propertyIds = []) => {
   const deletedResults = [];
 
   for (const propertyId of propertyIds) {
@@ -484,7 +484,7 @@ export const deletePropertyImages = async (userId, imageIds) => {
   return { deleted_count: deleted.count };
 };
 
-export const deleteSelectedUnits = async ( unitIds) => {
+export const deleteSelectedUnits = async (unitIds) => {
   if (!unitIds || unitIds.length === 0) {
     throw new ValidationError('No units selected for deletion', { field: 'Unit ID(s)'});
   }
@@ -573,6 +573,7 @@ export const permanentlyDeleteAllArchivedUnits = async (userId) => {
 };
 
 export const recoverPropertiesBatch = async (propertyIds = [], landlordId) => {
+  const now = new Date();
   const recovered = [];
 
   for (const id of propertyIds) {
@@ -586,21 +587,42 @@ export const recoverPropertiesBatch = async (propertyIds = [], landlordId) => {
 
     if (!property) continue;
 
-    const updated = await prisma.properties.update({
+    // Recover property
+    await prisma.properties.update({
       where: { id },
       data: {
         is_deleted: false,
         deleted_at: null,
-        updated_at: new Date(),
+        updated_at: now,
       },
     });
 
-    recovered.push({ property_id: updated.id, status: 'recovered' });
+    // Recover all associated units
+    const { count: recoveredUnitCount } = await prisma.property_units.updateMany({
+      where: {
+        property_id: id,
+        is_deleted: true,
+      },
+      data: {
+        is_deleted: false,
+        deleted_at: null,
+        updated_at: now,
+      },
+    });
+
+    recovered.push({
+      property_id: id,
+      status: 'recovered',
+      associated_units_recovered: recoveredUnitCount,
+    });
   }
 
   return {
-    recovered,
+    success: true,
     message: `${recovered.length} property(ies) recovered`,
+    data: {
+      recovered,
+    },
   };
 };
 
@@ -641,13 +663,12 @@ export const recoverUnitsBatch = async (unitIds = [], landlordId) => {
   };
 };
 
-
 export const delete3DTour = async (userId, propertyId) => {
   const property = await prisma.properties.findUnique({
     where: { id: propertyId },
     select: {
       owner_id: true,
-      tour_3d: true,
+      tour_3d_url: true,
       is_deleted: true,
     },
   });
@@ -660,17 +681,17 @@ export const delete3DTour = async (userId, propertyId) => {
     throw new ForbiddenError('You do not have permission to delete this 3D tour', { field: 'User ID' });
   }
 
-  if (!property.tour_3d) {
+  if (!property.tour_3d_url) {
     return { message: 'No 3D tour to delete' };
   }
 
   // Use shared simulated storage deletion logic
-  await deleteFromStorage(property.tour_3d);
+  await deleteFromStorage(property.tour_3d_url);
 
   const updated = await prisma.properties.update({
     where: { id: propertyId },
     data: {
-      tour_3d: null,
+      tour_3d_url: null,
       updated_at: new Date(),
     },
   });
@@ -827,8 +848,8 @@ export default {
   updatePropertyStatus,
   updatePropertyUnitStatus, 
   generateShareLink,
-  confirmOtpAndDeleteProperty, 
-  permanentlyDeleteProperty,
+  confirmOtpAndDeleteSelectedProperties, 
+  permanentlyDeleteSelectedProperties,
   permanentlyDeleteAllArchivedProperties,
   deletePropertyImages, 
   permanentlyDeleteSelectedUnits,
@@ -839,4 +860,5 @@ export default {
   deletePropertyThumbnail,
   getPropertyUnits,
   getPropertyUnit,
+  deleteSelectedUnits
 };

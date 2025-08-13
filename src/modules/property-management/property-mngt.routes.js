@@ -16,8 +16,8 @@ import {
   updatePropertyStatusHandler,
   updatePropertyUnitStatusHandler,
   generateShareLinkHandler,
-  confirmOtpAndDeletePropertyHandler,
-  permanentlyDeletePropertyHandler,
+  confirmOtpAndDeleteSelectedPropertiesHandler,
+  permanentlyDeleteSelectedPropertiesHandler,
   permanentlyDeleteAllArchivedPropertiesHandler,
   deletePropertyImagesHandler,
   deleteSelectedPropertyUnitsHandler,
@@ -67,9 +67,9 @@ router.put('/unit/:unitId/edit', authenticate, authorizeRoles('landlord'), valid
 /* =========================
    🖼 MEDIA UPLOADS
    ========================= */
-router.put('/media/thumbnail', authenticate, authorizeRoles('landlord'), uploadImage.single('thumbnail'), validate(propertyThumbnailSchema), updatePropertyThumbnailHandler);
-router.put('/media/images', authenticate, authorizeRoles('landlord'), uploadImage.array('images', 5), validate(propertyImagesSchema), updatePropertyImagesHandler);
-router.put('/media/3d-tour', authenticate, authorizeRoles('landlord'), uploadImage.single('tour_3d'), validate(property3DTourSchema), updatePropertyTourHandler);
+router.put('/media-thumbnail', authenticate, authorizeRoles('landlord'), uploadImage.single('thumbnail'), validate(propertyThumbnailSchema), updatePropertyThumbnailHandler);
+router.put('/media-images', authenticate, authorizeRoles('landlord'), uploadImage.array('images', 10), validate(propertyImagesSchema), updatePropertyImagesHandler);
+router.put('/media-3d-tour', authenticate, authorizeRoles('landlord'), upload3DTour.single('tour_3d'), validate(property3DTourSchema), updatePropertyTourHandler);
 
 /* =========================
    📌 STATUS UPDATES
@@ -86,24 +86,24 @@ router.get('/:propertyId/share-link', authenticate, authorizeRoles('landlord'), 
    🗑 PROPERTY & UNIT REMOVALS
    ========================= */
 router.delete('/unit/:unitId/remove', authenticate, authorizeRoles('landlord'), validate(unitParamSchema), deletePropertyUnitHandler);
-router.delete('/remove', authenticate, authorizeRoles('landlord'), confirmOtpAndDeletePropertyHandler);
-router.delete('/permanent', authenticate, authorizeRoles('landlord'), validate(deletePropertiesSchema), permanentlyDeletePropertyHandler);
-router.delete('/archived/delete-all', authenticate, authorizeRoles('landlord'), permanentlyDeleteAllArchivedPropertiesHandler);
-router.delete('/unit/delete', authenticate, authorizeRoles('landlord'), validate(deleteUnitsBatchSchema), deleteSelectedPropertyUnitsHandler);
-router.delete('/unit/permanent', authenticate, authorizeRoles('landlord'), validate(deleteUnitsBatchSchema), permanentlyDeleteSelectedUnitsHandler);
-router.delete('/unit/archived/delete-all', authenticate, authorizeRoles('landlord'), permanentlyDeleteAllArchivedUnitsHandler);
+router.delete('/remove-properties', authenticate, authorizeRoles('landlord'), confirmOtpAndDeleteSelectedPropertiesHandler);
+router.delete('/permanent-delete-properties', authenticate, authorizeRoles('landlord'), validate(deletePropertiesSchema), permanentlyDeleteSelectedPropertiesHandler);
+router.delete('/archived/delete-all-properties', authenticate, authorizeRoles('landlord'), permanentlyDeleteAllArchivedPropertiesHandler);
+router.delete('/units/delete', authenticate, authorizeRoles('landlord'), validate(deleteUnitsBatchSchema), deleteSelectedPropertyUnitsHandler);
+router.delete('/units/delete-permanently', authenticate, authorizeRoles('landlord'), validate(deleteUnitsBatchSchema), permanentlyDeleteSelectedUnitsHandler);
+router.delete('/units/archived/delete-all', authenticate, authorizeRoles('landlord'), permanentlyDeleteAllArchivedUnitsHandler);
 
 /* =========================
    🖼 MEDIA DELETIONS
    ========================= */
 router.delete('/media/images/delete', authenticate, authorizeRoles('landlord'), deletePropertyImagesHandler);
-router.delete('/:propertyId/media/3d-tour', authenticate, authorizeRoles('landlord'), validate(propertyParamSchema), deleteProperty3DTourHandler);
+router.delete('/:propertyId/media-3d-tour', authenticate, authorizeRoles('landlord'), validate(propertyParamSchema), deleteProperty3DTourHandler);
 router.delete('/:propertyId/media/thumbnail', authenticate, authorizeRoles('landlord'), validate(propertyParamSchema), deletePropertyThumbnailHandler);
 
 /* =========================
    ♻️ RECOVERY
    ========================= */
-router.post('/recover', authenticate, authorizeRoles('landlord'), validate(recoverPropertiesSchema), recoverPropertiesHandler);
+router.post('/recover-properties', authenticate, authorizeRoles('landlord'), validate(recoverPropertiesSchema), recoverPropertiesHandler);
 router.post('/recover-units', authenticate, authorizeRoles('landlord'), validate(recoverUnitsSchema), recoverUnitsHandler);
 
 export default router;

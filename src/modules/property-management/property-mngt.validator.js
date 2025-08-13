@@ -104,7 +104,6 @@ export const editpropertyUnitSchema = {
 export const propertyThumbnailSchema = {
   body: Joi.object({
     property_id: Joi.string().uuid().required().label('Property ID'),
-    thumbnail: Joi.any().required().meta({ fileField: true }).label('Thumbnail Image'),
   }),
 };
 
@@ -112,7 +111,6 @@ export const propertyThumbnailSchema = {
 export const propertyImagesSchema = {
   body: Joi.object({
     property_id: Joi.string().uuid().required().label('Property ID'),
-    images: Joi.any().required().meta({ fileField: true }).label('Property Images'),
   }),
 };
 
@@ -120,7 +118,6 @@ export const propertyImagesSchema = {
 export const property3DTourSchema = {
   body: Joi.object({
     property_id: Joi.string().uuid().required().label('Property ID'),
-    tour_3d: Joi.any().optional().meta({ fileField: true }).label('3D Virtual Tour'),
   }),
 };
 

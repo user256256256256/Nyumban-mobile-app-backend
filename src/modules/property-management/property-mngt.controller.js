@@ -34,9 +34,10 @@ export const getPropertyDetailsHandler = async (req, res) => {
 
 export const updatePropertyHandler = async (req, res) => {
   try {
+    const userId = req.user.id;
     const { propertyId } = req.params;
     const data = req.body;
-    const result = await PropertyManagementService.updatePropertyDetails(propertyId, data);
+    const result = await PropertyManagementService.updatePropertyDetails(userId, propertyId, data);
     return success(res, result, 'Property updated successfully');
   } catch (error) {
     return handleControllerError(res, error, 'FAILED_TO_UPDATE', 'Failed to update property');
@@ -117,7 +118,7 @@ export const updatePropertyStatusHandler = async (req, res) => {
 
 export const updatePropertyUnitStatusHandler = async (req, res) => {
   try {
-    const { unitId } = req.params;
+    const userId = req.user.id;    const { unitId } = req.params;
     const { status } = req.body;
     const result = await PropertyManagementService.updatePropertyUnitStatus(unitId, status);
     return success(res, result, 'Property unit status updated successfully')
@@ -136,12 +137,12 @@ export const generateShareLinkHandler = async (req, res) => {
   }
 };
 
-export const confirmOtpAndDeletePropertyHandler = async (req, res) => {
+export const confirmOtpAndDeleteSelectedPropertiesHandler = async (req, res) => {
   try {
     const { property_ids, otp_code, identifier } = req.body;
     const userId = req.user.id;
 
-    const result = await PropertyManagementService.confirmOtpAndDeleteProperty(userId, property_ids, otp_code, identifier);
+    const result = await PropertyManagementService.confirmOtpAndDeleteSelectedProperties(userId, property_ids, otp_code, identifier);
     return success(res, result, 'Properties deleted successfully');
   } catch (error) {
     return handleControllerError(res, error, 'DELETE_PROPERTY_ERROR', 'Failed to delete properties');
@@ -149,12 +150,12 @@ export const confirmOtpAndDeletePropertyHandler = async (req, res) => {
 };
 
 
-export const permanentlyDeletePropertyHandler = async (req, res) => {
+export const permanentlyDeleteSelectedPropertiesHandler = async (req, res) => {
   try {
     const userId = req.user.id;
     const { property_ids } = req.body;
 
-    const result = await PropertyManagementService.permanentlyDeleteProperty(userId, property_ids);
+    const result = await PropertyManagementService.permanentlyDeleteSelectedProperties(userId, property_ids);
     return success(res, result, 'Properties permanently deleted successfully');
   } catch (error) {
     return handleControllerError(res, error, 'DELETE_PROPERTY_PERMANENTLY_ERROR', 'Failed to delete properties permanently');
@@ -186,10 +187,9 @@ export const deletePropertyImagesHandler = async (req, res) => {
 
 export const deleteSelectedPropertyUnitsHandler = async (req, res) => {
   try {
-    const userId = req.user.id;
     const { unitIds } = req.body;
 
-    const result = await PropertyManagementService.deleteSelectedUnits(userId, unitIds);
+    const result = await PropertyManagementService.deleteSelectedUnits(unitIds);
     return success(res, result, 'Selected property units deleted successfully');
   } catch (error) {
     return handleControllerError(res, error, 'DELETE_PROPERTY_UNITS_BATCH_ERROR', 'Failed to delete selected units');
@@ -202,7 +202,7 @@ export const permanentlyDeleteSelectedUnitsHandler = async (req, res) => {
     const { unitIds } = req.body;
 
     const result = await PropertyManagementService.permanentlyDeleteSelectedUnits(userId, unitIds);
-    return success(res, result, 'Selected units permanently deleted');
+    return success(res, result, 'Selected units permanently deleted successfully');
   } catch (error) {
     return handleControllerError(res, error, 'PERMANENT_DELETE_SELECTED_UNITS_ERROR', 'Failed to delete selected units');
   }
@@ -212,7 +212,7 @@ export const permanentlyDeleteAllArchivedUnitsHandler = async (req, res) => {
   try {
     const userId = req.user.id;
     const result = await PropertyManagementService.permanentlyDeleteAllArchivedUnits(userId);
-    return success(res, result, 'All archived units permanently deleted');
+    return success(res, result, 'All archived units permanently deleted successfully');
   } catch (error) {
     return handleControllerError(res, error, 'PERMANENT_DELETE_ALL_UNITS_ERROR', 'Failed to delete archived units');
   }
@@ -223,7 +223,7 @@ export const recoverPropertiesHandler = async (req, res) => {
     const landlordId = req.user.id;
     const { property_ids } = req.body;
 
-    const result = await PropertyService.recoverPropertiesBatch(property_ids, landlordId);
+    const result = await PropertyManagementService.recoverPropertiesBatch(property_ids, landlordId);
     return success(res, result, 'Properties recovered successfully');
   } catch (error) {
     return handleControllerError(res, error, 'PROPERTY_RECOVERY_ERROR', 'Failed to recover properties');
@@ -235,7 +235,7 @@ export const recoverUnitsHandler = async (req, res) => {
     const landlordId = req.user.id;
     const { unit_ids } = req.body;
 
-    const result = await UnitService.recoverUnitsBatch(unit_ids, landlordId);
+    const result = await PropertyManagementService.recoverUnitsBatch(unit_ids, landlordId);
     return success(res, result, 'Units recovered successfully');
   } catch (error) {
     return handleControllerError(res, error, 'UNIT_RECOVERY_ERROR', 'Failed to recover units');
