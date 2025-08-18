@@ -24,14 +24,12 @@ export const getPromotionPlansHandler = async (req, res) => {
 export const promotePropertyHandler = async (req, res) => {
   try {
     const { propertyId } = req.params;
-    const { planId, paymentMethod, phoneNumber, force } = req.body;
+    const { planId, phoneNumber } = req.body;
     const result = await PropertyPromotionService.promoteProperty(
       req.user.id,
       propertyId,
       planId,
-      paymentMethod,
       phoneNumber,
-      force
     );
     return success(res, result, 'Property promotion activated successfully');
   } catch (err) {

@@ -7,7 +7,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 /* 
 To execute the seed file:
 - Uncomment the seed codes if applicabel
-- Cmd: node prisma/seed.js
+- Run Cmd: node prisma/seed.js
 
 Ensure package.json includes:
 "prisma": {
@@ -16,6 +16,53 @@ Ensure package.json includes:
 */
 
 async function main() {
+
+    // === Seed of Property Promotions === //
+    const promotionPlans = [
+      {
+        plan_id: 'promo_7d',
+        duration_days: 7,
+        price: new Decimal(5000),
+        currency: 'UGX',
+      },
+      {
+        plan_id: 'promo_14d',
+        duration_days: 14,
+        price: new Decimal(9000),
+        currency: 'UGX',
+      },
+      {
+        plan_id: 'promo_30d',
+        duration_days: 30,
+        price: new Decimal(17000),
+        currency: 'UGX',
+      },
+    ];
+  
+    for (const plan of promotionPlans) {
+      await prisma.promotion_plans.upsert({
+        where: { plan_id: plan.plan_id },
+        update: {
+          duration_days: plan.duration_days,
+          price: plan.price,
+          currency: plan.currency,
+          is_deleted: false,
+          updated_at: new Date(),
+        },
+        create: {
+          id: uuidv4(),
+          plan_id: plan.plan_id,
+          duration_days: plan.duration_days,
+          price: plan.price,
+          currency: plan.currency,
+          is_deleted: false,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+    }
+  
+    console.log('✅ Seeded promotion plans');
   
   /*
 

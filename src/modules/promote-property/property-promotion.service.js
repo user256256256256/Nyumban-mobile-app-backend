@@ -40,71 +40,103 @@ export const getPromotionPlans = async () => {
   return plans;
 }
 
-
-export const promoteProperty = async  (userId, propertyId, planId, paymentMethod , phoneNumber, force = false) => { 
-  // Fetch property details
+export const promoteProperty = async (
+  userId,
+  propertyId,
+  planId,
+  phoneNumber
+) => {
+  // 1️⃣ Fetch property details
   const property = await prisma.properties.findUnique({
     where: { id: propertyId },
     select: { owner_id: true, is_verified: true },
   });
 
-  if (!property) throw new NotFoundError('Property not found.');
-  if (property.owner_id !== userId) throw new ForbiddenError('Unauthorized.');
-  if (!property.is_verified) throw new ForbiddenError('Property must be verified before promotion.');
+  if (!property) throw new NotFoundError("Property not found.");
+  if (property.owner_id !== userId) throw new ForbiddenError("Unauthorized.");
+  if (!property.is_verified) {
+    throw new ForbiddenError("Property must be verified before promotion.");
+  }
 
-  // Check for an existing active promotion
+  const plan = await prisma.promotion_plans.findUnique({
+    where: { plan_id: planId },
+    select: {
+      price: true,
+      currency: true,
+      plan_id: true,
+      duration_days: true,
+    },
+  });
+
+  if (!plan) {
+    throw new NotFoundError("Plan not found", { field: "Plan ID" });
+  }
+
+  // 3️⃣ Check for an existing active promotion
   const activePromotion = await prisma.property_promotions.findFirst({
     where: {
       property_id: propertyId,
-      status: 'active',
+      status: "active",
       is_deleted: false,
     },
     include: {
-      payments: true,  
+      payments: true,
     },
   });
 
   if (activePromotion) {
-    const currentPlanId = activePromotion.payments?.metadata?.planId;
-    const currentPrice = activePromotion.payments?.amount;
+    const currentPlanId = activePromotion.payments?.metadata
+      ? JSON.parse(activePromotion.payments.metadata).planId
+      : null;
+    const currentDurationDays = activePromotion.duration
+      ? parseInt(activePromotion.duration) || 0
+      : 0;
 
-    //  Property already under the same promotion plan
-    if (currentPlanId === planId && !force) {
+    // Same plan check
+    if (currentPlanId === planId) {
       throw new ValidationError(
         `This property is already under the same promotion plan until ${activePromotion.end_date.toDateString()}.`,
-        { field: 'Plan Id' }
+        { field: "Plan Id" }
       );
     }
 
-    // Property new promotion plan is less than the active promotion plan
-    if (currentPrice >= plan.price && !force) {
+    // Duration-based tier check
+    if (currentDurationDays >= plan.duration_days) {
       throw new AuthError(
-        `A higher or equal-tier promotion is already active until ${activePromotion.end_date.toDateString()}.`
+        `A higher or equal-duration promotion is already active until ${activePromotion.end_date.toDateString()}.`
       );
     }
 
-    // Expire the current active promotion before creating a new one
+    // Expire the old promotion
     await prisma.property_promotions.update({
       where: { id: activePromotion.id },
       data: {
-        status: 'expired',
+        status: "expired",
         updated_at: new Date(),
       },
     });
   }
 
+  // 4️⃣ Simulate payment
+  const { paymentId } = await simulateFlutterwavePropertyPromotionPayment(
+    plan.plan_id,
+    plan.price,
+    plan.currency,
+    phoneNumber
+  );
+
+  if (!paymentId) {
+    throw new ServerError("Failed to initiate flutterwave payment", {
+      field: "Flutterwave payment",
+    });
+  }
+
   const start = new Date();
-  const end = new Date(start.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
-
-
-  // Simulate payment and get plan details first
-  const { payment, plan } = await simulateFlutterwavePropertyPromotionPayment({
-    userId,
-    planId,
-    phoneNumber,
-  });
+  const end = new Date(Date.now() + 1 * 60 * 1000); // 1 minute from now FOR TESTING PURPOSES
+  //  const end = new Date(start.getTime() + plan.duration_days * 24 * 60 * 60 * 1000); // USE When in PRODUCTION
   
-  // Create the new promotion record
+  console.log('Start:', start.toISOString(), 'End:', end.toISOString());
+  
   await prisma.property_promotions.create({
     data: {
       id: uuidv4(),
@@ -112,14 +144,15 @@ export const promoteProperty = async  (userId, propertyId, planId, paymentMethod
       property_id: propertyId,
       start_date: start,
       end_date: end,
-      status: 'active',
+      status: "active",
       price: plan.price,
       duration: `${plan.duration_days} days`,
-      payment_id: payment.id,
+      payment_id: paymentId,
     },
   });
+  
 
-  // Update property promotion status
+  // 7️⃣ Update property status
   await prisma.properties.update({
     where: { id: propertyId },
     data: { is_promoted: true, updated_at: new Date() },
@@ -127,10 +160,10 @@ export const promoteProperty = async  (userId, propertyId, planId, paymentMethod
 
   return {
     property_id: propertyId,
-    status: 'promoted',
+    status: "promoted",
     promotion_end_date: end.toISOString(),
   };
-}
+};
 
 export const getPropertyPromotionStatus = async  (userId, propertyId) => {
   const property = await prisma.properties.findUnique({

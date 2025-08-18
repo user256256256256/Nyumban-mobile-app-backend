@@ -17,7 +17,6 @@ import { verificationRequestSchema, adminVerificationRequestResponseSchema, veri
 
 const router = express.Router();
 
-
 router.get('/status', authenticate, authorizeRoles('landlord'), getLandlordAccountStatusHandler);
 router.post('/verification-request', authenticate, authorizeRoles('landlord'), uploadProofDocument.single('proof_of_ownership_docs'), validate(verificationRequestSchema), submitVerificationRequestHandler);
 router.get('/properties/:propertyId/status', authenticate, authorizeRoles('landlord'), validate(propertyVerificationStatusParamSchema), getPropertyVerificationStatusHandler);

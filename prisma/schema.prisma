@@ -208,8 +208,8 @@ model property_promotions {
   payment_id  String?                    @db.Uuid
   user_id     String?                    @db.Uuid
   property_id String?                    @db.Uuid
-  start_date  DateTime?                  @db.Date
-  end_date    DateTime?                  @db.Date
+  start_date  DateTime?                  @db.Timestamp(6)
+  end_date    DateTime?                  @db.Timestamp(6)
   status      property_promotion_status?
   price       Decimal?                   @db.Decimal
   duration    String?

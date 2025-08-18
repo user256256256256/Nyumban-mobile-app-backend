@@ -34,22 +34,24 @@ cron.schedule('0 4 * * 0', async () => {
   }
 });
 
-// Run alert for upcoming expiry daily at 9 AM (for example)
+// Run alert once daily at 9 AM
 cron.schedule('0 9 * * *', async () => {
   console.log(`[${new Date().toISOString()}] Running scheduled promotion expiry alert check...`);
   try {
-    await alertUpcomingExpirations(3);  // Alerts 3 days before expiry
+    await alertUpcomingExpirations();
   } catch (error) {
     console.error('Error during promotion expiry alert cron:', error);
   }
 });
 
+
+
 // Every 5 minutes — eviction check
-cron.schedule('*/5 * * * *', async () => {
-  console.log(`[${new Date().toISOString()}] Checking for expired eviction warnings...`);
-  try {
-    await finalizeExpiredEvictions();
-  } catch (error) {
-    console.error('Error finalizing expired evictions:', error);
-  }
-});
+// cron.schedule('*/5 * * * *', async () => {
+//   console.log(`[${new Date().toISOString()}] Checking for expired eviction warnings...`);
+//   try {
+//     await finalizeExpiredEvictions();
+//   } catch (error) {
+//     console.error('Error finalizing expired evictions:', error);
+//   }
+// });
