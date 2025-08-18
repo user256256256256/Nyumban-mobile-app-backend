@@ -25,18 +25,17 @@ export const simulateFlutterwavePropertyPromotionPayment = async (planId, price,
 };
 
 
-
-export const simulateFlutterwaveVerificationBadgePayment = async ({userId, payment_type, amount, currency = 'UGX', metadata = {}, }) => {
+export const simulateFlutterwaveVerificationBadgePayment = async ({ amount,  metadata = {}, }) => {
   const payment = await prisma.payments.create({
     data: {
       id: uuidv4(),
       method: 'Flutterwave',
       status: 'successful',
       amount,
-      payment_type,
+      payment_type: 'ACCOUNT_VERIFICATION',
       transaction_id: `FW_${Date.now()}`,
-      currency,
-      metadata,
+      currency: 'UGX',
+      metadata: JSON.stringify(metadata),
     },
   });
 

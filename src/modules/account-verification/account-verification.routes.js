@@ -22,6 +22,6 @@ router.post('/verification-request', authenticate, authorizeRoles('landlord'), u
 router.get('/properties/:propertyId/status', authenticate, authorizeRoles('landlord'), validate(propertyVerificationStatusParamSchema), getPropertyVerificationStatusHandler);
 router.patch('/admin/:requestId', authenticate, authorizeRoles('admin'), validate(adminVerificationRequestResponseSchema), reviewVerificationRequestHandler);
 router.post('/landlords/verification-payment', authenticate, authorizeRoles('landlord'), validate(verificationBadgePaymentSchema), submitVerificationBadgePaymentHandler);
-router.patch('/verification-request/update', authenticate, authorizeRoles('landlord'),   uploadProofDocument.single('proof_of_ownership_docs'), validate(updateVerificationRequestSchema), updateVerificationRequestHandler)
+router.post('/verification-requests/:requestId/update', authenticate, authorizeRoles('landlord'),  uploadProofDocument.single('proof_of_ownership_docs'), validate(updateVerificationRequestSchema), updateVerificationRequestHandler)
 
 export default router;

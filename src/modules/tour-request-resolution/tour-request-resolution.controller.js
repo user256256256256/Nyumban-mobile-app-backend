@@ -30,3 +30,15 @@ export const resolveTourRequestHandler = async (req, res) => {
     }
 }
 
+export const deleteTourRequestsHandler = async (req, res) => {
+    try {
+      const landlordId = req.user.id;
+      const { requestIds } = req.body;
+  
+      const result = await TourRequestResolutionService.deleteTourRequests(landlordId, requestIds);
+      return success(res, result, 'Tour requests deleted successfully');
+    } catch (error) {
+      return handleControllerError(res, error, 'DELETE_TOUR_REQUESTS_ERROR', 'Could not delete tour requests');
+    }
+  };
+  

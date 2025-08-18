@@ -233,6 +233,8 @@ model property_tour_requests {
   updated_at                                       DateTime?    @db.Timestamp(6)
   deleted_at                                       DateTime?    @db.Timestamp(6)
   is_deleted                                       Boolean?     @default(false)
+   is_deleted_by_landlord                          Boolean?     @default(false) 
+  is_deleted_by_tenant                             Boolean?     @default(false) 
   users_property_tour_requests_owner_idTousers     users?       @relation("property_tour_requests_owner_idTousers", fields: [owner_id], references: [id], onUpdate: NoAction, map: "fk_ptr_owner")
   properties                                       properties?  @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ptr_property")
   users_property_tour_requests_requester_idTousers users?       @relation("property_tour_requests_requester_idTousers", fields: [requester_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ptr_requester")
@@ -535,6 +537,7 @@ enum verification_status {
   pending
   approved
   rejected
+  outdated
 }
 
 enum eviction_status {

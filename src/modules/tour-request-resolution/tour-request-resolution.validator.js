@@ -16,3 +16,13 @@ export const resolveTourRequestSchema = {
     }),
   }),
 };
+
+export const deleteTourRequestsSchema = {
+  body: Joi.object({
+    requestIds: Joi.array()
+      .items(Joi.string().uuid().label('Request ID'))
+      .min(1)
+      .required()
+      .label('Request IDs'),
+  }),
+};

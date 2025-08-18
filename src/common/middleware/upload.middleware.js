@@ -21,14 +21,24 @@ const tourFilter = (req, file, cb) => {
 const proofDocFilter = (req, file, cb) => {
   const allowedTypes = [
     'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword', // .doc
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
     'image/jpeg',
-    'image/png'
+    'image/png',
+    'application/octet-stream', // fallback (some uploads label .docx as this)
   ];
-  if (allowedTypes.includes(file.mimetype)) cb(null, true);
-  else cb(new Error('Unsupported document format. Allowed: PDF, Word, JPEG, PNG.'));
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error(
+        'Unsupported document format. Allowed: PDF, Word (.doc/.docx), JPEG, PNG.'
+      )
+    );
+  }
 };
+
 
 // Exported upload handlers
 export const uploadImage = multer({
@@ -46,5 +56,5 @@ export const upload3DTour = multer({
 export const uploadProofDocument = multer({
   storage,
   fileFilter: proofDocFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max for ownership proof
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max for ownership proof
 });

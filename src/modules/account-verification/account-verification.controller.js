@@ -58,9 +58,8 @@ export const reviewVerificationRequestHandler = async (req, res) => {
 export const submitVerificationBadgePaymentHandler = async (req, res) => {
     try {
         const userId = req.user?.id;
-        const { payment_method, phone_number, amount, currency } = req.body;
-        if (payment_method !== 'Flutterwave') throw new ServerError('Unsupported payment method.', { field: payment_method })
-        const result = await AccountVerificationService.submitVerificationBadgePayment( { userId, phone_number, amount, currency })
+        const { phone_number } = req.body;
+        const result = await AccountVerificationService.submitVerificationBadgePayment( { userId, phone_number })
         return success(res, result, 'Payment initiated successfully');
     } catch (error) {
         return handleControllerError(res, error, 'PAYMENT_INITIATION_ERROR', 'Failed to initiate payment request');
@@ -70,11 +69,13 @@ export const submitVerificationBadgePaymentHandler = async (req, res) => {
 export const updateVerificationRequestHandler = async (req, res) => {
     try {
         const userId = req.user.id;
+        const { requestId } = req.params;
         const file = req.file;
         const { ownership_comment } = req.body;
     
         const result = await AccountVerificationService.updateVerificationRequest({
           userId,
+          requestId,
           ownership_comment,
           file
         });
