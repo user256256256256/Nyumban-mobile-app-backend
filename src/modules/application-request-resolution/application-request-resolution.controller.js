@@ -30,3 +30,29 @@ export const resolveApplicationRequestHandler = async (req, res) => {
         return handleControllerError(res, error, 'APPLICATION_REQUEST_RESOLUTION_ERROR', 'Could not resolve application request');
     }
 }
+
+export const orchestrateApplicationResolutionHandler = async (req, res) => {
+  try {
+    const landlordId = req.user.id;
+    const { applicationId } = req.params;
+    const { action, reason } = req.body;
+
+    const result = await ApplicationRequestResolutionService.orchestrateApplicationResolution(landlordId, applicationId, action, reason);
+    return success(res, result, 'Application request processed with rollback if needed successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'ORCHESTRATE_APPLICATION_RESOLUTION_ERROR', 'Could not orchestrate application resolution');
+  }
+};
+
+
+export const deleteApplicationRequestsHandler = async (req, res) => {
+  try {
+    const landlordId = req.user.id;
+    const { applicationIds } = req.body;
+
+    const result = await ApplicationRequestResolutionService.deleteApplicationRequests(landlordId, applicationIds)
+    return success(res, result, 'Application requests deleted successfully')
+  } catch (error) {
+    return handleControllerError(res, error, 'DELETE_APPLICATION_REQUESTS_ERROR', 'Could not delete application request(s)' )
+  }
+}

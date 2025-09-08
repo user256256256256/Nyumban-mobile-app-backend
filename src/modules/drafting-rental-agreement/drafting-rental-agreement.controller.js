@@ -7,7 +7,6 @@ export const checkAgreementExistsHandler = async (req, res) => {
     try {
         const userId = req.user.id;
         const { propertyId } = req.params;
-  
         const { unitId }  = req.query
         const result = await DraftingRentalAgreementService.checkAgreementExists(userId, propertyId, unitId)
         return success(res, result, 'Agreeement status retrieved successfully')
@@ -23,7 +22,7 @@ export const createOrUpdateDraftHandler = async (req, res) => {
   
         const { unitId }  = req.query;
         const payload = req.body;
-        const result = await DraftingRentalAgreementService.createOrSaveDraft(userId, propertyId, unitId, payload)
+        const result = await DraftingRentalAgreementService.createOrUpdateDraft(userId, propertyId, unitId, payload)
         return success(res, result, 'Agreement draft saved successfully')
     } catch (error) {
         handleControllerError(res, error, 'AGREEMENT_DRAFT_ERROR', 'Failed to save agreement draft')

@@ -1,5 +1,5 @@
 import prisma from '../../prisma-client.js';
-import OTPService from '../auth/otp.service.js';
+import OTPService from '../../common/services/otp.service.js';
 import { isEmail } from '../../common/utils/check-user-identifier.utiil.js'
 import { uploadToStorage } from '../../common/services/s3.service.js';
 import { validatePhoneNumber, validateEmail, validateUsername } from '../../common/services/user-validation.service.js';

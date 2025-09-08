@@ -1,5 +1,5 @@
 import express from 'express'
-import { authenticate } from '../auth/auth.middleware.js'; 
+import { authenticate } from '../../common/middleware/auth.middleware.js'; 
 import { sendSupportMessageHandler } from './support.controller.js';
 import { validate } from '../../common/middleware/validate.middleware.js';
 import { supportMessageSchema } from './support.validator.js'

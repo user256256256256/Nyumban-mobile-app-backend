@@ -7,7 +7,7 @@ import { corsOptions } from './config/cors.config.js'
 import './cron/scheduler.js';
 
 import deviceRoutes from './routes/device.js'
-import authRoutes from './modules/auth/auth.routes.js';
+import authRoutes from './modules/auth/auth.routes.js'
 import userRoutes from './modules/user/user.routes.js'
 import supportRoutes from './modules/support/support.route.js'
 import analyticsRoutes from './modules/analytics/analytics.routes.js'
@@ -20,10 +20,11 @@ import rentManagementRoutes from './modules/rent-management/rent-management.rout
 import propertyMngtRoutes from './modules/property-management/property-mngt.routes.js'
 import propertySearchRoutes from './modules/property-search/property-search.routes.js'
 import landlordProfileRoutes from './modules/landlord-profile/landlord-profile.routes.js'
-import agreementSigningRoutes from './modules/agreement-signing/agreement-signing.routes.js'
 import tenantManagementRoutes from './modules/tenant-management/tenant-management.routes.js'
 import propertyPromotionRoutes from './modules/promote-property/property-promotion.routes.js'
 import paymentManagementRoutes from './modules/payment-management/payment-management.routes.js'
+import agreementManagement from './modules/agreement-management/agreement-management.routes.js'
+import agremmentTermination from './modules/agreement-termination/agreement-termination.routes.js'
 import propertyEngagementRoutes from './modules/property-engagement/property-engagement.routes.js'
 import applicationRequestRoutes from './modules/application-request/application-request.routes.js'
 import reviewAndFeedbackRoutes from './modules/reviews-and-feedback/reviews-and-feedback.routes.js'
@@ -57,9 +58,10 @@ app.use(`${BASE_ROUTE_VERSION_1}/tenant-profile`, tenantProfileRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/rent-management`, rentManagementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-search`, propertySearchRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/landlord-profile`, landlordProfileRoutes);
-app.use(`${BASE_ROUTE_VERSION_1}/agreement-signing`, agreementSigningRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/tenant-management`, tenantManagementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/promote-property`, propertyPromotionRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/agreement-management`, agreementManagement);
+app.use(`${BASE_ROUTE_VERSION_1}/agremmentTermination`, agremmentTermination);
 app.use(`${BASE_ROUTE_VERSION_1}/payment-management`, paymentManagementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-engagement`, propertyEngagementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/application-request`, applicationRequestRoutes);

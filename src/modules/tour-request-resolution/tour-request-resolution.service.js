@@ -35,6 +35,7 @@ export const getLandlordTourRequests = async (landlordId, { status, cursor, limi
           id: true,
           username: true,
           email: true,
+          phone_number: true,
         },
       },
     },
@@ -51,7 +52,7 @@ export const getLandlordTourRequests = async (landlordId, { status, cursor, limi
     tenant_message: req.message,
     status: req.status,
     requested_datetime: req.created_at, // ✅ map created_at to requested_datetime
-    created_at: req.created_at,
+    approved_date: req.updated_at
   }));
 
   const nextCursor = requests.length > limit ? requests[limit].id : null;

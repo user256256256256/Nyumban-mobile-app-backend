@@ -67,3 +67,38 @@ export const simulateFlutterwaveRentPayment = async ({
 
   return payment;
 };
+
+
+export const simulateSecurityDepositRefund = async ({ tenantId, propertyId, amount, reason }) => {
+  const payment = await prisma.payments.create({
+    data: {
+      id: uuidv4(),
+      method: 'Flutterwave', // internal transfer
+      status: 'pending', 
+      amount,
+      payment_type: 'SECURITY_DEPOSIT_REFUND',
+      transaction_id: `REFUND_SD_${Date.now()}`,
+      currency: 'UGX',
+      metadata: JSON.stringify({ tenantId, propertyId, reason }),
+    },
+  });
+
+  return payment;
+};
+
+export const simulateAdvanceRentRefund = async ({ tenantId, agreementId, amount, reason }) => {
+  const payment = await prisma.payments.create({
+    data: {
+      id: uuidv4(),
+      method: 'Flutterwave',
+      status: 'pending', 
+      amount,
+      payment_type: 'ADVANCE_RENT_REFUND',
+      transaction_id: `REFUND_ADV_${Date.now()}`,
+      currency: 'UGX',
+      metadata: JSON.stringify({ tenantId, agreementId, reason }),
+    },
+  });
+
+  return payment;
+};

@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../auth/auth.middleware.js';
+import { authenticate } from '../../common/middleware/auth.middleware.js';
 import { authorizeRoles } from '../../common/middleware/authorize-role.middleware.js';
 
 import {
@@ -8,11 +8,12 @@ import {
     cancelAgreementHandler,
     deleteRentalAgreementHandler,
     deleteRentalAgreementsBatchHandler,
-    cancelRentalAgreementsHandler
+    cancelRentalAgreementsHandler,
+    acceptAgreementHandler,
 } from './agreement-management-tenant.controller.js';
 
 import { validate } from '../../common/middleware/validate.middleware.js';
-import { propertyAgreementSchema, cancelAgreementSchema } from './agreement-management-tenant.validator.js';
+import { propertyAgreementSchema, cancelAgreementSchema, acceptAgreementSchema } from './agreement-management-tenant.validator.js';
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.patch('/:agreementId/cancel', authenticate, authorizeRoles('tenant'), val
 router.delete('/:agreementId/delete', authenticate, authorizeRoles('tenant', 'landlord'), validate(propertyAgreementSchema), deleteRentalAgreementHandler);
 router.delete('/delete', authenticate, authorizeRoles('tenant', 'landlord'), deleteRentalAgreementsBatchHandler);
 router.patch('/cancel', authenticate, authorizeRoles('tenant'), cancelRentalAgreementsHandler);
-
-
+router.post('/:agreementId/accept', authenticate, authorizeRoles('tenant', 'landlord'), validate(acceptAgreementSchema), acceptAgreementHandler);
+router.post('/:agreementId/accept', authenticate, authorizeRoles('tenant', 'landlord'), validate(acceptAgreementSchema), acceptAgreementHandler);
 
 export default router;

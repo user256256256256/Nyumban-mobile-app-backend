@@ -3,6 +3,8 @@ import { expirePromotions, alertUpcomingExpirations } from '../cron/promotion-ex
 import { permanentlyDeleteExpiredUsers } from '../cron/delete-user-permanently.cron.js';
 import { permanentlyDeleteOldNotifications } from '../cron/delete-notifications-permanently.cron.js';
 import { finalizeExpiredEvictions } from '../cron/finalize-expired-evictions.cron.js';
+import { finalizeExpiredOwnerRequirements } from './finalize-owner-requirements.cron.js';
+import { finalizeExpiredMutualAgreements } from './finalize-mutual-agreement.cron.js'
 
 // Every 5 mins — promotions
 cron.schedule('*/5 * * * *', async () => {
@@ -44,14 +46,32 @@ cron.schedule('0 9 * * *', async () => {
   }
 });
 
+// Run once per day at midnight
+cron.schedule('0 0 * * *', async () => {
+  console.log(`[${new Date().toISOString()}] CRON: Auto-finalize expired evictions`);
+  try {
+    await finalizeExpiredEvictions();
+  } catch (error) {
+    console.error('Error finalizing expired evictions:', error);
+  }
+});
 
+// Run once per day at midday
+cron.schedule('0 12 * * *', async () => {
+  console.log(`[${new Date().toISOString()}] CRON: Auto-finalize owner requirement evictions`);
+  try {
+    await finalizeExpiredOwnerRequirements();
+  } catch (error) {
+    console.error('Error finalizing owner requirement eviction:', error);
+  }
+});
 
-// Every 5 minutes — eviction check
-// cron.schedule('*/5 * * * *', async () => {
-//   console.log(`[${new Date().toISOString()}] Checking for expired eviction warnings...`);
-//   try {
-//     await finalizeExpiredEvictions();
-//   } catch (error) {
-//     console.error('Error finalizing expired evictions:', error);
-//   }
-// });
+// Run once per day at midday
+cron.schedule('0 12 * * *', async () => {
+  console.log(`[${new Date().toISOString()}] CRON: Auto-finalize mutual agreement evictions`);
+  try {
+    await finalizeExpiredMutualAgreements();
+  } catch (error) {
+    console.error('Error finalizing mutual agreement eviction:', error);
+  }
+});

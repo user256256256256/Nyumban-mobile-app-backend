@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../auth/auth.middleware.js'; 
+import { authenticate } from '../../common/middleware/auth.middleware.js'; 
 import { uploadImage } from '../../common/middleware/upload.middleware.js'
 
 import {

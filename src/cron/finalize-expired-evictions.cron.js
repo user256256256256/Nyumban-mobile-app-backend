@@ -1,28 +1,45 @@
 import prisma from '../prisma-client.js';
-import EvictionService from '../modules/evict-tenant/evict-tenant.service.js';
+import { finalizeEvictionAndTerminateAgreement } from '../modules/agreement-termination/evict.util.js';
 
 export const finalizeExpiredEvictions = async () => {
-  const expiredWarnings = await prisma.eviction_logs.findMany({
+  const now = new Date();
+
+  console.log(`[DEBUG] Checking expired evictions at ${now.toISOString()}`);
+
+  const expiredEvictions = await prisma.eviction_logs.findMany({
     where: {
       status: 'warning',
-      gracePeriodEnd: { lte: new Date() },
+      grace_period_end: { lt: now },
+    },
+    include: {
+      agreement: {
+        include: { tenant: true, landlord: true, property: true, unit: true },
+      },
     },
   });
 
-  if (expiredWarnings.length === 0) {
-    console.log(`[${new Date().toISOString()}] No expired eviction warnings found.`);
+  if (!expiredEvictions.length) {
+    console.log(`[DEBUG] No expired evictions found`);
     return;
   }
 
-  for (const log of expiredWarnings) {
+  console.log(`[DEBUG] Found ${expiredEvictions.length} expired eviction(s)`);
+
+  for (const eviction of expiredEvictions) {
     try {
-      await EvictionService.finalizeEviction({
-        landlordId: log.landlord_id,
-        evictionLogId: log.id,
+      await finalizeEvictionAndTerminateAgreement({
+        eviction,
+        timestamp: now,
+        isAuto: true,
       });
-      console.log(`[${new Date().toISOString()}] ✅ Eviction finalized for log ID: ${log.id}`);
-    } catch (error) {
-      console.error(`❌ Error finalizing eviction log ${log.id}:`, error);
+
+      console.log(`[SUCCESS] Auto-finalized eviction ID=${eviction.id}`);
+    } catch (err) {
+      console.error(`[ERROR] Failed to finalize eviction ID=${eviction.id}:`, err);
     }
   }
+
+  console.log(
+    `[${new Date().toISOString()}] ✅ Finished auto-finalizing evictions (${expiredEvictions.length})`
+  );
 };

@@ -16,7 +16,7 @@
 This is the backend service powering **Nyumban Property Solutions**, built using [**Node.js**](https://nodejs.org/) with [**Express.js**](https://expressjs.com/) and [**Prisma ORM**](https://www.prisma.io/).  
 It handles authentication, property data, user roles, rent tracking, and integration with payment providers (e.g. Flutterwave, MTN, Airtel).
 
-> ✅ **Architecture Note**: This codebase follows a **modular architecture**, where features are organized into isolated modules (`auth`, `users`, `properties`, etc.).  
+> ✅ **Architecture Note**: This codebase follows a **modular architecture**, where features are organized into isolated modules (`auth`, `users`, `forum`, etc.).  
 > This improves scalability, maintainability, and developer productivity.
 
 ---

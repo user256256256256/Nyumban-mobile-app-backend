@@ -1,9 +1,8 @@
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
-import Handlebars from 'handlebars';
+import { triggerNotification } from '../notifications/notification.service.js';
 
 import {
-    ValidationError,
     NotFoundError,
     AuthError,
     ForbiddenError,
@@ -11,88 +10,86 @@ import {
 } from '../../common/services/errors-builder.service.js';
 
 export const checkAgreementExists = async (userId, propertyId, unitId) => {
-    const property = await prisma.properties.findUnique({
-      where: { id: propertyId }
-    })
-  
-    if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' })
-  
-    if (property.owner_id !== userId)
-      throw new AuthError('Access denied. You are not the owner of this property.', { field: 'Owner ID' })
-  
-    if (property.has_units && !unitId)
-      throw new ForbiddenError('Property has units, specify the unit to check agreement status', { field: 'Unit ID' })
-  
-    if (unitId) {
-      const unit = await prisma.property_units.findUnique({ where: { id: unitId } })
-      if (!unit || unit.property_id !== propertyId)
-      throw new NotFoundError('Unit not found or does not belong to this property', { field: 'Unit ID' })
-    }
+  const property = await prisma.properties.findUnique({ where: { id: propertyId } });
+  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
 
-    const whereClause = {
+  if (property.owner_id !== userId)
+    throw new AuthError('Access denied. You are not the owner of this property.', { field: 'Owner ID' });
+
+  if (property.has_units && !unitId)
+    throw new ForbiddenError('Property has units, specify the unit to check agreement status', { field: 'Unit ID' });
+
+  if (unitId) {
+    const unit = await prisma.property_units.findUnique({ where: { id: unitId } });
+    if (!unit || unit.property_id !== propertyId)
+      throw new NotFoundError('Unit not found or does not belong to this property', { field: 'Unit ID' });
+  }
+
+  const agreement = await prisma.rental_agreements.findFirst({
+    where: {
       property_id: propertyId,
       owner_id: userId,
       unit_id: unitId ?? null,
       is_deleted: false,
-    }
-  
-    const agreement = await prisma.rental_agreements.findFirst({
-      where: whereClause,
-      orderBy: { updated_at: 'desc' },
-      select: {
-        id: true,
-        status: true,
-        updated_at: true,
-      },
-    })
-  
-    if (!agreement) return { exists: false }
-  
-    return {
-      exists: true,
-      agreement_id: agreement.id,
-      status: agreement.status,
-      last_modified: agreement.updated_at,
-    }
-}
+      status: { in: ['draft', 'ready'] }, // include active agreements
+    },
+    orderBy: { updated_at: 'desc' },
+    select: { id: true, status: true, updated_at: true },
+  });
 
-export const createOrSaveDraft = async (userId, propertyId, unitId, payload) => {
+  if (!agreement) return { exists: false };
+
+  return {
+    exists: true,
+    agreement_id: agreement.id,
+    status: agreement.status,
+    last_modified: agreement.updated_at,
+  };
+};
+
+export const createOrUpdateDraft = async (userId, propertyId, unitId, payload) => {
   const { security_deposit, utility_responsibilities, status } = payload;
-  
+
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });
-  
   if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
   if (property.owner_id !== userId) throw new AuthError('Access denied', { field: 'Owner ID' });
-  if (property.has_units && !unitId) 
+  if (property.has_units && !unitId)
     throw new ForbiddenError('Property has units; specify unit_id', { field: 'Unit ID' });
-  
+
   if (unitId) {
-    const unit = await prisma.property_units.findUnique({ where: { id: unitId } })
+    const unit = await prisma.property_units.findUnique({ where: { id: unitId } });
     if (!unit || unit.property_id !== propertyId)
-    throw new NotFoundError('Unit not found or does not belong to this property', { field: 'Unit ID' })
+      throw new NotFoundError('Unit not found or does not belong to this property', { field: 'Unit ID' });
   }
 
   const template = await prisma.rental_agreement_templates.findFirst({
     orderBy: { updated_at: 'desc' },
-    select: { id: true }
+    select: { id: true },
   });
   if (!template) throw new NotFoundError('No agreement template available');
 
-  const existing = await prisma.rental_agreements.findFirst({
+  // Check for existing draft or ready agreements
+  const existingActive = await prisma.rental_agreements.findFirst({
     where: {
       property_id: propertyId,
       unit_id: unitId ?? null,
       owner_id: userId,
-      status: 'draft',
       is_deleted: false,
-    }
+      status: { in: ['draft', 'ready'] },
+    },
   });
+
+  if (existingActive && existingActive.status === 'ready') {
+    throw new ForbiddenError(
+      'A finalized agreement already exists for this property/unit. You cannot create or update a draft.'
+    );
+  }
 
   const commonData = {
     rental_agreement_templates: { connect: { id: template.id } },
     properties: { connect: { id: propertyId } },
     property_units: unitId ? { connect: { id: unitId } } : undefined,
-    users_rental_agreements_owner_idTousers: {  connect: { id: userId } },
+    users_rental_agreements_owner_idTousers: { connect: { id: userId } },
     status,
     security_deposit,
     utility_responsibilities,
@@ -101,32 +98,31 @@ export const createOrSaveDraft = async (userId, propertyId, unitId, payload) => 
 
   let agreement;
 
-  if (existing) {
+  if (existingActive && existingActive.status === 'draft') {
+    // ✅ Update the existing draft
     agreement = await prisma.rental_agreements.update({
-      where: { id: existing.id },
-      data: commonData
+      where: { id: existingActive.id },
+      data: commonData,
     });
   } else {
+    // ✅ Create a new draft (no draft exists)
     agreement = await prisma.rental_agreements.create({
       data: {
         id: uuidv4(),
         ...commonData,
         created_at: new Date(),
-      }
+      },
     });
   }
 
+  // Mark the property as having an agreement
   await prisma.properties.update({
     where: { id: propertyId },
     data: { has_agreement: true },
   });
 
-  return {
-    agreement_id: agreement.id,
-    status: agreement.status
-  };
-
-}
+  return { agreement_id: agreement.id, status: agreement.status };
+};
 
 export const finalizeAgreement = async (userId, propertyId, unitId, status) => {
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });
@@ -181,7 +177,7 @@ export const finalizeAgreement = async (userId, propertyId, unitId, status) => {
 };
 
 export default {
-    checkAgreementExists,
-    createOrSaveDraft,
-    finalizeAgreement,
+  checkAgreementExists,
+  createOrUpdateDraft,
+  finalizeAgreement,
 }

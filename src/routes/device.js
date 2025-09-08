@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../modules/auth/auth.middleware.js';
+import { authenticate } from '../common/middleware/auth.middleware.js';
 import { registerDeviceToken } from '../common/services/sns.service.js';
 import { setUserActive } from '../services/user.service.js';
 import { NotFoundError } from '../common/services/errors-builder.service.js'

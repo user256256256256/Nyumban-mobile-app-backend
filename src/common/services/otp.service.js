@@ -1,5 +1,5 @@
-import { otpStore } from '../../common/utils/memory-store.util.js';
-import { ValidationError, ServerError } from '../../common/services/errors-builder.service.js';
+import { otpStore } from '../utils/memory-store.util.js';
+import { ValidationError, ServerError } from './errors-builder.service.js';
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 

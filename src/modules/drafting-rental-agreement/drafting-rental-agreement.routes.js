@@ -1,7 +1,6 @@
 import express from 'express';
-import { authenticate } from '../auth/auth.middleware.js'
+import { authenticate } from '../../common/middleware/auth.middleware.js';
 import { authorizeRoles } from '../../common/middleware/authorize-role.middleware.js';
-
 
 import { 
     checkAgreementExistsHandler,
@@ -13,7 +12,6 @@ import {
 import { validate } from '../../common/middleware/validate.middleware.js';
 import { draftAgreementSchema, finalizeAgreementSchema, propertyIdParamSchema, agreementIdParamSchema } from './drafting-rental-agreement.validator.js'
 const router = express.Router()
-
 
 router.get('/:propertyId/agreement/exists', authenticate, authorizeRoles('landlord'), validate(propertyIdParamSchema), checkAgreementExistsHandler);
 router.get('/:agreementId/preview', authenticate, authorizeRoles('landlord'), validate(agreementIdParamSchema),  generateAgreementPreviewHandler);

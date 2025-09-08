@@ -1,5 +1,5 @@
 import prisma from '../../prisma-client.js';
-import OTPService from './otp.service.js';
+import OTPService from '../../common/services/otp.service.js';
 import { generateToken } from '../../common/utils/jwt.util.js';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadToStorage } from '../../common/services/s3.service.js';

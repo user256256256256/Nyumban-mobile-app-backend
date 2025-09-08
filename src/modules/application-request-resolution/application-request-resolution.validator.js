@@ -13,3 +13,13 @@ export const resolveApplicationRequestSchema = {
     }),
   }),
 };
+
+export const deleteApplicationRequestsSchema = {
+  body: Joi.object({
+    applicationIds: Joi.array()
+      .items(Joi.string().uuid().label('Request ID'))
+      .min(1)
+      .required()
+      .label('Request IDs'),
+  })
+}

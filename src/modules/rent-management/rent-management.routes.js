@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../auth/auth.middleware.js';
+import { authenticate } from '../../common/middleware/auth.middleware.js';
 import { authorizeRoles } from '../../common/middleware/authorize-role.middleware.js';
 
 import {
@@ -8,11 +8,12 @@ import {
     getPaymentHistoryHandler,
     getRentStatusHandler,
     checkAdvanceEligibilityHandler,
-    getRentAndDepositHandler
+    getRentAndDepositHandler,
+    processInitialRentPaymentHandler
 } from './rent-management.controller.js';
 
 import { validate } from '../../common/middleware/validate.middleware.js';
-import { initiateRentPaymentSchema, propertyParamSchema  } from './rent-management.validator.js';
+import { initiateRentPaymentSchema, rentPaymentSchema, propertyParamSchema  } from './rent-management.validator.js';
 
 const router = express.Router();
 
@@ -22,6 +23,7 @@ router.post('/pay', authenticate, authorizeRoles('tenant'), validate(initiateRen
 router.get('/status', authenticate, authorizeRoles('tenant'), getRentStatusHandler);
 router.get('/advance/check/:propertyId', authenticate, authorizeRoles('tenant'), validate(propertyParamSchema), checkAdvanceEligibilityHandler);
 router.get('/properties/:propertyId/rent-and-deposit', authenticate, authorizeRoles('tenant'), validate(propertyParamSchema), getRentAndDepositHandler);
+router.post('/:agreementId/initial-payment', authenticate, authorizeRoles('tenant', 'landlord'), validate(rentPaymentSchema), processInitialRentPaymentHandler);
 
 
 export default router;

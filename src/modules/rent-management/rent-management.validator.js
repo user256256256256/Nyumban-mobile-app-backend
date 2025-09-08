@@ -22,3 +22,10 @@ export const propertyParamSchema = {
     }),
   }),
 };
+
+export const rentPaymentSchema = {
+  params: Joi.object({ agreementId: Joi.string().uuid().required().label('Agreement ID') }),
+  body: Joi.object({
+    payment_method: Joi.string().valid('Flutterwave').required().label('Payment Method'),
+  }),
+};

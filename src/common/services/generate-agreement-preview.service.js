@@ -9,7 +9,7 @@ export const generateAgreementPreview = async (agreementId) => {
     where: { id: agreementId },
     include: {
       rental_agreement_templates: true,
-      properties: true, // No 'property_rules'
+      properties: true, 
       property_units: true,
       users_rental_agreements_owner_idTousers: {
         include: {

@@ -1,7 +1,7 @@
 import slugify from 'slugify';
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
-import OTPService from '../auth/otp.service.js';
+import OTPService from '../../common/services/otp.service.js';
 import { uploadToStorage, uploadMultipleImages, upload3DTourFile, deleteFromStorage } from '../../common/services/s3.service.js';
 
 import {

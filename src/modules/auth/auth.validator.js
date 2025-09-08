@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { VALID_ROLES } from '../../common/constants/roles.js'; // Adjust path as needed
+import { VALID_ROLES } from '../../common/constants/roles.constants.js'; // Adjust path as needed
 
 // Used for both email and phone
 const identifierSchema = Joi.alternatives().try(

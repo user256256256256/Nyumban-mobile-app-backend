@@ -96,3 +96,16 @@ export const getRentAndDepositHandler = async (req, res) => {
     return handleControllerError(res, error, 'GET_RENT_DEPOSIT_ERROR', 'Failed to fetch rent and deposit');
   }
 };
+
+export const processInitialRentPaymentHandler = async (req, res) => {
+    try {
+        const { agreementId } = req.params
+        const userId = req.user.id
+        const { payment_method } = req.body
+
+        const result = await RentManagementService.processInitialRentPayment({ userId, agreementId, payment_method })
+        return success(res, result, 'Rent payment completed successfully')
+    } catch (error) {
+        return handleControllerError(res, error, 'RENT_PAYMENT_FAILED', 'Rent payment failed');
+    }
+}

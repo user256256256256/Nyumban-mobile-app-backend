@@ -1,4 +1,4 @@
-import { VALID_ROLES } from '../constants/roles.js';
+import { VALID_ROLES } from '../constants/roles.constants.js';
 import { ForbiddenError, AuthError } from '../services/errors-builder.service.js';
 
 /**

@@ -80,3 +80,13 @@ export const cancelRentalAgreementsHandler = async (req, res) => {
   }
 };
 
+export const acceptAgreementHandler = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const agreementId = req.params.agreementId
+        const result = await AgreementManagementService.acceptAgreement(userId, agreementId, req.body)
+        return success(res, result, 'Agreement signed successfully')
+    } catch (error) {
+        return handleControllerError(res, error, 'SIGN_AGREEMENT_ERROR', 'Failed to sign agreement')
+    }
+}

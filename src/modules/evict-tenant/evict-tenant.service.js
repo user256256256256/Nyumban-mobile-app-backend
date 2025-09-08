@@ -96,7 +96,9 @@ export const finalizeEviction = async ({ landlordId, evictionLogId }) => {
   return { status: 'evicted', eviction_log_id: evictionLogId };
 };
 
+
 export default {
   initiateEviction,
   finalizeEviction
 }
+
