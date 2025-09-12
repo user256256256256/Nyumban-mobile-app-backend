@@ -61,7 +61,7 @@ app.use(`${BASE_ROUTE_VERSION_1}/landlord-profile`, landlordProfileRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/tenant-management`, tenantManagementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/promote-property`, propertyPromotionRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/agreement-management`, agreementManagement);
-app.use(`${BASE_ROUTE_VERSION_1}/agremmentTermination`, agremmentTermination);
+app.use(`${BASE_ROUTE_VERSION_1}/agreement-termination`, agremmentTermination);
 app.use(`${BASE_ROUTE_VERSION_1}/payment-management`, paymentManagementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-engagement`, propertyEngagementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/application-request`, applicationRequestRoutes);

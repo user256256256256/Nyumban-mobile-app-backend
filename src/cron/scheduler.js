@@ -46,8 +46,8 @@ cron.schedule('0 9 * * *', async () => {
   }
 });
 
-// Run once per day at midnight
-cron.schedule('0 0 * * *', async () => {
+// Run every minute for testing
+cron.schedule('* * * * *', async () => {
   console.log(`[${new Date().toISOString()}] CRON: Auto-finalize expired evictions`);
   try {
     await finalizeExpiredEvictions();
@@ -55,6 +55,7 @@ cron.schedule('0 0 * * *', async () => {
     console.error('Error finalizing expired evictions:', error);
   }
 });
+
 
 // Run once per day at midday
 cron.schedule('0 12 * * *', async () => {

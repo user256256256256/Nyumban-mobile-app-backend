@@ -41,12 +41,10 @@ export const cancelEvictionHandler = async (req, res) => {
     try {
       const { evictionId } = req.params;
       const { reason } = req.body;
-      const userId = req.user.id;
       const userRole = req.user.role;
   
       const result = await NonPaymentTerminateService.cancelEviction({
         evictionId,
-        userId,
         userRole,
         reason,
       });
@@ -64,21 +62,15 @@ export const cancelEvictionHandler = async (req, res) => {
 
 export const confirmEvictionHandler = async (req, res) => {
     try {
-      const { evictionIds } = req.body;
+      const { evictionId } = req.params;
       const userId = req.user.id;
       const userRole = req.user.role;
-  
-      const results = [];
-      for (const evictionId of evictionIds) {
-        const result = await NonPaymentTerminateService.confirmEviction({
-          evictionId,
-          userId,
-          userRole,
-        });
-        results.push(result);
-      }
-  
-      return success(res, results, 'Eviction(s) confirmed successfully');
+      const result = await NonPaymentTerminateService.confirmEviction({
+        evictionId,
+        userId,
+        userRole,
+      });
+      return success(res, result, 'Eviction(s) confirmed successfully');
     } catch (error) {
       return handleControllerError(
         res,

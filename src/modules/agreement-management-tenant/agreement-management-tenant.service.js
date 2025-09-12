@@ -1,5 +1,4 @@
 import prisma from '../../prisma-client.js';
-import { generateAgreementPreview } from '../../common/services/generate-agreement-preview.service.js';
 
 import {
   NotFoundError,
@@ -7,44 +6,6 @@ import {
   ForbiddenError,
   AuthError,
 } from '../../common/services/errors-builder.service.js';
-
-
-export const getLeaseAgreement = async (userId, propertyId, unitId = null) => {
-
-    const property = await prisma.properties.findUnique({ where: { id: propertyId } });
-  
-    if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
-
-    if (property.has_units && !unitId) {
-      throw new NotFoundError('This property has units. Specify a unitId', { field: 'Unit ID' });
-    }
-  
-    // Check if user is the tenant in an active/completed agreement
-    const agreement = await prisma.rental_agreements.findFirst({
-      where: {
-        property_id: propertyId,
-        unit_id: unitId ?? null,
-        tenant_id: userId,
-        tenant_accepted_agreement: true,
-        status: { in: ['active', 'completed'] },
-        is_deleted: false,
-      },
-      orderBy: { updated_at: 'desc' },
-    });
-  
-    if (!agreement) {
-      throw new NotFoundError('No valid lease agreement found for this property/unit and tenant');
-    }
-
-    const rendered_html = await generateAgreementPreview(agreement.id);
-  
-    return {
-      agreementId: agreement.id, 
-      property_id: propertyId,
-      pdf_url: agreement.file_path,
-      rendered_html
-    };
-};
 
 export const getTenantAgreements = async ({ userId, status, limit = 10, cursor }) => {
   const whereClause = {
@@ -69,7 +30,11 @@ export const getTenantAgreements = async ({ userId, status, limit = 10, cursor }
           id: true,
           username: true,
           phone_number: true,
-          full_name: true,
+          landlord_profiles: {
+            select: {
+              full_names: true,
+            },
+          },
         },
       },
     },
@@ -78,7 +43,7 @@ export const getTenantAgreements = async ({ userId, status, limit = 10, cursor }
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
   });
 
-  if (!agreements) throw new ServerError('Unknown error occured')
+  if (!agreements) throw new ServerError('Unknown error occurred');
 
   const hasMore = agreements.length > limit;
   const slicedAgreements = agreements.slice(0, limit);
@@ -97,7 +62,9 @@ export const getTenantAgreements = async ({ userId, status, limit = 10, cursor }
     },
     owner: {
       id: agreement.users_rental_agreements_owner_idTousers?.id,
-      name: agreement.users_rental_agreements_owner_idTousers?.full_name || agreement.users_rental_agreements_owner_idTousers?.username,
+      name:
+        agreement.users_rental_agreements_owner_idTousers?.landlord_profiles?.full_names ||
+        agreement.users_rental_agreements_owner_idTousers?.username,
       contact: agreement.users_rental_agreements_owner_idTousers?.phone_number,
     },
     created_at: agreement.created_at?.toISOString(),
@@ -111,300 +78,6 @@ export const getTenantAgreements = async ({ userId, status, limit = 10, cursor }
   };
 };
 
-const ALLOWED_DELETE_STATUSES = ['cancelled', 'terminated', 'draft'];
-
-// Migrate to agreement-management (shared by both tenant and landlord)
-export const deleteAgreement = async (userId, agreementId) => {
-  const agreement = await prisma.rental_agreements.findUnique({
-    where: { id: agreementId },
-  });
-
-  if (!agreement || agreement.is_deleted) {
-    throw new NotFoundError('Agreement not found or already deleted');
-  }
-
-  // Authorization: tenant or owner can delete
-  if (agreement.tenant_id !== userId && agreement.owner_id !== userId) {
-    throw new ForbiddenError('Access denied to delete this agreement');
-  }
-
-  if (!ALLOWED_DELETE_STATUSES.includes(agreement.status)) {
-    throw new ForbiddenError('Only cancelled, terminated or draft agreements can be deleted');
-  }
-
-  // Soft delete the agreement
-  await prisma.rental_agreements.update({
-    where: { id: agreementId },
-    data: { is_deleted: true, deleted_at: new Date() },
-  });
-
-  // Check if property or its units have any active agreements left
-  const propertyId = agreement.property_id;
-
-  // Count active agreements on the property (without unit)
-  const activePropertyAgreementsCount = await prisma.rental_agreements.count({
-    where: {
-      property_id: propertyId,
-      unit_id: null,
-      is_deleted: false,
-      status: { notIn: ['cancelled', 'terminated', 'draft'] },
-    },
-  });
-
-  // Count active agreements on any units of the property
-  const activeUnitAgreementsCount = await prisma.rental_agreements.count({
-    where: {
-      property_id: propertyId,
-      unit_id: { not: null },
-      is_deleted: false,
-      status: { notIn: ['cancelled', 'terminated', 'draft'] },
-    },
-  });
-
-  // If no active agreements on property or units, clear has_agreement flag
-  if (activePropertyAgreementsCount + activeUnitAgreementsCount === 0) {
-    await prisma.properties.update({
-      where: { id: propertyId },
-      data: { has_agreement: false },
-    });
-  }
-
-  return { agreementId };
-};
-
-// Migrate to agreement-management (shared by both tenant and landlord)
-export const deleteAgreementsBatch = async (userId, agreementIds) => {
-  const agreements = await prisma.rental_agreements.findMany({
-    where: {
-      id: { in: agreementIds },
-      is_deleted: false,
-      OR: [
-        { tenant_id: userId },
-        { owner_id: userId },
-      ],
-    },
-  });
-
-  const allowed = agreements.filter(a => ALLOWED_DELETE_STATUSES.includes(a.status));
-  const allowedIds = allowed.map(a => a.id);
-
-  if (allowedIds.length === 0) {
-    throw new ForbiddenError('No deletable agreements found');
-  }
-
-  // Soft delete all allowed agreements
-  await prisma.rental_agreements.updateMany({
-    where: { id: { in: allowedIds } },
-    data: { is_deleted: true, deleted_at: new Date() },
-  });
-
-  // Collect affected property IDs
-  const affectedPropertyIds = [...new Set(allowed.map(a => a.property_id))];
-
-  // For each property, check if any active agreements remain (including unit agreements)
-  for (const propertyId of affectedPropertyIds) {
-    const activePropertyAgreementsCount = await prisma.rental_agreements.count({
-      where: {
-        property_id: propertyId,
-        unit_id: null,
-        is_deleted: false,
-        status: { notIn: ['cancelled', 'terminated', 'draft'] },
-      },
-    });
-
-    const activeUnitAgreementsCount = await prisma.rental_agreements.count({
-      where: {
-        property_id: propertyId,
-        unit_id: { not: null },
-        is_deleted: false,
-        status: { notIn: ['cancelled', 'terminated', 'draft'] },
-      },
-    });
-
-    if (activePropertyAgreementsCount + activeUnitAgreementsCount === 0) {
-      await prisma.properties.update({
-        where: { id: propertyId },
-        data: { has_agreement: false },
-      });
-    }
-  }
-
-  return { deleted_count: allowedIds.length };
-};
-
-// Migrate to agreement-management (shared by both tenant and landlord)
-export const cancelAgreement = async ({ agreementId, userId }) => {
-  const agreement = await prisma.rental_agreements.findUnique({
-    where: { id: agreementId },
-    include: { properties: true, property_units: true }
-  });
-
-  if (!agreement || agreement.is_deleted) {
-    throw new NotFoundError('Agreement not found or already deleted', { field: 'Agreement ID' });
-  }
-
-  if (!['pending_payment', 'draft'].includes(agreement.status)) {
-    throw new ForbiddenError('Only non-active agreements can be cancelled');
-  }
-
-  if (agreement.tenant_id !== userId && agreement.owner_id !== userId) {
-    throw new ForbiddenError('You are not authorized to cancel this agreement', { field: 'User ID' });
-  }
-
-  const updated = await prisma.$transaction(async (tx) => {
-    const cancelledAgreement = await tx.rental_agreements.update({
-      where: { id: agreementId },
-      data: {
-        tenant_id: null,
-        tenant_accepted_agreement: false,
-        status: 'cancelled',
-        start_date: null,
-        updated_at: new Date(),
-      },
-    });
-
-    await tx.property_applications.updateMany({
-      where: { property_id: agreement.property_id, tenant_id: agreement.tenant_id },
-      data: {
-        status: 'rejected',
-        landlord_message: 'Agreement cancelled by tenant or landlord',
-        reviewed_at: new Date(),
-      }
-    });
-
-    return cancelledAgreement;
-  });
-
-  const propertyName = agreement.properties?.name || 'Property';
-
-  // 🔔 Notifications (non-blocking)
-  void (async () => {
-    try {
-      await triggerNotification(
-        agreement.tenant_id,
-        'AGREEMENT_CANCELLED',
-        'Agreement cancelled',
-        `Your agreement for ${propertyName} has been cancelled.`
-      );
-    } catch (err) {
-      console.error('Failed to notify tenant on single agreement cancellation:', err);
-    }
-  })();
-
-  void (async () => {
-    try {
-      await triggerNotification(
-        agreement.owner_id,
-        'AGREEMENT_CANCELLED',
-        'Agreement cancelled',
-        `You have cancelled the agreement for ${propertyName}.`
-      );
-    } catch (err) {
-      console.error('Failed to notify landlord on single agreement cancellation:', err);
-    }
-  })();
-
-  return { agreement_id: updated.id, status: updated.status };
-};
-
-// Migrate to agreement-management (shared by both tenant and landlord)
-export const cancelAgreements = async (userId, agreementIds) => {
-  const agreements = await prisma.rental_agreements.findMany({
-    where: { id: { in: agreementIds }, is_deleted: false },
-    include: { properties: true, property_units: true },
-  });
-
-  const cancellable = agreements.filter(agreement =>
-    (agreement.tenant_id === userId || agreement.owner_id === userId) &&
-    ['pending_payment', 'draft'].includes(agreement.status)
-  );
-
-  if (cancellable.length === 0) {
-    throw new ForbiddenError('No cancellable agreements found');
-  }
-
-  const cancelledResults = await prisma.$transaction(async (tx) => {
-    const results = [];
-
-    for (const agreement of cancellable) {
-      const updatedAgreement = await tx.rental_agreements.update({
-        where: { id: agreement.id },
-        data: {
-          tenant_id: null,
-          tenant_accepted_agreement: false,
-          status: 'cancelled',
-          start_date: null,
-          updated_at: new Date(),
-          is_deleted: true,
-          deleted_at: new Date(),
-        },
-      });
-
-      if (agreement.properties.has_units && agreement.property_units) {
-        await tx.property_units.update({
-          where: { id: agreement.property_units.id },
-          data: { status: 'available' },
-        });
-      } else {
-        await tx.properties.update({
-          where: { id: agreement.property_id },
-          data: { status: 'available' },
-        });
-      }
-
-      await tx.property_applications.updateMany({
-        where: { property_id: agreement.property_id, tenant_id: agreement.tenant_id },
-        data: {
-          status: 'rejected',
-          landlord_message: 'Agreement cancelled by tenant or landlord',
-          reviewed_at: new Date(),
-        }
-      });
-
-      results.push(updatedAgreement);
-    }
-
-    return results;
-  });
-
-  // 🔔 Notifications (non-blocking)
-  for (const agreement of cancellable) {
-    const propertyName = agreement.properties?.name || 'Property';
-
-    void (async () => {
-      try {
-        await triggerNotification(
-          agreement.tenant_id,
-          'AGREEMENT_CANCELLED',
-          'Agreement cancelled',
-          `Your agreement for ${propertyName} has been cancelled.`
-        );
-      } catch (err) {
-        console.error('Failed to notify tenant on agreement cancellation:', err);
-      }
-    })();
-
-    void (async () => {
-      try {
-        await triggerNotification(
-          agreement.owner_id,
-          'AGREEMENT_CANCELLED',
-          'Agreement cancelled',
-          `You have cancelled the agreement for ${propertyName}.`
-        );
-      } catch (err) {
-        console.error('Failed to notify landlord on agreement cancellation:', err);
-      }
-    })();
-  }
-
-  return {
-    cancelled_count: cancelledResults.length,
-    cancelled_ids: cancelledResults.map(a => a.id),
-  };
-};
-
-// Migrate this to agreement-management tenant
 export const acceptAgreement = async (userId, agreementId, payload) => {
   const { accepted } = payload;
   if (!accepted) throw new AuthError('You must accept the agreement to proceed', { field: 'Accepted: true' });
@@ -415,7 +88,8 @@ export const acceptAgreement = async (userId, agreementId, payload) => {
   });
 
   if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
-  if (agreement.status !== 'ready') throw new ForbiddenError('Agreement is not yet ready for acceptance', { field:  'Agreement Status'});
+  // ✅ Allow acceptance if status is "ready" OR "cancelled"
+  if (!['ready', 'cancelled'].includes(agreement.status)) throw new ForbiddenError( 'Agreement is not ready or cancelled for acceptance', { field: 'Agreement Status' });
   if (agreement.tenant_id !== userId) throw new AuthError('You are not authorized to accept this agreement');
   if (agreement.tenant_accepted_agreement) throw new ForbiddenError('Agreement has already been accepted');
 
@@ -424,7 +98,7 @@ export const acceptAgreement = async (userId, agreementId, payload) => {
     data: {
       tenant_accepted_agreement: true,
       updated_at: new Date(),
-      status: 'completed',
+      status: 'pending_payment',
     }
   });
 
@@ -459,12 +133,7 @@ export const acceptAgreement = async (userId, agreementId, payload) => {
 };
 
 export default {
-  getLeaseAgreement,
   getTenantAgreements,
-  cancelAgreement,
-  deleteAgreement,
-  deleteAgreementsBatch,
-  cancelAgreements,
   acceptAgreement,
 };
 

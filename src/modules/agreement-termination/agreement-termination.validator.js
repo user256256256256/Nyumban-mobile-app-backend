@@ -31,12 +31,8 @@ export const cancelEvictionSchema = {
 };
 
 export const confirmEvictionSchema = {
-  body: Joi.object({
-    evictionIds: Joi.array()
-      .items(Joi.string().uuid().required())
-      .min(1)
-      .required()
-      .label('Eviction IDs'),
+  params: Joi.object({
+    evictionId: Joi.string().uuid().required().label('Eviction ID'),
   }),
 };
 

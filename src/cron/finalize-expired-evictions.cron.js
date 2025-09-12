@@ -13,7 +13,12 @@ export const finalizeExpiredEvictions = async () => {
     },
     include: {
       agreement: {
-        include: { tenant: true, landlord: true, property: true, unit: true },
+        include: {
+          users_rental_agreements_tenant_idTousers: true, // tenant
+          users_rental_agreements_owner_idTousers: true,  // landlord
+          properties: true,                               // property
+          property_units: true,                           // unit
+        },
       },
     },
   });

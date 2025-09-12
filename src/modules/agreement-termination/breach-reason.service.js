@@ -63,12 +63,6 @@ export const intiateBreachTermination = async ({
     return breachLog;
 };
 
-/**
- * This function should be called by the admin after review
- * @param breachLogId - the breach log record to process
- * @param outcome - enum: warning | pending_remedy | resolved | eviction_recommended
- * @param remedyDeadline - optional if outcome = pending_remedy
- */
 export const processBreachAdminOutcome = async ({ breachLogId, outcome, remedyDeadline }) => {
     const breachLog = await prisma.agreement_breach_logs.findUnique({
       where: { id: breachLogId },

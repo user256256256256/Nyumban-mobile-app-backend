@@ -20,14 +20,3 @@ export const finalizeAgreementSchema = {
   }),
 };
 
-export const propertyIdParamSchema = {
-  params: Joi.object({
-    propertyId: Joi.string().uuid().required().label('Property ID'),
-  }),
-};
-
-export const agreementIdParamSchema = {
-  params: Joi.object({
-    agreementId: Joi.string().uuid().required().label('Agreement ID'),
-  }),
-};

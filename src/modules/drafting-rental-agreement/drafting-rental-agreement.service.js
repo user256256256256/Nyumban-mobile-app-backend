@@ -9,44 +9,6 @@ import {
     ServerError,
 } from '../../common/services/errors-builder.service.js';
 
-export const checkAgreementExists = async (userId, propertyId, unitId) => {
-  const property = await prisma.properties.findUnique({ where: { id: propertyId } });
-  if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
-
-  if (property.owner_id !== userId)
-    throw new AuthError('Access denied. You are not the owner of this property.', { field: 'Owner ID' });
-
-  if (property.has_units && !unitId)
-    throw new ForbiddenError('Property has units, specify the unit to check agreement status', { field: 'Unit ID' });
-
-  if (unitId) {
-    const unit = await prisma.property_units.findUnique({ where: { id: unitId } });
-    if (!unit || unit.property_id !== propertyId)
-      throw new NotFoundError('Unit not found or does not belong to this property', { field: 'Unit ID' });
-  }
-
-  const agreement = await prisma.rental_agreements.findFirst({
-    where: {
-      property_id: propertyId,
-      owner_id: userId,
-      unit_id: unitId ?? null,
-      is_deleted: false,
-      status: { in: ['draft', 'ready'] }, // include active agreements
-    },
-    orderBy: { updated_at: 'desc' },
-    select: { id: true, status: true, updated_at: true },
-  });
-
-  if (!agreement) return { exists: false };
-
-  return {
-    exists: true,
-    agreement_id: agreement.id,
-    status: agreement.status,
-    last_modified: agreement.updated_at,
-  };
-};
-
 export const createOrUpdateDraft = async (userId, propertyId, unitId, payload) => {
   const { security_deposit, utility_responsibilities, status } = payload;
 
@@ -177,7 +139,6 @@ export const finalizeAgreement = async (userId, propertyId, unitId, status) => {
 };
 
 export default {
-  checkAgreementExists,
   createOrUpdateDraft,
   finalizeAgreement,
 }
