@@ -17,7 +17,6 @@ const tourFilter = (req, file, cb) => {
   else cb(new Error('Unsupported 3D tour format. Only MP4 or OBJ streams allowed.'));
 };
 
-// 📄 Proof of ownership filter (PDF, Word, Images)
 const proofDocFilter = (req, file, cb) => {
   const allowedTypes = [
     'application/pdf',
@@ -25,7 +24,7 @@ const proofDocFilter = (req, file, cb) => {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
     'image/jpeg',
     'image/png',
-    'application/octet-stream', // fallback (some uploads label .docx as this)
+    'text/plain', // allow .txt
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
@@ -33,7 +32,7 @@ const proofDocFilter = (req, file, cb) => {
   } else {
     cb(
       new Error(
-        'Unsupported document format. Allowed: PDF, Word (.doc/.docx), JPEG, PNG.'
+        'Unsupported document format. Allowed: PDF, Word (.doc/.docx), JPEG, PNG, TXT.'
       )
     );
   }

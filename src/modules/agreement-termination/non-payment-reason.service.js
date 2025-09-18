@@ -3,7 +3,7 @@ import { finalizeEvictionAndTerminateAgreement } from './evict.util.js';
 import { NotFoundError, ForbiddenError } from '../../common/services/errors-builder.service.js';
 import { triggerNotification } from '../notifications/notification.service.js';
 
-export const initiateEviction = async ({ agreement, reason, graceDays = 7 }) => {
+export const initiateEviction = async ({ agreement, reason, graceDays = 7, userId, description }) => {
   const now = new Date();
   const graceEnd = new Date(now.getTime() + graceDays * 24 * 60 * 60 * 1000);
 
@@ -26,6 +26,19 @@ export const initiateEviction = async ({ agreement, reason, graceDays = 7 }) => 
       updated_at: now,
     },
   });
+  
+    // 1️⃣ Update rental agreement with termination request metadata
+    const updatedAgreement = await prisma.rental_agreements.update({
+      where: { id: agreement.id },
+      data: {
+        termination_requested_at: now,
+        termination_requested_by: userId,
+        termination_role: 'landlord',
+        termination_description: description || '',
+      },
+    });
+    console.log('[DEBUG][intiateBreachTermination] Rental agreement updated:', updatedAgreement.id);
+  
 
   // Debug: tenant info
   console.log('[Eviction Debug] Tenant details:', {
@@ -161,8 +174,8 @@ export const confirmEviction = async ({ evictionId, userId, userRole }) => {
 
 
 export default {
-    initiateEviction,
-    cancelEviction,
-    confirmEviction, 
+  initiateEviction,
+  cancelEviction,
+  confirmEviction, 
 };
   

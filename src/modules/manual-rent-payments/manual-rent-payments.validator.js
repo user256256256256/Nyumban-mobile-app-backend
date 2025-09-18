@@ -7,16 +7,18 @@ export const manualRentPaymentSchema = {
       'number.positive': 'Amount must be a positive number',
       'any.required': 'Amount is required',
     }),
-    method: Joi.string().valid('cash', 'bank_transfer', 'mobile_money').required().label('Payment Method').messages({
-      'any.only': 'Method must be one of cash, bank_transfer, or mobile_money',
+    method: Joi.string().valid('Flutterwave', 'Cash', 'MTN', 'Airtel').required().label('Payment Method').messages({
+      'any.only': 'Method must be one of Flutterwave, Cash, MTN or Airtel',
       'any.required': 'Payment method is required',
     }),
     notes: Joi.string().max(500).optional().allow('', null).label('Notes').messages({
       'string.max': 'Notes must not exceed 500 characters',
     }),
+    agreementId: Joi.string().uuid().required().label('Agreement ID'),
   }),
   params: Joi.object({
     tenantId: Joi.string().uuid().required().label('Tenant ID'),
   }),
   
 };
+

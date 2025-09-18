@@ -1,9 +1,6 @@
 import Joi from 'joi';
 import { TERMINATION_REASONS } from '../../common/enums/termination-reasons.enum.js';
 
-/**
- * Validation Schemas (Embedded)
- */
 export const terminateAgreementSchema = {
     params: Joi.object({
       agreementId: Joi.string().uuid().required().label('Agreement ID'),
@@ -17,7 +14,7 @@ export const terminateAgreementSchema = {
         'string.max': 'Termination description must not exceed 500 characters',
       }),
       file: Joi.any().optional().label('Evidence File'), 
-      noticePeriod: Joi.number().integer().min(0).optional().label('Notice Period (days)'),
+      graceDays: Joi.number().integer().min(0).optional().label('Grace Period (days)'),
     }),
 };
 
@@ -42,6 +39,7 @@ export const acceptMutualTerminationSchema = {
     }),
     body: Joi.object({
       accept: Joi.boolean().required().label('Accept Termination'),
+      graceDays: Joi.number().integer().min(0).optional().label('Grace Period (days)'),
     }),
 };
 
@@ -54,12 +52,21 @@ export const breachAdminReviewSchema = {
       .valid('warning', 'pending_remedy', 'resolved', 'eviction_recommended')
       .required()
       .label('Admin Review Outcome'),
-    remedyDeadline: Joi.date().optional().label('Remedy Deadline'),
+    remedyDays: Joi.number().integer().min(0).optional().label('Grace Period (days)'),
   }),
 };
 
-export const confirmBreachEvictionSchema = {
+export const resolveBreachEvictionSchema = {
   params: Joi.object({
     agreementId: Joi.string().uuid().required().label('Agreement ID'),
+  }),
+};
+
+export const cancelOwnerRequirementTerminationSchema = {
+  params: Joi.object({
+    agreementId: Joi.string().uuid().required().label('Agreement ID'),
+  }),
+  body: Joi.object({
+    accept: Joi.boolean().required().label('Accept Termination'),
   }),
 };

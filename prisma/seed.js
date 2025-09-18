@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid';
 import { Decimal } from '@prisma/client/runtime/library';
+import dayjs from 'dayjs';
 
 /* 
 To execute the seed file:
@@ -17,7 +18,81 @@ Ensure package.json includes:
 
 async function main() {
 
+  const tenantId = 'd5bfcf79-39b9-4be0-940a-0af677e4937f'; 
+  const rentalAgreementId = 'cd795dae-a61a-4c8a-94a5-bdb596c2abb0';
+  const propertyId = '56c75da2-02f5-4722-bc93-f71adf62c0db';
+  const unitId = '2adc557a-d4c3-4a7c-b079-808c59efc3b9';
+  const now = new Date();
+
+  // Example: create 3 due payments, 1 overdue, 1 pending
+  const payments = [
+    {
+      id: uuidv4(),
+      rental_agreement_id: rentalAgreementId,
+      tenant_id: tenantId,
+      property_id: propertyId,
+      unit_id: unitId,
+      due_date: dayjs().subtract(2, 'month').toDate(), // overdue
+      due_amount: new Decimal(1200),
+      amount_paid: new Decimal(0),
+      status: 'overdued',
+      period_covered: dayjs().subtract(2, 'month').format('YYYY-MM'),
+      transaction_id: null,
+      method: null,
+      notes: 'Overdue payment',
+      is_deleted: false,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: uuidv4(),
+      rental_agreement_id: rentalAgreementId,
+      tenant_id: tenantId,
+      property_id: propertyId,
+      unit_id: unitId,
+      due_date: dayjs().subtract(1, 'month').toDate(), // overdue
+      due_amount: new Decimal(1200),
+      amount_paid: new Decimal(600),
+      status: 'partial',
+      period_covered: dayjs().subtract(1, 'month').format('YYYY-MM'),
+      transaction_id: null,
+      method: null,
+      notes: 'Partial payment',
+      is_deleted: false,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: uuidv4(),
+      rental_agreement_id: rentalAgreementId,
+      tenant_id: tenantId,
+      property_id: propertyId,
+      
+      unit_id: unitId,
+      due_date: dayjs().add(0, 'month').toDate(), // pending
+      due_amount: new Decimal(1200),
+      amount_paid: new Decimal(0),
+      status: 'pending',
+      period_covered: dayjs().format('YYYY-MM'),
+      transaction_id: null,
+      method: null,
+      notes: 'Upcoming payment',
+      is_deleted: false,
+      created_at: now,
+      updated_at: now,
+    },
+  ];
+
+  await prisma.rent_payments.createMany({
+    data: payments,
+  });
+
+  console.log('✅ Rent payments seeded successfully');
+
+  /*
+
     // === Seed of Property Promotions === //
+
     const promotionPlans = [
       {
         plan_id: 'promo_7d',
@@ -60,11 +135,9 @@ async function main() {
           updated_at: new Date(),
         },
       });
-    }
+  }
   
-    console.log('✅ Seeded promotion plans');
-  
-  /*
+  console.log('✅ Seeded promotion plans');
 
   const templatePath = path.resolve('./prisma/agreement-template.html')
   const templateHtml = fs.readFileSync(templatePath, 'utf-8')

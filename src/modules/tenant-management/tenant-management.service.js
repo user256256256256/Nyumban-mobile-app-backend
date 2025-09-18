@@ -1,5 +1,5 @@
 import prisma from '../../prisma-client.js';
-
+import { triggerNotification } from '../notifications/notification.service.js';
 import {
     ValidationError,
     NotFoundError,
@@ -8,8 +8,7 @@ import {
     ServerError,
 } from '../../common/services/errors-builder.service.js';
 
-export const getTenants = async (landlordId) => {
-
+export const getTenants = async (landlordId, { status } = {}) => {
   const agreements = await prisma.rental_agreements.findMany({
     where: {
       owner_id: landlordId,
@@ -22,64 +21,75 @@ export const getTenants = async (landlordId) => {
           id: true,
           username: true,
           profile_picture_path: true,
-        }
+        },
       },
       properties: {
         select: {
           property_name: true,
           has_units: true,
-        }
+        },
       },
       property_units: {
         select: {
           id: true,
           unit_number: true,
-        }
+        },
       },
       rent_payments: {
-        where: { is_deleted: false },
+        where: {
+          is_deleted: false,
+          ...(status && { status }), // filter by payment status if provided
+        },
         orderBy: { payment_date: 'desc' },
-        take: 1
-      }
-    }
+        take: 1, // latest payment
+      },
+    },
   });
 
-  if (!agreements) throw new NotFoundError('Agreement not found', { field: 'Agreement ID'})
+  if (!agreements || agreements.length === 0) {
+    throw new NotFoundError('No tenants found for this landlord', {
+      field: 'landlordId',
+    });
+  }
 
-  return agreements.map((a) => {
-    const latestPayment = a.rent_payments[0];
+  return agreements
+    .map((agreement) => {
+      const tenant = agreement.users_rental_agreements_tenant_idTousers;
+      const unit = agreement.property_units;
+      const latestPayment = agreement.rent_payments[0];
 
-    return {
-      tenant_id: a.tenant_id,
-      user_id: a.users_rental_agreements_tenant_idTousers.id,
-      name: a.users_rental_agreements_tenant_idTousers.username,
-      user: {
-        profile_picture_url: a.users_rental_agreements_tenant_idTousers.profile_picture_path,
-      },
-      property: {
-        property_name: a.properties?.property_name || 'N/A',
-      },
-      unit: a.property_units
-        ? {
-            unit_id: a.property_units.id,
-            unit_name: a.property_units.unit_number,
-          }
-        : null,
-      agreement: {
-        agreement_status: a.status,
-        start_date: a.start_date
-        
-      },
-      payment_info: {
-        amount_due: latestPayment?.amount_due || 0,
-        next_due_date: latestPayment?.due_date || null,
-        date_rented: a.start_date, 
-        rent_status: latestPayment?.payment_status || 'pending'
-      }
-    };
-  });
+      // Skip tenant if status filter applied but no matching payment
+      if (status && !latestPayment) return null;
 
-}
+      return {
+        tenant_id: agreement.tenant_id,
+        user_id: tenant.id,
+        name: tenant.username,
+        user: {
+          profile_picture_url: tenant.profile_picture_path,
+        },
+        property: {
+          property_name: agreement.properties?.property_name || 'N/A',
+        },
+        unit: unit
+          ? {
+              unit_id: unit.id,
+              unit_name: unit.unit_number,
+            }
+          : null,
+        agreement: {
+          status: agreement.status,
+          start_date: agreement.start_date,
+        },
+        payment_info: {
+          amount_due: latestPayment?.due_amount || 0,
+          next_due_date: latestPayment?.due_date || null,
+          rent_status: latestPayment?.status || 'pending',
+        },
+      };
+    })
+    .filter(Boolean); 
+};
 
 export const getTenantRentHistory = async (
   tenantId,
@@ -156,8 +166,64 @@ export const getTenantRentHistory = async (
   };
 };
 
+export const sendRentReminders = async (landlordId, tenantIds = []) => {
+
+  const results = [];
+
+  for (const tenantId of tenantIds) {
+    const agreement = await prisma.rental_agreements.findFirst({
+      where: {
+        tenant_id: tenantId,
+        owner_id: landlordId,
+        status: 'active',
+        is_deleted: false,
+      },
+      include: {
+        rent_payments: {
+          where: { is_deleted: false },
+          orderBy: { due_date: 'asc' },
+          take: 1,
+        },
+        properties: { select: { property_name: true } },
+      },
+    });
+
+    if (!agreement) {
+      results.push({ tenantId, error: 'Tenant agreement not found' });
+      continue;
+    }
+
+    const nextPayment = agreement.rent_payments[0];
+    if (!nextPayment) {
+      results.push({ tenantId, error: 'No upcoming payment found' });
+      continue;
+    }
+
+    const message = `Your rent of UGX ${nextPayment.due_amount} is due on ${new Date(
+      nextPayment.due_date
+    ).toDateString()} for ${agreement.properties.property_name}.`;
+
+    await triggerNotification(
+      tenantId,
+      'user',
+      'Rent Reminder',
+      message
+    );
+
+    results.push({
+      tenantId,
+      property_name: agreement.properties.property_name,
+      due_amount: nextPayment.due_amount,
+      due_date: nextPayment.due_date,
+      message,
+    });
+  }
+
+  return { total: results.length, reminders: results };
+};
 
 export default {
   getTenants,
   getTenantRentHistory, 
+  sendRentReminders,
 }

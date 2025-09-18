@@ -6,7 +6,7 @@ import { intiateBreachTermination } from './breach-reason.service.js';
 import { uploadToStorage } from '../../common/services/s3.service.js'
 import checkEvictionEligibilityForUnpaidRent from './check-has-upaid-rent.helper.js';
 import { initiateOwnerRequirementTermination } from './owner-requirement-reason.service.js'
-import { initateMutualTermination } from './mutual-agreement-reason.service.js'
+import { initiateMutualTermination } from './mutual-agreement-reason.service.js'
 
 export const terminateAgreement = async ({
   agreementId,
@@ -32,7 +32,6 @@ export const terminateAgreement = async ({
     },
   });
   
-
   if (!agreement) throw new NotFoundError('Rental agreement not found');
   if (agreement.status !== 'active') {
     throw new ForbiddenError('Agreement is not active for termination');
@@ -55,11 +54,11 @@ export const terminateAgreement = async ({
         );
       }
     
-      return initiateEviction({ agreement, reason, graceDays });
+      return initiateEviction({ agreement, reason, graceDays, userId, description });
     }    
 
     case TERMINATION_REASONS.BREACH_OF_AGREEMENT:
-    case TERMINATION_REASONS.ILLEGAL_ACTIVITY: { // Adjust to handel refunds differently
+    case TERMINATION_REASONS.ILLEGAL_ACTIVITY: { 
       if (userRole !== 'landlord') {
         throw new ForbiddenError('Only landlord can initiate breach termination', { field: 'User ID' });
       }
@@ -77,18 +76,18 @@ export const terminateAgreement = async ({
         agreement,
         initiatedBy: userId,
         description,
-        graceDays, // handler will default if not provided
+        graceDays, 
       });
     }
 
     case TERMINATION_REASONS.MUTUAL_AGREEMENT: {
-      return initateMutualTermination({
+
+      return initiateMutualTermination({
         agreement,
-        initiatedBy: userId,
-        reason,
+        userId,
+        userRole,
         description,
         graceDays,
-        file,
       })
     }
 

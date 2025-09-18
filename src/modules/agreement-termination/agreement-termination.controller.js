@@ -5,11 +5,13 @@ import NonPaymentTerminateService from './non-payment-reason.service.js'
 import BreachTerminateService from './breach-reason.service.js'
 import MutualAgreementTerminateService from './mutual-agreement-reason.service.js'
 import AgreementManagementService from '../agreement-management/agreement-management.service.js';
+import OwnerRequirementTerminateService from './owner-requirement-reason.service.js'
 
 export const terminateAgreementHandler = async (req, res) => {
   try {
     const { agreementId } = req.params;
     const { reason, description, graceDays } = req.body;
+    const file = req.file;
     const userId = req.user.id;
     const userRole = req.user.role;
 
@@ -20,6 +22,7 @@ export const terminateAgreementHandler = async (req, res) => {
       reason,
       description,
       graceDays, 
+      file
     });
 
     return success(
@@ -84,17 +87,22 @@ export const confirmEvictionHandler = async (req, res) => {
 export const breachAdminReviewHandler = async (req, res) => {
   try {
     const { breachLogId } = req.params;
-    const { outcome, remedyDeadline } = req.body;
+    const { outcome, remedyDays } = req.body;
 
     const result = await BreachTerminateService.processBreachAdminOutcome({
       breachLogId,
       outcome,
-      remedyDeadline,
+      remedyDays, 
     });
 
     return success(res, result, 'Breach review outcome processed successfully');
   } catch (error) {
-    return handleControllerError(res, error, 'BREACH_REVIEW_FAILED', 'Failed to process breach review outcome');
+    return handleControllerError(
+      res,
+      error,
+      'BREACH_REVIEW_FAILED',
+      'Failed to process breach review outcome'
+    );
   }
 };
 
@@ -114,6 +122,43 @@ export const confirmBreachEvictionHandler = async (req, res) => {
   }
 };
 
+export const resolveBreachByLandlordHandler = async (req, res) => {
+  try {
+    const { agreementId } = req.params;
+    const landlordId = req.user.id;
+
+    const result = await BreachTerminateService.resolveBreachByLandlord({
+      agreementId,
+      landlordId,
+    });
+
+    return success(res, result, 'Breach issue resolved by landlord successfully');
+  } catch (error) {
+    return handleControllerError(
+      res,
+      error,
+      'RESOLVE_BREACH_FAILED',
+      'Failed to resolve breach issue by landlord'
+    );
+  }
+};
+
+export const cancelOwnerRequirementTerminationHandler = async (req, res) => {
+  try {
+    const { agreementId } = req.params;
+    const landlordId = req.user.id;
+
+    const result = await OwnerRequirementTerminateService.cancelOwnerRequirementTermination({
+      agreementId,
+      landlordId,
+    });
+
+    return success(res, result, 'Owner requirement termination cancelled successfully');
+  } catch (error) {
+    return handleControllerError(res, error, 'CANCEL_OWNER_REQUIREMENT_FAILED', 'Failed to cancel owner requirement termination');
+  }
+};
+
 export const acceptMutualTerminationHandler = async (req, res) => {
   try {
     const { agreementId } = req.params;
@@ -128,7 +173,7 @@ export const acceptMutualTerminationHandler = async (req, res) => {
       });
     }
 
-    const agreement = await MutualAgreementTerminateService.getAgreement(agreementId);
+    const agreement = await AgreementManagementService.getAgreement(userId, agreementId);
 
     const result = await MutualAgreementTerminateService.acceptMutualTermination({
       agreement,
@@ -172,3 +217,4 @@ export const cancelMutualTerminationHandler = async (req, res) => {
     );
   }
 };
+

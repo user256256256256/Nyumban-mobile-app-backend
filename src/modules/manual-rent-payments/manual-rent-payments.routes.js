@@ -13,7 +13,7 @@ import { manualRentPaymentSchema } from './manual-rent-payments.validator.js';
 const router = express.Router();
 
 
-router.post('/tenants/:tenantId/payments/manual', authenticate, authorizeRoles('landlord'), validate(manualRentPaymentSchema), markManualPaymentHandler);
+router.post('/tenants/:tenantId/payment', authenticate, authorizeRoles('landlord'), validate(manualRentPaymentSchema), markManualPaymentHandler);
 router.post('/tenants/:tenantId/agreements/:agreementId/payments/manual-initial', authenticate, authorizeRoles('landlord'), validate(manualRentPaymentSchema), markManualInitialRentPaymentHandler);
   
 

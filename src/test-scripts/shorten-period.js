@@ -13,4 +13,4 @@ async function shortenGracePeriod(evictionId) {
 }
 
 // Example usage
-shortenGracePeriod("eedd515a-3030-4250-8045-ef942447f412"); // replace with your evictionId
+shortenGracePeriod("6bf66971-65ff-4207-9263-b9dfe5ab06b6"); 

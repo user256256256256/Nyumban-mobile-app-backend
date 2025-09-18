@@ -5,15 +5,19 @@ import { handleControllerError } from '../../common/utils/handle-controller-erro
 export const markManualPaymentHandler = async (req, res) => {
   try {
     const { tenantId } = req.params;
-    const { amount, method, notes } = req.body;
+    const { amount, method, notes, agreementId } = req.body;
     const landlordId = req.user.id;
 
+    console.log('Agreement ID: ' + agreementId)
+
+
     const result = await ManualRentPaymentService.markManualPayment({
+      landlordId,
       tenantId,
       amount,
       method,
       notes,
-      landlordId,
+      agreementId,
     });
 
     return success(res, result, 'Manual rent payment recorded successfully');
@@ -24,17 +28,17 @@ export const markManualPaymentHandler = async (req, res) => {
 
 export const markManualInitialRentPaymentHandler = async (req, res) => {
   try {
-    const { tenantId, agreementId } = req.params;
-    const { amount, method, notes } = req.body;
+    const { tenantId } = req.params;
+    const { amount, method, notes, agreementId } = req.body;
     const landlordId = req.user.id;
 
     const result = await ManualRentPaymentService.markManualInitialRentPayment({
       landlordId,
       tenantId,
-      agreementId,
       amount,
       method,
       notes,
+      agreementId,
     });
 
     return success(res, result, 'Manual initial rent payment recorded successfully');

@@ -8,3 +8,13 @@ export const tenantIdParamSchema = {
     }),
   }),
 };
+
+export const remindTenantRentSchema = {
+  body: Joi.object({
+    tenantIds: Joi.array()
+      .items(Joi.string().uuid().required())
+      .min(1)
+      .required()
+      .label('Tenant IDs'),
+  }),
+};

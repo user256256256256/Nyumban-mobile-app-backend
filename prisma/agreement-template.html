@@ -1,91 +1,182 @@
-<!-- agreement-template.html (to be stored in DB as a string) -->
+<!-- agreement-template.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <title>Rental Agreement</title>
     <style>
-      body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
-      h1, h2, h3 { color: #1c1c1c; }
-      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-      .logo, .badge { height: 60px; }
-      .section { margin-bottom: 2rem; }
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        color: #333;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+        background: #fafafa;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 2rem auto;
+        background: #fff;
+        padding: 3rem 2.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .header img {
+        height: 80px;
+        margin-bottom: 1rem;
+      }
+
+      .header h1 {
+        font-size: 1.8rem;
+        margin: 0;
+        color: #1c1c1c;
+        font-weight: 600;
+      }
+
+      h2 {
+        font-size: 1.2rem;
+        margin-top: 2rem;
+        margin-bottom: 0.75rem;
+        color: #1c1c1c;
+        border-bottom: 1px solid #e5e5e5;
+        padding-bottom: 0.3rem;
+      }
+
+      h3 {
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+
+      p, li {
+        font-size: 0.95rem;
+        margin: 0.3rem 0;
+      }
+
+      ul {
+        margin: 0.5rem 0 1.5rem 1.2rem;
+        padding: 0;
+      }
+
+      footer {
+        text-align: center;
+        margin-top: 2rem;
+        font-size: 0.85rem;
+        color: #777;
+      }
+
+      footer hr {
+        margin: 2rem 0 1rem;
+        border: none;
+        border-top: 1px solid #e0e0e0;
+      }
     </style>
   </head>
   <body>
-
-    <div class="header">
-      <img src="{{ugandan_badge_url}}" alt="Ugandan Badge" class="badge" />
-      <div>
-        <img src="{{nps_logo_url}}" alt="NPS Logo" class="logo" />
-        <p>Nyumban Property Solutions (NPS)</p>
-        <p>www.nyumbanapp.com</p>
+    <div class="container">
+      
+      <div class="header">
+        <img src="../src/common/constants/images/republic-of-ug.png" alt="Ugandan Badge" />
+        <h1>Rental Agreement</h1>
       </div>
+
+      <p><strong>Agreement Reference:</strong> {{agreement_ref}}</p>
+      <p><strong>Date of Signing:</strong> {{agreement_signed_date}}</p>
+
+      <h2>Legal Identification</h2>
+      <p><strong>Commencement Date:</strong> {{lease_start_date}}</p>
+      <p><strong>Expiry Date:</strong> {{lease_end_date}}</p>
+      <p><strong>Property Location:</strong> {{property_address}}, Plot {{plot_number}}, Unit {{unit_number}}</p>
+
+      <h2>Landlord</h2>
+      <p><strong>Name:</strong> {{landlord_name}}</p>
+      <p><strong>National ID:</strong> {{landlord_national_id}}</p>
+      <p><strong>Contact:</strong> {{landlord_contact}}</p>
+
+      <h2>Tenant</h2>
+      <p><strong>Name:</strong> {{tenant_name}}</p>
+      <p><strong>National ID:</strong> {{tenant_national_id}}</p>
+      <p><strong>Contact:</strong> {{tenant_contact}}</p>
+      <p><strong>Emergency Contact:</strong> {{emergency_contact_name}} - {{emergency_contact_phone}}</p>
+      <p><strong>Occupation:</strong> {{tenant_occupation}}</p>
+      <p><strong>Employment Status:</strong> {{tenant_employment_status}}</p>
+
+      <h2>Lease Terms</h2>
+      <ul>
+        <li>Lease Type: Month-to-month lease starting {{date_rented}}</li>
+        <li>Monthly Rent: {{monthly_rent}}</li>
+        <li>Security Deposit: {{security_deposit}}</li>
+        <li>Payment Method: Nyumban or landlord-accepted options</li>
+        <li>Rent Due: By 4th day of each month</li>
+        <li>Late Policy: Termination after 15 days of non-payment, eviction by day 28</li>
+      </ul>
+
+      <h2>Financial Clauses</h2>
+      <ul>
+        <li><strong>Rent Increment Policy:</strong> {{rent_increment_policy}}</li>
+        <li><strong>Deposit Refund Conditions:</strong> {{deposit_refund_conditions}}</li>
+        <li><strong>Utilities Breakdown:</strong> {{utility_responsibility}}</li>
+      </ul>
+
+      <h2>Policies</h2>
+      <p><strong>Pet Policy:</strong> {{pet_policy}}</p>
+      <p><strong>Smoking Policy:</strong> {{smoking_policy}}</p>
+
+      <h2>Rights & Responsibilities</h2>
+      <p><strong>Landlord Obligations:</strong> Repairs, maintenance, safety compliance, utilities setup.</p>
+      <p><strong>Tenant Obligations:</strong></p>
+      <ul>
+        <li>Pay rent on time</li>
+        <li>Use property for residential purposes only</li>
+        <li>No illegal activity (grounds for immediate termination)</li>
+        <li>No alterations without written consent</li>
+        <li>No subletting without written consent</li>
+        <li>Maintain cleanliness and order</li>
+        <li>Allow inspections by landlord/NPS</li>
+        <li>Follow estate rules</li>
+        <li>Vacate peacefully upon termination</li>
+      </ul>
+      <p><strong>Access Rights:</strong> Landlord may enter property with 24h notice (except emergencies).</p>
+
+      <h2>Termination & Eviction</h2>
+      <ul>
+        <li><strong>Non-Payment:</strong> Eviction after 15 days, repossession after 28 days.</li>
+        <li><strong>Breach of Agreement:</strong> Requires proof, admin review, may lead to eviction.</li>
+        <li><strong>Illegal Activity:</strong> Immediate admin-reviewed termination and eviction.</li>
+        <li><strong>Owner Requirement:</strong> Grace period of {{owner_requirement_grace_days}} days.</li>
+        <li><strong>Mutual Agreement:</strong> Termination only if both parties accept.</li>
+      </ul>
+      <p><strong>Repossession Rights:</strong> Landlord/NPS may repossess property once agreement terminated.</p>
+      <p><strong>Abandonment Clause:</strong> If tenant leaves without notice, deposit may be forfeited, and landlord may repossess.</p>
+
+      <h2>Legal Protections</h2>
+      <p><strong>Dispute Resolution:</strong> First through NPS mediation, then Ugandan courts.</p>
+      <p><strong>Governing Law:</strong> Laws of the Republic of Uganda.</p>
+      <p><strong>Force Majeure:</strong> Neither party liable for non-performance due to natural disasters, pandemics, or other uncontrollable events.</p>
+
+      <h2>Signatures</h2>
+      <p>Signed on {{agreement_signed_date}} at {{agreement_signed_time}}</p>
+
+      <h3>Landlord</h3>
+      <p>{{landlord_name}}</p>
+
+      <h3>Tenant</h3>
+      <p>{{tenant_name}}</p>
+
+      <h3>Witness – NPS</h3>
+      <p>System Generated – {{agreement_signed_timestamp}}</p>
+
+      <footer>
+        <hr />
+        <p>© 2025 Nyumban Property Solutions (NPS). All rights reserved.</p>
+      </footer>
     </div>
-
-    <h1>Rental Agreement</h1>
-    <p>This Rental Agreement (“Agreement”) is made on {{agreement_signed_date}} between:</p>
-
-    <h2>Landlord</h2>
-    <p><strong>Name:</strong> {{landlord_name}}</p>
-    <p><strong>Contact:</strong> {{landlord_contact}}</p>
-
-    <h2>Tenant</h2>
-    <p><strong>Name:</strong> {{tenant_name}}</p>
-    <p><strong>Contact:</strong> {{tenant_contact}}</p>
-    <p><strong>Emergency Contact:</strong> {{emergency_contact_name}} - {{emergency_contact_phone}}</p>
-    <p><strong>Occupation:</strong> {{tenant_occupation}}</p>
-    <p><strong>Employment Status:</strong> {{tenant_employment_status}}</p>
-
-    <h2>Lease Terms</h2>
-    <ul>
-      <li>Lease Type: Month-to-month lease starting {{date_rented}}</li>
-      <li>Monthly Rent: {{monthly_rent}}</li>
-      <li>Security Deposit: {{security_deposit}}</li>
-      <li>Payment Method: Nyumban or landlord-accepted options</li>
-      <li>Rent Due: By 4th day of each month</li>
-      <li>Late Policy: Termination after 15 days of non-payment, eviction by day 28</li>
-    </ul>
-
-    <h2>Utilities</h2>
-    <p>{{utility_responsibility}}</p>
-
-    <h2>Policies</h2>
-    <p><strong>Pet Policy:</strong> {{pet_policy}}</p>
-    <p><strong>Smoking Policy:</strong> {{smoking_policy}}</p>
-
-    <h2>Tenant Obligations</h2>
-    <ul>
-      <li>Pay rent on time</li>
-      <li>Use property for residential purposes only</li>
-      <li>No subletting without written consent</li>
-      <li>Maintain cleanliness and order</li>
-      <li>Allow inspections by landlord/NPS</li>
-      <li>Follow estate rules</li>
-      <li>Vacate peacefully upon termination</li>
-    </ul>
-
-    <h2>Termination & Repossession</h2>
-    <p>
-      Agreement can be terminated with 30 days' notice. In cases of rent default or breach, the landlord (or NPS) may terminate after 15 days of non-payment and evict by day 28 if unpaid.
-    </p>
-
-    <h2>Signatures</h2>
-    <p>Signed on {{agreement_signed_date}} at {{agreement_signed_time}}</p>
-
-    <h3>Landlord</h3>
-    <p>{{landlord_name}}</p>
-
-    <h3>Tenant</h3>
-    <p>{{tenant_name}}</p>
-
-    <h3>Witness – NPS</h3>
-    <p>System Generated – {{agreement_signed_timestamp}}</p>
-
-    <footer>
-      <hr />
-      <p>© 2025 Nyumban Property Solutions (NPS). All rights reserved.</p>
-    </footer>
-
   </body>
 </html>

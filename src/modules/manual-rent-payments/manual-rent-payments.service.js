@@ -1,6 +1,7 @@
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
+import { triggerNotification } from '../notifications/notification.service.js';
 
 import {
   ValidationError,
@@ -10,85 +11,89 @@ import {
   ServerError,
 } from '../../common/services/errors-builder.service.js';
 
+
+// Helper to generate period covered like "09/01/2025 - 09/30/2025"
+function generatePeriodCovered(date) {
+  const d = dayjs(date);
+  if (!d.isValid()) return 'Invalid Period';
+  return `${d.startOf('month').format('MM/DD/YYYY')} - ${d.endOf('month').format('MM/DD/YYYY')}`;
+}
+
 // Main function to manually record a rent payment
-export const markManualPayment = async ({ tenantId, amount, method, notes, landlordId }) => {
-  // 1. Fetch all due or overdue rent payments for the tenant
+export const markManualPayment = async ({ landlordId, tenantId, amount, method, notes, agreementId }) => {
+  console.log('Agreement ID:', agreementId);
+
+  // 1. Retrieve rental agreement
+  const agreement = await prisma.rental_agreements.findUnique({ where: { id: agreementId } });
+  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
+  if (agreement.status !== 'active') throw new AuthError('Agreement is not active', { field: 'Agreement ID' });
+  if (agreement.owner_id !== landlordId) throw new ForbiddenError('Unauthorized landlord', { field: 'Landlord ID' });
+
+  const monthlyRent = parseFloat(agreement.monthly_rent?.toString() || '0');
+  if (!monthlyRent || monthlyRent <= 0) throw new ServerError('Cannot determine monthly rent for this agreement.');
+
+  // 2. Fetch unpaid/partially paid rent payments
   const duePayments = await prisma.rent_payments.findMany({
-    where: {
-      tenant_id: tenantId,
-      status: { in: ['pending', 'overdued'] },
-      is_deleted: false,
-    },
+    where: { tenant_id: tenantId, status: { in: ['pending', 'overdued', 'partial'] }, is_deleted: false },
     orderBy: { due_date: 'asc' },
   });
 
-  // 2. If no pending payments are found, throw error
-  if (!duePayments.length) throw new NotFoundError('No due rent payments found');
-
-  // 3. Retrieve the rental agreement tied to the earliest due payment
-  const agreement = await prisma.rental_agreements.findUnique({
-    where: { id: duePayments[0].rental_agreement_id },
-  });
-
-  // 4. Ensure that the landlord making this request owns the agreement
-  if (!agreement || agreement.owner_id !== landlordId) {
-    throw new ForbiddenError('Unauthorized: You do not own this agreement', { field: 'Landlord ID' });
-  }
-
-  // 5. Determine monthly rent and calculate total outstanding due
-  const monthlyRent = parseFloat(duePayments[0].due_amount);
   const totalDue = duePayments.reduce(
-    (sum, p) => sum + (parseFloat(p.due_amount) - parseFloat(p.amount_paid || 0)),
+    (sum, p) => sum + (parseFloat(p.due_amount?.toString() || '0') - parseFloat(p.amount_paid?.toString() || '0')),
     0
   );
 
-  // 6. Identify payment type based on amount
+  // 3. Payment type and months covered
   let paymentType = 'partial';
   let monthsCovered = 0;
-
-  if (amount >= totalDue) {
-    paymentType = 'advance';
-    monthsCovered = Math.floor(amount / monthlyRent);
-  } else if (amount >= monthlyRent) {
-    paymentType = 'paid';
+  if (amount >= monthlyRent) {
+    paymentType = totalDue > 0 && amount <= totalDue ? 'paid' : 'advance';
     monthsCovered = Math.floor(amount / monthlyRent);
   }
 
   const now = new Date();
   let remaining = amount;
 
-  // 7. Apply payment to existing due payments
-  for (const p of duePayments) {
-    const balance = parseFloat(p.due_amount) - parseFloat(p.amount_paid || 0);
-    if (remaining <= 0) break;
+  // 4. Start transaction
+  await prisma.$transaction(async (tx) => {
+    // 4a. Apply to existing dues
+    for (const p of duePayments) {
+      if (remaining <= 0) break;
+      const balance = parseFloat(p.due_amount?.toString() || '0') - parseFloat(p.amount_paid?.toString() || '0');
+      if (balance <= 0) continue;
 
-    const payNow = Math.min(remaining, balance);
+      const payNow = Math.min(remaining, balance);
 
-    await prisma.rent_payments.update({
-      where: { id: p.id },
-      data: {
-        amount_paid: parseFloat(p.amount_paid || 0) + payNow,
-        status: payNow + parseFloat(p.amount_paid || 0) >= parseFloat(p.due_amount)
-          ? 'completed'
-          : 'partially_paid',
-        method,
-        payment_date: now,
-        transaction_id: `MANUAL-${uuidv4()}`,
-        notes,
-        updated_at: now,
-      },
-    });
+      await tx.rent_payments.update({
+        where: { id: p.id },
+        data: {
+          amount_paid: parseFloat(p.amount_paid?.toString() || '0') + payNow,
+          status:
+            payNow + parseFloat(p.amount_paid?.toString() || '0') >= parseFloat(p.due_amount?.toString() || '0')
+              ? 'completed'
+              : 'partial',
+          method,
+          payment_date: now,
+          transaction_id: `MANUAL-${uuidv4()}`,
+          notes,
+          updated_at: now,
+          period_covered: generatePeriodCovered(p.due_date),
+        },
+      });
 
-    remaining -= payNow;
-  }
+      remaining -= payNow;
+    }
 
-  // 8. If any amount is left, record it as advance payment for future months
-  let lastDue = duePayments[duePayments.length - 1].due_date;
-  let nextDueDate = dayjs(lastDue).add(1, 'month');
+    // 4b. Create full advance payments
+    let lastDueDate = duePayments.length
+      ? duePayments[duePayments.length - 1].due_date
+      : agreement.start_date || now;
 
-  while (remaining >= monthlyRent) {
-    await prisma.rent_payments.create({
-      data: {
+    let nextDueDate = dayjs(lastDueDate).add(1, 'month');
+    const advancePayments = [];
+
+    while (remaining >= monthlyRent) {
+      advancePayments.push({
         id: uuidv4(),
         rental_agreement_id: agreement.id,
         tenant_id: tenantId,
@@ -106,34 +111,62 @@ export const markManualPayment = async ({ tenantId, amount, method, notes, landl
         is_deleted: false,
         created_at: now,
         updated_at: now,
-      },
-    });
+      });
 
-    remaining -= monthlyRent;
-    nextDueDate = nextDueDate.add(1, 'month');
-  }
+      remaining -= monthlyRent;
+      nextDueDate = nextDueDate.add(1, 'month');
+    }
 
-  // 🔔 Trigger notification to tenant (async IIFE pattern)
+    if (advancePayments.length) {
+      await tx.rent_payments.createMany({ data: advancePayments, skipDuplicates: true });
+    }
+
+    // 4c. Create final partial payment if remaining > 0
+    if (remaining > 0) {
+      await tx.rent_payments.create({
+        id: uuidv4(),
+        rental_agreement_id: agreement.id,
+        tenant_id: tenantId,
+        property_id: agreement.property_id,
+        unit_id: agreement.unit_id,
+        due_date: nextDueDate.toDate(),
+        due_amount: monthlyRent,
+        amount_paid: remaining,
+        method,
+        payment_date: now,
+        transaction_id: `MANUAL-${uuidv4()}`,
+        period_covered: generatePeriodCovered(nextDueDate),
+        status: 'partial',
+        notes,
+        is_deleted: false,
+        created_at: now,
+        updated_at: now,
+      });
+    }
+  });
+
+  // 5. Fire notification (non-blocking)
   void (async () => {
     try {
-      await triggerNotification(
-        tenantId,
-        'RENT_PAYMENT_RECORDED',
-        'Manual Rent Payment Recorded',
-        `Your landlord has recorded a rent payment of $${amount.toFixed(2)} (${paymentType}).`
-      );
+      let message;
+      if (paymentType === 'advance') {
+        message = `Your landlord has recorded a rent payment of $${amount.toFixed(
+          2
+        )}, covering ${monthsCovered} month${monthsCovered > 1 ? 's' : ''} in advance.`;
+      } else if (paymentType === 'paid') {
+        message = `Your landlord has recorded a full rent payment of $${amount.toFixed(2)}.`;
+      } else {
+        message = `Your landlord has recorded a partial rent payment of $${amount.toFixed(2)}.`;
+      }
+      await triggerNotification(tenantId, 'user', 'Manual Rent Payment Recorded', message);
     } catch (err) {
       console.error('Failed to send notification:', err);
     }
   })();
 
-  // 9. Return a summary of the payment made
-  return {
-    status: paymentType,
-    months_paid: monthsCovered,
-    amount_paid: amount,
-  };
+  return { status: paymentType, months_paid: monthsCovered, amount_paid: amount };
 };
+
 
 export const markManualInitialRentPayment = async ({ landlordId, tenantId, agreementId, amount, method, notes }) => {
   const agreement = await prisma.rental_agreements.findUnique({
@@ -223,7 +256,7 @@ export const markManualInitialRentPayment = async ({ landlordId, tenantId, agree
 
   while (excessAmount > 0) {
     const amountToApply = Math.min(excessAmount, rentAmount);
-    const status = amountToApply < rentAmount ? 'partially_paid' : 'completed';
+    const status = amountToApply < rentAmount ? 'partial' : 'completed';
 
     futurePayments.push(
       prisma.rent_payments.create({
@@ -284,15 +317,6 @@ export const markManualInitialRentPayment = async ({ landlordId, tenantId, agree
     agreement_status: 'active',
   };
 };
-
-
-// Helper to generate a string like "2025-07" based on a given date
-function generatePeriodCovered(date = new Date()) {
-  const d = dayjs(date);
-  return `${d.year()}-${String(d.month() + 1).padStart(2, '0')}`;
-}
-
-
 
 export default {
   markManualPayment,
