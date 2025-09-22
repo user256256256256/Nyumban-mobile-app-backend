@@ -56,7 +56,7 @@ export const generateAgreementPreview = async (agreementId) => {
     security_deposit: agreement.security_deposit ?? '0',
     utility_responsibility: agreement.utility_responsibilities ?? 'N/A',
     date_rented: agreement.start_date?.toLocaleDateString() ?? now.toLocaleDateString(),
-    monthly_rent: agreement.property_units?.rent_amount ?? agreement.properties?.price ?? 'N/A',
+    monthly_rent: agreement.monthly_rent,
     pet_policy: agreement.properties?.pet_policy ?? 'Not specified',
     smoking_policy: agreement.properties?.smoking_policy ?? 'Not specified',
 

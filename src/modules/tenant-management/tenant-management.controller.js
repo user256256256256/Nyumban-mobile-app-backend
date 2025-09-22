@@ -52,3 +52,54 @@ export const sendRentRemindersHandler = async (req, res) => {
     handleControllerError(res, error, 'SEND_RENT_REMINDERS_ERROR', 'Failed to send rent reminders');
   }
 };
+
+export const getLatestTenantPaymentHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { agreementId } = req.params;
+    const result = await TenantManagementService.getLatestTenantPayment(userId, agreementId);
+    return success(res, result, 'Latest rent payment retrieved successfully')
+  } catch (error) {
+    handleControllerError(res, error, 'GET_TENANTS_RENT_PAYMENT_STATUS_ERROR', 'Failed to get latest rent payment')
+  }
+}
+
+export const getSecurityDepositsHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { propertyId } = req.params;
+    const { status } = req.query;
+    const result = await TenantManagementService.getSecurityDeposits(userId, propertyId, status)
+    return success(res, result, 'Security deposits retrieved successfully')
+  } catch (error) {
+    handleControllerError(res, error, 'GET_SECURITY_DEPOSITS_ERROR', 'Failed to get security deposits')
+  }
+}
+
+export const getSecurityDepositHandler = async (req, res) => {
+  try {
+    const { securityDepositId } = req.params;
+    const result = await TenantManagementService.getSecurityDeposit(securityDepositId);
+    return success(res, result, 'Security deposits retrieved successfully')
+  } catch (error) {
+    handleControllerError(res, error, 'GET_SECURITY_DEPOSIT_ERROR', 'Failed to get security deposit')
+  }
+}
+
+export const getTenantPaymentByIdHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { paymentId } = req.params;
+
+    const result = await TenantManagementService.getTenantPaymentById(userId, paymentId);
+
+    return success(res, result, 'Tenant payment retrieved successfully');
+  } catch (error) {
+    handleControllerError(
+      res,
+      error,
+      'GET_TENANT_PAYMENT_ERROR',
+      'Failed to get tenant payment'
+    );
+  }
+};

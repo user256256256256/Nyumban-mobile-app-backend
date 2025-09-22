@@ -321,6 +321,7 @@ model rental_agreements {
   breach_logs                              agreement_breach_logs[]
   eviction_logs                            eviction_logs[]
   rent_payments                            rent_payments[]
+  security_deposits                         security_deposits[]
   users_rental_agreements_owner_idTousers  users?                      @relation("rental_agreements_owner_idTousers", fields: [owner_id], references: [id], onUpdate: NoAction, map: "fk_ra_owner")
   properties                               properties?                 @relation(fields: [property_id], references: [id], onUpdate: NoAction, map: "fk_ra_property")
   users_rental_agreements_tenant_idTousers users?                      @relation("rental_agreements_tenant_idTousers", fields: [tenant_id], references: [id], onUpdate: NoAction, map: "fk_ra_tenant")
@@ -578,4 +579,10 @@ enum breach_status {
   pending_remedy
   resolved
   eviction_recommended
+}
+
+enum security_deposit_status {
+  held        // deposit collected, not yet refunded
+  refunded    // deposit returned to tenant
+  forfeited   // deposit retained by landlord (damage, breach, etc.)
 }

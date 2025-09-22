@@ -8,13 +8,12 @@ import {
 } from './manual-rent-payments.controller.js'
 
 import { validate } from '../../common/middleware/validate.middleware.js';
-import { manualRentPaymentSchema } from './manual-rent-payments.validator.js';
+import { manualRentPaymentSchema, initialManualRentPaymentSchema } from './manual-rent-payments.validator.js';
 
 const router = express.Router();
 
 
 router.post('/tenants/:tenantId/payment', authenticate, authorizeRoles('landlord'), validate(manualRentPaymentSchema), markManualPaymentHandler);
-router.post('/tenants/:tenantId/agreements/:agreementId/payments/manual-initial', authenticate, authorizeRoles('landlord'), validate(manualRentPaymentSchema), markManualInitialRentPaymentHandler);
+router.post('/:agreementId/manual-initial-payment', authenticate, authorizeRoles('landlord'), validate(initialManualRentPaymentSchema), markManualInitialRentPaymentHandler);
   
-
 export default router;

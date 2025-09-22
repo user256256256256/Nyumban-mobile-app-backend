@@ -99,6 +99,7 @@ export const acceptAgreement = async (userId, agreementId, payload) => {
       tenant_accepted_agreement: true,
       updated_at: new Date(),
       status: 'pending_payment',
+      start_date: new Date(),
     }
   });
 
@@ -121,8 +122,8 @@ export const acceptAgreement = async (userId, agreementId, payload) => {
       await triggerNotification(
         userId,
         'user',
-        'Agreement accepted by tenant',
-        `Your agreement for ${propertyName} was accepted by the tenant.`
+        'Agreement accepted',
+        `Your accepted agreement for ${propertyName} please procceed with rent payment.`
       );
     } catch (err) {
       console.error('Failed to notify landlord on agreement acceptance:', err);

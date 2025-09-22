@@ -68,7 +68,7 @@ cron.schedule('0 12 * * *', async () => {
 });
 
 // Run once per day at midday
-cron.schedule('* * * * *', async () => {
+cron.schedule('0 12 * * *', async () => {
   console.log(`[${new Date().toISOString()}] CRON: Auto-finalize mutual agreement evictions`);
   try {
     await finalizeExpiredMutualAgreements();

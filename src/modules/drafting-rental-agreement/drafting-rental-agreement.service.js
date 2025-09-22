@@ -10,7 +10,7 @@ import {
 } from '../../common/services/errors-builder.service.js';
 
 export const createOrUpdateDraft = async (userId, propertyId, unitId, payload) => {
-  const { security_deposit, utility_responsibilities, status } = payload;
+  const { security_deposit, utility_responsibilities, status, monthly_rent } = payload;
 
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });
   if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
@@ -23,7 +23,6 @@ export const createOrUpdateDraft = async (userId, propertyId, unitId, payload) =
     if (!unit || unit.property_id !== propertyId)
       throw new NotFoundError('Unit not found or does not belong to this property', { field: 'Unit ID' });
   }
-
   const template = await prisma.rental_agreement_templates.findFirst({
     orderBy: { updated_at: 'desc' },
     select: { id: true },
@@ -54,7 +53,8 @@ export const createOrUpdateDraft = async (userId, propertyId, unitId, payload) =
     users_rental_agreements_owner_idTousers: { connect: { id: userId } },
     status,
     security_deposit,
-    utility_responsibilities,
+    utility_responsibilities, 
+    monthly_rent,
     updated_at: new Date(),
   };
 

@@ -28,17 +28,16 @@ export const markManualPaymentHandler = async (req, res) => {
 
 export const markManualInitialRentPaymentHandler = async (req, res) => {
   try {
-    const { tenantId } = req.params;
-    const { amount, method, notes, agreementId } = req.body;
+    const { agreementId } = req.params;
+    const { amount, method, notes } = req.body;
     const landlordId = req.user.id;
 
     const result = await ManualRentPaymentService.markManualInitialRentPayment({
       landlordId,
-      tenantId,
+      agreementId,
       amount,
       method,
       notes,
-      agreementId,
     });
 
     return success(res, result, 'Manual initial rent payment recorded successfully');

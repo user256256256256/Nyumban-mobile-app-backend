@@ -16,6 +16,19 @@ export const finalizeRentalAgreementTermination = async ({ agreement, timestamp 
     },
   });
 
+  // Update security deposit status if it exisits 
+  const securityDeposit = await prisma.rental_agreements.findUnique({
+    where: { id: agreement.id }
+  })
+
+  if (securityDeposit) {
+    await prisma.security_deposits.update({
+      data: {
+        status: 'forfeited'
+      }
+    })
+  }
+
   // 2️⃣ Cancel pending/unpaid rent payments
   const cancelledPayments = await prisma.rent_payments.updateMany({
     where: {

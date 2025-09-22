@@ -24,5 +24,4 @@ router.get('/advance/check/:propertyId', authenticate, authorizeRoles('tenant'),
 router.get('/properties/:propertyId/rent-and-deposit', authenticate, authorizeRoles('tenant'), validate(propertyParamSchema), getRentAndDepositHandler);
 
 
-
 export default router;
