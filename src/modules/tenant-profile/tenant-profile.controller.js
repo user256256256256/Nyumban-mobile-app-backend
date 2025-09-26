@@ -15,6 +15,7 @@ export const getTenantProfileHandler = async (req, res) => {
 export const updateTenantProfileHandler = async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log('USER ID: ' + userId)
     const result = await TenantProfileService.updateTenantProfile(userId, req.body);
     return success(res, result, 'Profile updated successfully');
   } catch (error) {

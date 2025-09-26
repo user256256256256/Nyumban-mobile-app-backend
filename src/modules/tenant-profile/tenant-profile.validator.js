@@ -3,7 +3,7 @@ import Joi from 'joi';
 export const updateTenantProfileSchema = {
   body: Joi.object({
     full_names: Joi.string().min(2).max(100).optional().label('Full Names'),
-    employment_status: Joi.string().valid('Employed', 'Unemployed', 'Self-Employed').optional().label('Employment Status'),
+    employment_status: Joi.string().valid('employed', 'unemployed', 'student').optional().label('Employment Status'), 
     occupation: Joi.string().min(2).max(100).optional().label('Occupation'),
     emergency_contact_name: Joi.string().min(2).max(100).optional().label('Emergency Contact Name'),
     emergency_contact_phone: Joi.string().min(5).max(20).optional().label('Emergency Contact Phone'),

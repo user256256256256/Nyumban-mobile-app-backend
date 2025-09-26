@@ -10,7 +10,7 @@ import {
 } from '../../common/services/errors-builder.service.js';
 
 export const getLandlordTourRequests = async (landlordId, { status, cursor, limit = 20 }) => {
-  const whereClause = { owner_id: landlordId, is_deleted: false };
+  const whereClause = { owner_id: landlordId, is_deleted: false, is_deleted_by_landlord: false };
   if (status) whereClause.status = status;
 
   const requests = await prisma.property_tour_requests.findMany({
@@ -97,7 +97,6 @@ export const resolveTourRequest = async (landlordId, requestId, action, reason) 
 
   return updated;
 };
-
 
 export const deleteTourRequests = async (landlordId, requestIds = []) => {
   const updates = [];
