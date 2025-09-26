@@ -162,6 +162,7 @@ export const getPropertyDetails = async (propertyId) => {
     analytics: {
       likes: property.likes || 0,
       saves: property.saves || 0,
+      viws: property.views || 0,
       tour_requests: {
         approved: tours.filter(a => a.status === 'accepted').length,
         pending: tours.filter(a => a.status === 'pending').length,
@@ -779,7 +780,6 @@ export const getPropertyUnits = async (userId, propertyId, sortBy = 'created_at'
   });
 
   if (!property) throw new NotFoundError('Property not found', { field: 'Property ID' });
-  if (property.owner_id !== userId) throw new AuthError('Access Denied', { field: 'User ID' });
 
   return {
     property_id: property.id,

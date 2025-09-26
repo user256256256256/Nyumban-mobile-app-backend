@@ -6,7 +6,6 @@ import {
   getPropertyAnalyticsHandler,
   getUserAnalyticsHandler,
   getLandlordPropertyPerformanceHandler,
-  getLandlordTenantInsightsHandler,
   getLandlordFinancialMetricsHandler,
   getLandlordEngagementMetricsHandler,
   getLandlordGrowthTrendsHandler,
@@ -22,10 +21,9 @@ const router = express.Router();
 // Property analytics (can send propertyIds in body)
 router.post('/properties/analytics', authenticate, authorizeRoles('landlord', 'tenant'), getPropertyAnalyticsHandler);
 // User analytics
-router.get('/users/analytics', authenticate, authorizeRoles('landlord'), getUserAnalyticsHandler);
+router.get('/users/analytics', authenticate, authorizeRoles('admin'), getUserAnalyticsHandler);
 // Landlord analytics (optional propertyId via query param ?propertyId=xxx)
-router.get('/landlords/properties/performance/', authenticate, authorizeRoles('landlord'), getLandlordPropertyPerformanceHandler);
-router.get('/landlords/tenants/insights/', authenticate, authorizeRoles('landlord'), getLandlordTenantInsightsHandler);
+router.get('/landlords/properties/performance', authenticate, authorizeRoles('landlord'), getLandlordPropertyPerformanceHandler);
 router.get('/landlords/financial-metrics/', authenticate, authorizeRoles('landlord'), getLandlordFinancialMetricsHandler);
 router.get('/landlords/engagement-metrics/', authenticate, authorizeRoles('landlord'), getLandlordEngagementMetricsHandler);
 router.get('/landlords/growth-trends/', authenticate, authorizeRoles('landlord'), getLandlordGrowthTrendsHandler);

@@ -1,5 +1,5 @@
 import prisma from '../../prisma-client.js';
-import { calculateDistaceService } from './calculate-distance.service.js'
+import { calculateDistaceService } from './calculate-distance.service.js';
 import { AuthError, NotFoundError } from '../../common/services/errors-builder.service.js';
 
 const getPropertyOrThrow = async (propertyId) => {
@@ -11,15 +11,37 @@ const getPropertyOrThrow = async (propertyId) => {
 const deleteEngagementIfEmpty = async (userId, propertyId) => {
   const engagement = await prisma.property_engagements.findUnique({
     where: { user_id_property_id: { user_id: userId, property_id: propertyId } },
-    select: { liked: true, saved: true }
+    select: { liked: true, saved: true, views: true }
   });
 
-  if (engagement && !engagement.liked && !engagement.saved) {
+  if (engagement && !engagement.liked && !engagement.saved && (engagement.views || 0) === 0) {
     await prisma.property_engagements.delete({
       where: { user_id_property_id: { user_id: userId, property_id: propertyId } }
     });
   }
 };
+
+// ✅ Track property view
+export const viewProperty = async (userId, propertyId) => {
+  // Ensure the property exists
+  await getPropertyOrThrow(propertyId);
+
+  // Upsert engagement: increment if exists, create if not
+  const engagement = await prisma.property_engagements.upsert({
+    where: { user_id_property_id: { user_id: userId, property_id: propertyId } },
+    update: { views: { increment: 1 } },
+    create: { user_id: userId, property_id: propertyId, views: 1 }
+  });
+
+  // Increment total property views in the properties table
+  await prisma.properties.update({
+    where: { id: propertyId },
+    data: { views: { increment: 1 } }
+  });
+
+  return engagement;
+};
+
 
 export const likeProperty = async (userId, propertyId) => {
   const property = await getPropertyOrThrow(propertyId);
@@ -59,7 +81,6 @@ export const likeProperty = async (userId, propertyId) => {
   return result[0];
 };
 
-
 export const unlikeProperty = async (userId, propertyId) => {
   const property = await getPropertyOrThrow(propertyId);
 
@@ -79,11 +100,11 @@ export const unlikeProperty = async (userId, propertyId) => {
           where: { id: propertyId },
           data: { likes: { decrement: 1 } }
         })
-      : Promise.resolve() 
+      : Promise.resolve()
   ]);
 
   await deleteEngagementIfEmpty(userId, propertyId);
-  return result[0]; 
+  return result[0];
 };
 
 export const saveProperty = async (userId, propertyId) => {
@@ -129,11 +150,11 @@ export const unsaveProperty = async (userId, propertyId) => {
           where: { id: propertyId },
           data: { saves: { decrement: 1 } }
         })
-      : Promise.resolve() 
+      : Promise.resolve()
   ]);
 
   await deleteEngagementIfEmpty(userId, propertyId);
-  return result[0]; 
+  return result[0];
 };
 
 export const getUserEngagedProperties = async (userId, type, offset, limit) => {
@@ -159,6 +180,7 @@ export const getUserEngagedProperties = async (userId, type, offset, limit) => {
           has_units: true,
           likes: true,
           saves: true,
+          views: true, 
           status: true,
           is_promoted: true,
           created_at: true,
@@ -221,7 +243,6 @@ export const getDistanceToProperty = async (propertyId, userLat, userLon) => {
     distance_km: parseFloat(distanceKm.toFixed(2)),
     formatted: `${distanceKm.toFixed(1)} km away from your current location`
   };
-
 }
 
 export default {
@@ -229,6 +250,7 @@ export default {
   unlikeProperty,
   saveProperty,
   unsaveProperty,
+  viewProperty, 
   getUserEngagedProperties,
   getDistanceToProperty,
 };

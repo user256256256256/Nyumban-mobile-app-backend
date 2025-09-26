@@ -77,7 +77,6 @@ export const tourRequest = async (requesterId, propertyId, message) => {
   };
 };
 
-
 export const getTourRequests = async (userId, { status, cursor, limit = 20 }) => {
   const where = {
     requester_id: userId,
@@ -96,6 +95,7 @@ export const getTourRequests = async (userId, { status, cursor, limit = 20 }) =>
       status: true,
       created_at: true,
       message: true,
+      declined_reason: true,
       properties: {
         select: {
           property_name: true,
@@ -121,8 +121,10 @@ export const getTourRequests = async (userId, { status, cursor, limit = 20 }) =>
     },
     status: t.status,
     requested_date: t.created_at,
-    message: ['accepted', 'declined'].includes(t.status) ? t.message : undefined,
+    message: t.message,
+    declined_reason: t.status === 'declined' ? t.declined_reason : undefined,
   }));
+  
 
   const nextCursor = tours.length > limit ? tours[limit].id : null;
 
@@ -159,8 +161,6 @@ export const cancelTourRequests = async (userId, tourIds = []) => {
     message: `${cancelled.length} tour request(s) cancelled`,
   };
 };
-
-
 
 export const deleteTourRequests = async (userId, tourIds = []) => {
   const deletions = [];

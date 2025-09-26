@@ -32,17 +32,6 @@ export const getLandlordPropertyPerformanceHandler = async (req, res) => {
   }
 };
 
-// Landlord tenant insights
-export const getLandlordTenantInsightsHandler = async (req, res) => {
-  try {
-    const landlordId = req.user.id;
-    const { propertyId } = req.query; 
-    const data = await AnalyticsService.getLandlordTenantInsights(landlordId, propertyId);
-    return success(res, data, 'Tenant insights fetched successfully');
-  } catch (error) {
-    return handleControllerError(res, error, 'FETCH_TENANT_INSIGHTS_ERROR', 'Failed to fetch tenant insights');
-  }
-};
 
 // Financial metrics
 export const getLandlordFinancialMetricsHandler = async (req, res) => {

@@ -17,6 +17,84 @@ Ensure package.json includes:
 */
 
 async function main() {
+
+
+  const propertyTypes = ['apartment', 'house', 'condo', 'studio'];
+  const currencies = ['UGX'];
+  const statuses = ['available', 'occupied', 'archived', 'reserved'];
+  
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  
+  function randomDecimal(min, max) {
+    return new Decimal((Math.random() * (max - min) + min).toFixed(2));
+  }
+  
+  const OWNER_ID = '0ae678c8-09e4-4c75-b495-665bf6dde7e2';
+  const TENANT_ID = '56140da1-9010-4466-a9b2-8b80d0bff87b';
+  
+  console.log('🌱 Seeding database with test properties...');
+  
+  const propertiesToCreate = Array.from({ length: 100 }).map(() => {
+    const likes = randomInt(0, 50);
+    const saves = randomInt(0, 30);
+    const views = randomInt(10, 200);
+  
+    return {
+      id: uuidv4(),
+      owner_id: OWNER_ID,
+      property_name: `Test Property ${Math.random().toString(36).substring(7)}`,
+      property_type: propertyTypes[randomInt(0, propertyTypes.length - 1)],
+      property_code: uuidv4().slice(0, 8),
+      likes,
+      saves,
+      views, // new property column
+      has_units: false,
+      is_promoted: Math.random() < 0.2, // 20% promoted
+      is_verified: Math.random() < 0.5, // 50% verified
+      country: 'Kenya',
+      address: `Random Street ${randomInt(1, 500)}`,
+      price: randomDecimal(200, 2000),
+      currency: currencies[randomInt(0, currencies.length - 1)],
+      bedrooms: randomInt(1, 5),
+      bathrooms: randomInt(1, 3),
+      year_built: randomInt(1990, 2022),
+      parking_spaces: randomInt(0, 3),
+      thumbnail_image_path: `https://picsum.photos/seed/${uuidv4()}/300/200`,
+      status: statuses[randomInt(0, statuses.length - 1)],
+      description: 'This is a seeded test property for ranking feed testing.',
+      created_at: dayjs().subtract(randomInt(0, 30), 'day').toDate(),
+      is_deleted: false,
+      application_requests: randomInt(0, 20),
+      tour_requests: randomInt(0, 15),
+      amenities: ['wifi', 'pool', 'gym'].slice(0, randomInt(1, 3)),
+    };
+  });
+  
+  for (const property of propertiesToCreate) {
+    const created = await prisma.properties.create({ data: property });
+  
+    // attach random engagements for this property
+    const engagements = Array.from({ length: randomInt(2, 5) }).map(() => ({
+      id: uuidv4(),
+      user_id: TENANT_ID, // ⚠️ random user
+      property_id: created.id,
+      liked: Math.random() < 0.5,
+      saved: Math.random() < 0.3,
+    }));
+  
+    await prisma.property_engagements.createMany({
+      data: engagements,
+    });
+  
+    console.log(`✅ Seeded property ${created.id} with ${engagements.length} engagements`);
+  }
+  
+  console.log('🎉 Seeding complete!');
+  /*
+
+
       // === Seed Rental Agreement Template ===
       const templateId = uuidv4();
     
@@ -36,8 +114,6 @@ async function main() {
       });
   
       console.log('✅ Agreement template seeded');
-  
-  /*
 
     // === Seed Rental Agreement Template ===
     const templateId = uuidv4();

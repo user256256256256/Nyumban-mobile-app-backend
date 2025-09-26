@@ -9,17 +9,23 @@ export const searchPropertiesHandler = async (req, res) => {
       limit: Number(req.query.limit) || 20,
     };
 
+    console.log('🔍 Search filters received:', filters);
+
     const result = await PropertySearchService.searchProperties(filters);
+
+    console.log('✅ Search results count:', result.results.length);
+
     return success(res, result, 'Search results fetched successfully');
   } catch (err) {
+    console.error('❌ Search properties error:', err);
     return handleControllerError(res, err, 'SEARCH_ERROR', 'Failed to search properties');
   }
 };
 
-
 export const rankedPropertyFeedHandler = async (req, res) => {
   try {
     const { cursor, limit } = req.query;
+
     const result = await PropertySearchService.fetchRankedProperties({
       cursor,
       limit: Number(limit) || 20,

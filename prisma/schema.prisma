@@ -142,6 +142,7 @@ model properties {
   energy_efficiency_features String[]
   amenities                  String[]
   open_house_dates           String[]
+  views                      Int?                     @default(0)
   users                      users?                   @relation(fields: [owner_id], references: [id], onUpdate: NoAction, map: "fk_properties_owner")
   property_applications      property_applications[]
   property_engagements       property_engagements[]
@@ -230,6 +231,7 @@ model property_tour_requests {
   is_deleted                                       Boolean?     @default(false)
   is_deleted_by_landlord                           Boolean?     @default(false)
   is_deleted_by_tenant                             Boolean?     @default(false)
+  declined_reason                                  String?      @db.VarChar(255)
   users_property_tour_requests_owner_idTousers     users?       @relation("property_tour_requests_owner_idTousers", fields: [owner_id], references: [id], onUpdate: NoAction, map: "fk_ptr_owner")
   properties                                       properties?  @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ptr_property")
   users_property_tour_requests_requester_idTousers users?       @relation("property_tour_requests_requester_idTousers", fields: [requester_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ptr_requester")
@@ -321,12 +323,12 @@ model rental_agreements {
   breach_logs                              agreement_breach_logs[]
   eviction_logs                            eviction_logs[]
   rent_payments                            rent_payments[]
-  security_deposits                         security_deposits[]
   users_rental_agreements_owner_idTousers  users?                      @relation("rental_agreements_owner_idTousers", fields: [owner_id], references: [id], onUpdate: NoAction, map: "fk_ra_owner")
   properties                               properties?                 @relation(fields: [property_id], references: [id], onUpdate: NoAction, map: "fk_ra_property")
   users_rental_agreements_tenant_idTousers users?                      @relation("rental_agreements_tenant_idTousers", fields: [tenant_id], references: [id], onUpdate: NoAction, map: "fk_ra_tenant")
   property_units                           property_units?             @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "fk_ra_unit")
   rental_agreement_templates               rental_agreement_templates? @relation(fields: [template_id], references: [id])
+  security_deposits                        security_deposits[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -364,6 +366,25 @@ model slides {
   deleted_at             DateTime?                @db.Timestamp(6)
   is_deleted             Boolean?                 @default(false)
   slide_role_assignments slide_role_assignments[]
+}
+
+model security_deposits {
+  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rental_agreement_id String                  @db.Uuid
+  amount              Decimal                 @db.Decimal
+  currency            String?
+  payment_date        DateTime                @default(now()) @db.Timestamp(6)
+  method              payment_method?
+  status              security_deposit_status @default(held)
+  transaction_id      String?                 @db.VarChar(100)
+  notes               String?
+  refunded_at         DateTime?               @db.Timestamp(6)
+  is_deleted          Boolean                 @default(false)
+  created_at          DateTime                @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?               @db.Timestamp(6)
+  rental_agreement    rental_agreements       @relation(fields: [rental_agreement_id], references: [id], onDelete: Cascade, map: "fk_sd_rental_agreement")
+
+  @@index([rental_agreement_id])
 }
 
 model tenant_profiles {
@@ -420,6 +441,10 @@ model users {
   account_verification_requests_account_verification_requests_user_idTousers     account_verification_requests[] @relation("account_verification_requests_user_idTousers")
   account_verification_requests_account_verification_requests_verified_byTousers account_verification_requests[] @relation("account_verification_requests_verified_byTousers")
   device_tokens                                                                  device_tokens[]
+  forum_post_likes                                                               forum_post_likes[]
+  forum_posts                                                                    forum_posts[]
+  forum_replies                                                                  forum_replies[]
+  forum_reply_likes                                                              forum_reply_likes[]
   landlord_profiles                                                              landlord_profiles?
   notifications                                                                  notifications[]
   properties                                                                     properties[]
@@ -465,6 +490,78 @@ model agreement_breach_logs {
   rental_agreement rental_agreements @relation(fields: [agreement_id], references: [id], onDelete: Cascade)
 
   @@index([agreement_id])
+}
+
+model forum_post_likes {
+  id          String      @id @db.Uuid
+  post_id     String      @db.Uuid
+  user_id     String?     @db.Uuid
+  liked       Boolean
+  created_at  DateTime?   @default(now()) @db.Timestamp(6)
+  forum_posts forum_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       users?      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([post_id, user_id], map: "forum_post_likes_unique")
+}
+
+model forum_post_tags {
+  post_id     String      @db.Uuid
+  tag_id      String      @db.Uuid
+  forum_posts forum_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  forum_tags  forum_tags  @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([post_id, tag_id])
+}
+
+model forum_posts {
+  id               String                   @id @db.Uuid
+  user_id          String?                  @db.Uuid
+  user_email       String?
+  category         forum_post_category_enum
+  message          String
+  likes_count      Int?                     @default(0)
+  created_at       DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?                @db.Timestamp(6)
+  forum_post_likes forum_post_likes[]
+  forum_post_tags  forum_post_tags[]
+  users            users?                   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  forum_replies    forum_replies[]
+}
+
+model forum_replies {
+  id            String      @id @db.Uuid
+  forum_post_id String      @db.Uuid
+  user_id       String      @db.Uuid
+  message       String
+  likes_count   Int?        @default(0)
+  created_at    DateTime?   @default(now()) @db.Timestamp(6)
+  forum_posts   forum_posts @relation(fields: [forum_post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         users       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model forum_reply_likes {
+  id         String    @id @db.Uuid
+  reply_id   String    @db.Uuid
+  user_id    String?   @db.Uuid
+  liked      Boolean
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([reply_id, user_id], map: "forum_reply_likes_unique")
+}
+
+model forum_sessions {
+  id            String    @id @db.Uuid
+  email         String?
+  session_token String    @unique
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  expires_at    DateTime? @db.Timestamp(6)
+}
+
+model forum_tags {
+  id              String            @id @db.Uuid
+  name            String            @unique
+  forum_post_tags forum_post_tags[]
 }
 
 enum agreement_status {
@@ -582,7 +679,14 @@ enum breach_status {
 }
 
 enum security_deposit_status {
-  held        // deposit collected, not yet refunded
-  refunded    // deposit returned to tenant
-  forfeited   // deposit retained by landlord (damage, breach, etc.)
+  held
+  refunded
+  forfeited
+}
+
+enum forum_post_category_enum {
+  question
+  suggestion
+  bug_report
+  feature_request
 }

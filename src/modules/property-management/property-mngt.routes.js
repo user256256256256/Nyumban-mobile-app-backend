@@ -53,10 +53,10 @@ const router = express.Router();
 /* =========================
    📌 PROPERTY RETRIEVAL
    ========================= */
-router.get('/:landlordId/properties', authenticate, authorizeRoles('landlord'), validate(landlordPropertySchema), getLandlordPropertiesHandler);
-router.get('/:propertyId/details', authenticate, authorizeRoles('landlord'), validate(propertyParamSchema), getPropertyDetailsHandler);
-router.get('/:propertyId/units', authenticate, authorizeRoles('landlord'), validate(propertyParamSchema), getPropertyUnitsHandler);
-router.get('/units/:unitId/details', authenticate, authorizeRoles('landlord'), validate(unitParamSchema), getPropertyUnitHandler);
+router.get('/:landlordId/properties', authenticate, authorizeRoles('landlord',), validate(landlordPropertySchema), getLandlordPropertiesHandler);
+router.get('/:propertyId/details', authenticate, authorizeRoles('landlord', 'tenant'), validate(propertyParamSchema), getPropertyDetailsHandler);
+router.get('/:propertyId/units', authenticate, authorizeRoles('landlord', 'tenant'), validate(propertyParamSchema), getPropertyUnitsHandler);
+router.get('/units/:unitId/details', authenticate, authorizeRoles('landlord', 'tenant'), validate(unitParamSchema), getPropertyUnitHandler);
 
 /* =========================
    ✏️ PROPERTY & UNIT UPDATES

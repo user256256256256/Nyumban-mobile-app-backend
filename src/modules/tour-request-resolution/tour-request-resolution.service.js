@@ -23,6 +23,7 @@ export const getLandlordTourRequests = async (landlordId, { status, cursor, limi
       message: true,
       status: true,
       created_at: true, 
+      declined_reason: true,
       properties: {
         select: {
           id: true,
@@ -50,6 +51,7 @@ export const getLandlordTourRequests = async (landlordId, { status, cursor, limi
     },
     tenant_info: req.users_property_tour_requests_requester_idTousers,
     tenant_message: req.message,
+    declined_reason: req.status === 'declined' ? req.declined_reason : undefined,
     status: req.status,
     requested_datetime: req.created_at, // ✅ map created_at to requested_datetime
     approved_date: req.updated_at
@@ -67,49 +69,35 @@ export const getLandlordTourRequests = async (landlordId, { status, cursor, limi
 export const resolveTourRequest = async (landlordId, requestId, action, reason) => {
   const request = await prisma.property_tour_requests.findUnique({
     where: { id: requestId },
-    include: {
-      properties: {
-        select: {
-          id: true,
-          property_name: true,
-        },
-      },
-    },
+    include: { properties: { select: { id: true, property_name: true } } },
   });
 
-  if (!request) throw new NotFoundError('Tour request not found', { field: 'Request Id' });
-  if (request.owner_id !== landlordId) throw new ForbiddenError('You are not authorized to resolve this request', { field: 'Landlord ID' });
-  if (request.status !== 'pending') throw new ServerError('Tour request has already been resolved and cannot be modified', { field: 'Action' });
+  if (!request) throw new NotFoundError('Tour request not found');
+  if (request.owner_id !== landlordId) throw new ForbiddenError('Unauthorized');
+  if (request.status !== 'pending') throw new ServerError('Request already resolved');
 
   const updated = await prisma.property_tour_requests.update({
     where: { id: requestId },
     data: {
       status: action,
       updated_at: new Date(),
-      message: action === 'declined' && reason ? reason : request.message,
+      declined_reason: action === 'declined' && reason ? reason : null,
     },
-    include: {
-      properties: { select: { property_name: true } }, 
-    },
+    include: { properties: { select: { property_name: true } } },
   });
 
-  // 🔔 Notify tenant/requester about the resolution
-  void (async () => {
-    try {
-      await triggerNotification(
-        request.requester_id,
-        'user',
-        'Tour Request Resolved',
-        `Your tour request for property ${request.properties?.property_name ?? 'Unknown Property'} has been ${action}.`
-        + (action === 'declined' && reason ? ` Reason: ${reason}` : '')
-      );
-    } catch (err) {
-      console.error(`Failed to send tour request resolution notification for request ${requestId}:`, err);
-    }
-  })();
+  // Notify tenant
+  void triggerNotification(
+    request.requester_id,
+    'user',
+    'Tour Request Resolved',
+    `Your tour request for property ${request.properties?.property_name ?? 'Unknown'} has been ${action}.`
+    + (action === 'declined' && reason ? ` Reason: ${reason}` : '')
+  ).catch(console.error);
 
   return updated;
 };
+
 
 export const deleteTourRequests = async (landlordId, requestIds = []) => {
   const updates = [];
@@ -138,6 +126,7 @@ export const deleteTourRequests = async (landlordId, requestIds = []) => {
           data: {
             status: 'declined',
             is_deleted_by_landlord: true,
+            declined_reason: 'Deleted by landlord',
             updated_at: new Date(),
           },
         })
@@ -188,8 +177,6 @@ export const deleteTourRequests = async (landlordId, requestIds = []) => {
     message: `${results.length} tour request(s) marked as deleted`,
   };
 };
-
-
 
 export default {
     getLandlordTourRequests,

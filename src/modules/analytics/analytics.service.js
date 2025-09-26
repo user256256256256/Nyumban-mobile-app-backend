@@ -2,7 +2,6 @@ import prisma from '../../prisma-client.js';
 import { NotFoundError } from '../../common/services/errors-builder.service.js';
 import dayjs from 'dayjs';
 
-// ✅ Helper function to fetch landlord properties (optional propertyId)
 export const fetchLandlordProperties = async (landlordId, propertyId) => {
   const whereClause = { owner_id: landlordId, is_deleted: false };
   if (propertyId) whereClause.id = propertyId;
@@ -76,15 +75,16 @@ export const getSecurityDepositOverview = async (userId, propertyId) => {
     select: { amount: true, status: true }
   });
 
-  let total = 0, held = 0, refunded = 0;
+  let total = 0, held = 0, refunded = 0, forfeited = 0;
   deposits.forEach(d => {
     const amt = parseFloat(d.amount || 0);
     total += amt;
     if (d.status === 'held') held += amt;
     if (d.status === 'refunded') refunded += amt;
+    if (d.status === 'forfeited')  forfeited += amt;
   });
 
-  return { total, held, refunded };
+  return { total, held, refunded, forfeited };
 };
 
 // ✅ Property Analytics
@@ -170,31 +170,45 @@ export const getLandlordPropertyPerformance = async (landlordId, propertyId) => 
   };
 };
 
-// ✅ Landlord Tenant Insights
-export const getLandlordTenantInsights = async (landlordId, propertyId) => {
-  const propertyIds = await fetchLandlordProperties(landlordId, propertyId);
-
-  const totalTenants = await prisma.rental_agreements.count({ where: { property_id: { in: propertyIds }, is_deleted: false } });
-  const latePayments = await prisma.rent_payments.count({ where: { property_id: { in: propertyIds }, is_deleted: false, payment_status: 'late' } });
-  const expiringLeases = await prisma.rental_agreements.count({ where: { property_id: { in: propertyIds }, is_deleted: false, end_date: { lte: dayjs().add(30, 'day').toDate() } } });
-
-  return { total_tenants: totalTenants, tenants_with_late_payments: latePayments, lease_agreements_expiring_soon: expiringLeases };
-};
-
 // ✅ Engagement Metrics
 export const getLandlordEngagementMetrics = async (landlordId, propertyId) => {
   const propertyIds = await fetchLandlordProperties(landlordId, propertyId);
 
-  const engagementData = await prisma.property_engagements.groupBy({ by: ['property_id'], _sum: { views: true, likes: true, saves: true }, where: { property_id: { in: propertyIds } } });
-  const applicationsCount = await prisma.property_applications.count({ where: { property_id: { in: propertyIds }, is_deleted: false } });
-  const tourRequestsCount = await prisma.property_tour_requests.count({ where: { property_id: { in: propertyIds }, is_deleted: false } });
+  // Group by property_id and sum views, likes, saves
+  const engagementData = await prisma.property_engagements.groupBy({
+    by: ['property_id'],
+    _sum: {
+      views: true, // sum of all views
+    },
+    _count: {
+      liked: true,
+      saved: true,
+    },
+    where: {
+      property_id: { in: propertyIds },
+    },
+  });
+
+  const applicationsCount = await prisma.property_applications.count({
+    where: { property_id: { in: propertyIds }, is_deleted: false },
+  });
+
+  const tourRequestsCount = await prisma.property_tour_requests.count({
+    where: { property_id: { in: propertyIds }, is_deleted: false },
+  });
 
   return {
-    property_engagements: engagementData.map(e => ({ property_id: e.property_id, views: e._sum.views || 0, likes: e._sum.likes || 0, saves: e._sum.saves || 0 })),
+    property_engagements: engagementData.map(e => ({
+      property_id: e.property_id,
+      views: e._sum.views || 0,     // add views
+      likes: e._count.liked || 0,
+      saves: e._count.saved || 0,
+    })),
     applications_received: applicationsCount,
-    tour_requests: tourRequestsCount
+    tour_requests: tourRequestsCount,
   };
 };
+
 
 // ✅ Growth Trends
 export const getLandlordGrowthTrends = async (landlordId, propertyId) => {
@@ -204,8 +218,8 @@ export const getLandlordGrowthTrends = async (landlordId, propertyId) => {
 
   const newTenantsLast30 = await prisma.rental_agreements.count({ where: { property_id: { in: propertyIds }, is_deleted: false, start_date: { gte: last30Days } } });
   const newTenantsLast90 = await prisma.rental_agreements.count({ where: { property_id: { in: propertyIds }, is_deleted: false, start_date: { gte: last90Days } } });
-  const onTimePayments = await prisma.rent_payments.count({ where: { property_id: { in: propertyIds }, is_deleted: false, payment_status: 'paid' } });
-  const latePayments = await prisma.rent_payments.count({ where: { property_id: { in: propertyIds }, is_deleted: false, payment_status: 'late' } });
+  const onTimePayments = await prisma.rent_payments.count({ where: { property_id: { in: propertyIds }, is_deleted: false, status: 'completed' } });
+  const latePayments = await prisma.rent_payments.count({ where: { property_id: { in: propertyIds }, is_deleted: false, status: 'overdued' } });
 
   return { new_tenants_last_30_days: newTenantsLast30, new_tenants_last_90_days: newTenantsLast90, rent_payment_trends: { on_time: onTimePayments, late: latePayments } };
 };
@@ -213,14 +227,14 @@ export const getLandlordGrowthTrends = async (landlordId, propertyId) => {
 // ✅ Portfolio Summary
 export const getPortfolioSummary = async (userId, propertyId) => {
   const propertyIds = await fetchLandlordProperties(userId, propertyId);
-  const properties = await prisma.properties.findMany({ where: { id: { in: propertyIds }, is_deleted: false }, select: { id: true, verified: true, promoted: true } });
+  const properties = await prisma.properties.findMany({ where: { id: { in: propertyIds }, is_deleted: false }, select: { id: true, is_verified: true, is_promoted: true } });
   const units = await prisma.property_units.findMany({ where: { property_id: { in: propertyIds }, is_deleted: false }, select: { status: true } });
   const agreements = await prisma.rental_agreements.findMany({ where: { property_id: { in: propertyIds }, is_deleted: false }, select: { id: true, status: true } });
 
   return {
     total_properties: properties.length,
-    verified_properties: properties.filter(p => p.verified).length,
-    promoted_properties: properties.filter(p => p.promoted).length,
+    verified_properties: properties.filter(p => p.is_verified).length,
+    promoted_properties: properties.filter(p => p.is_promoted).length,
     total_units: units.length,
     available_units: units.filter(u => u.status === 'available').length,
     rented_units: units.filter(u => u.status === 'rented').length,
@@ -233,13 +247,13 @@ export const getTopPerformingProperties = async (userId, propertyId) => {
   const propertyIds = await fetchLandlordProperties(userId, propertyId);
   if (!propertyIds.length) return [];
 
-  const properties = await prisma.properties.findMany({ where: { id: { in: propertyIds }, is_deleted: false }, select: { id: true, name: true } });
+  const properties = await prisma.properties.findMany({ where: { id: { in: propertyIds }, is_deleted: false }, select: { id: true, property_name: true } });
   const tourCounts = await prisma.property_tour_requests.groupBy({ by: ['property_id'], where: { property_id: { in: propertyIds }, is_deleted: false }, _count: { id: true } });
   const applicationCounts = await prisma.property_applications.groupBy({ by: ['property_id'], where: { property_id: { in: propertyIds }, is_deleted: false }, _count: { id: true } });
   const engagementCounts = await prisma.property_engagements.groupBy({ by: ['property_id'], where: { property_id: { in: propertyIds }, liked: true }, _count: { id: true } });
 
   const performanceMap = {};
-  properties.forEach(p => performanceMap[p.id] = { property_id: p.id, name: p.name, tours: 0, applications: 0, likes: 0, score: 0 });
+  properties.forEach(p => performanceMap[p.id] = { property_id: p.id, name: p.property_name, tours: 0, applications: 0, likes: 0, score: 0 });
   tourCounts.forEach(t => performanceMap[t.property_id].tours = t._count.id);
   applicationCounts.forEach(a => performanceMap[a.property_id].applications = a._count.id);
   engagementCounts.forEach(e => performanceMap[e.property_id].likes = e._count.id);
@@ -287,7 +301,6 @@ export default {
   getPropertyAnalytics,
   getUserAnalytics,
   getLandlordPropertyPerformance,
-  getLandlordTenantInsights,
   getLandlordFinancialMetrics,
   getLandlordEngagementMetrics,
   getLandlordGrowthTrends,

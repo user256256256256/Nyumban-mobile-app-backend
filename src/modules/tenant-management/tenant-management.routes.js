@@ -23,7 +23,6 @@ router.get('/tenants/:tenantId/rent-history', authenticate, authorizeRoles('land
 router.post('/tenants/remind-rent', authenticate, authorizeRoles('landlord'), validate(remindTenantRentSchema), sendRentRemindersHandler );  
 router.get('/:propertyId/security-deposits', authenticate, authorizeRoles('landlord'), validate(propertyIdParamSchema), getSecurityDepositsHandler)
 router.get('/:securityDepositId', authenticate, authorizeRoles('landlord', 'tenant'), validate(securityDepositIdParamSchema), getSecurityDepositHandler)
-// tenant-management.routes.js
 router.get('/payments/:paymentId', authenticate, authorizeRoles('landlord', 'tenant'), validate(paymentIdParamSchema), getTenantPaymentByIdHandler  );
   
 export default router;
