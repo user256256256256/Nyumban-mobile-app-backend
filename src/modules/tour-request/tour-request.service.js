@@ -174,28 +174,29 @@ export const deleteTourRequests = async (userId, tourIds = []) => {
     if (!tour) continue;
 
     if (tour.status === 'pending') {
-      // Step 1: mark as cancelled before deletion
+      // Cancel + soft delete in one update
       updates.push(
         prisma.property_tour_requests.update({
           where: { id: tourId },
           data: {
             status: 'cancelled',
+            is_deleted_by_tenant: true,
+            updated_at: new Date(),
+          },
+        })
+      );
+    } else {
+      // Just soft delete if already resolved/declined/etc.
+      updates.push(
+        prisma.property_tour_requests.update({
+          where: { id: tourId },
+          data: {
+            is_deleted_by_tenant: true,
             updated_at: new Date(),
           },
         })
       );
     }
-
-    // Step 2: mark as deleted (soft delete instead of hard delete)
-    updates.push(
-      prisma.property_tour_requests.update({
-        where: { id: tourId },
-        data: {
-          is_deleted_by_tenant: true,
-          updated_at: new Date(),
-        },
-      })
-    );
   }
 
   const results = await prisma.$transaction(updates);
@@ -209,6 +210,7 @@ export const deleteTourRequests = async (userId, tourIds = []) => {
     message: `${results.length} tour request(s) deleted`,
   };
 };
+
 
 export default {
   tourRequest,

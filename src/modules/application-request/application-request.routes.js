@@ -17,6 +17,7 @@ const router = express.Router();
 router.post('/request', authenticate, authorizeRoles('tenant'), validate(applicationRequestSchema), applicationRequestHandler);
 router.get('/my-requests', authenticate, authorizeRoles('tenant'), getApplicationsRequestHandler);
 router.post('/cancel', authenticate, authorizeRoles('tenant'), validate(cancelApplicationBatchSchema), cancelApplicationBatchRequestHandler);
-router.post('/delete', authenticate, authorizeRoles('tenant'), validate(deleteApplicationBatchSchema), deleteApplicationBatchRequestHandler);
+router.delete('/delete', authenticate, authorizeRoles('tenant'), validate(deleteApplicationBatchSchema), deleteApplicationBatchRequestHandler);
+
 
 export default router;

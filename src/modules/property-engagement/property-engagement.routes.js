@@ -7,23 +7,20 @@ import {
     savePropertyHandler,
     unlikePropertyHandler,
     unsavePropertyHandler,
-    getLikedPropertiesHandler,
-    getSavedPropertiesHandler,
-    getDistanceToPropertyHandler
+    getDistanceToPropertyHandler,
+    viewPropertyHandler,
 } from './property-engagement.controller.js'
 
 import { validate } from '../../common/middleware/validate.middleware.js';
-import { propertyIdParamSchema, paginationSchema, distanceSchema } from './property-engagement.validator.js'
+import { propertyIdParamSchema, distanceSchema } from './property-engagement.validator.js'
 
 const router = express.Router()
 
-
-router.post('/:propertyId/like', authenticate, authorizeRoles('tenant'), validate(propertyIdParamSchema), likePropertyHandler);
-router.post('/:propertyId/unlike', authenticate, authorizeRoles('tenant'), validate(propertyIdParamSchema), unlikePropertyHandler);
+router.post('/:propertyId/like', authenticate, authorizeRoles('tenant', 'landlord'), validate(propertyIdParamSchema), likePropertyHandler);
+router.post('/:propertyId/unlike', authenticate, authorizeRoles('tenant', 'landlord'), validate(propertyIdParamSchema), unlikePropertyHandler);
 router.post('/:propertyId/save', authenticate, authorizeRoles('tenant'), validate(propertyIdParamSchema), savePropertyHandler);
 router.post('/:propertyId/unsave', authenticate, authorizeRoles('tenant'), validate(propertyIdParamSchema), unsavePropertyHandler);
-router.get('/liked', authenticate, authorizeRoles('tenant'), validate(paginationSchema, 'query'), getLikedPropertiesHandler);
-router.get('/saved', authenticate, authorizeRoles('tenant'), validate(paginationSchema, 'query'), getSavedPropertiesHandler);
+router.post('/:propertyId/view', authenticate, authorizeRoles('tenant'), validate(propertyIdParamSchema), viewPropertyHandler);
 router.post('/distance', authenticate, authorizeRoles('tenant'), validate(distanceSchema), getDistanceToPropertyHandler); 
 
 export default router;

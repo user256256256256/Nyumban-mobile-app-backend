@@ -26,7 +26,7 @@ export const applicationRequest = async (payload, userId) => {
     emergencyContactPhone,
     emergencyContactName,
     monthlyIncome,
-    tenantMessage
+    tenantMessage,
   } = payload;
 
   // 1. Check if property exists and is available
@@ -69,7 +69,6 @@ export const applicationRequest = async (payload, userId) => {
   if (pendingApplication) {
     throw new AuthError('You already have a pending application for this property/unit');
   }
-
 
   const landlordId = property.owner_id;
 
@@ -151,6 +150,7 @@ export const getApplicationRequests = async (userId, { status, cursor, limit = 2
   const where = {
     tenant_id: userId,
     is_deleted: false,
+    is_deleted_by_tenant : false,
     ...(status && { status }),
   };
 
@@ -166,6 +166,12 @@ export const getApplicationRequests = async (userId, { status, cursor, limit = 2
           property_name: true,
           thumbnail_image_path: true,
           has_units: true,
+          users: {
+            select: {
+              phone_number: true,
+              email: true,
+            },
+          },
         },
       },
       property_units: {
@@ -180,12 +186,15 @@ export const getApplicationRequests = async (userId, { status, cursor, limit = 2
   const data = applications.slice(0, limit).map(app => ({
     application_id: app.id,
     property_id: app.property_id,
+    landlord_id_id: app.landlord_id,
     property_name: app.properties?.property_name || null,
-    thumbnail_url: app.properties?.thumbnail_image_path || null,
+    landlord_contact: app.properties?.users?.phone_number || app.properties?.users?.email || null,
+    property_thumbnail_url: app.properties?.thumbnail_image_path || null,
     unit_id: app.unit_id || null,
     unit_number: app.property_units?.unit_number || null,
     status: app.status,
     submitted_at: app.submitted_at,
+    tenant_message: app.tenant_message
   }));
 
   const nextCursor = applications.length > limit ? applications[limit].id : null;
@@ -197,15 +206,13 @@ export const getApplicationRequests = async (userId, { status, cursor, limit = 2
   };
 };
 
-
-
 export const cancelApplicationBatch = async (userId, applicationIds = []) => {
   const updates = [];
 
   for (const id of applicationIds) {
     const app = await prisma.property_applications.findFirst({
       where: { id, tenant_id: userId, is_deleted: false },
-      include: { property: true }
+      include: { properties: true }
     });
 
     if (!app || app.status !== 'pending') continue;
@@ -239,29 +246,51 @@ export const cancelApplicationBatch = async (userId, applicationIds = []) => {
   };
 };
 
-
 export const deleteApplicationBatch = async (userId, applicationIds = []) => {
-  const deletions = [];
+  const updates = [];
 
-  for (const id of applicationIds) {
+  for (const appId of applicationIds) {
     const app = await prisma.property_applications.findFirst({
-      where: { id, user_id: userId, is_deleted: false },
+      where: { id: appId, tenant_id: userId, is_deleted: false },
     });
 
-    if (!app || app.status !== 'pending') continue;
+    if (!app) continue;
 
-    deletions.push(
-      prisma.property_applications.delete({ where: { id } })
-    );
+    if (app.status === 'pending') {
+      // Cancel + soft delete in one update
+      updates.push(
+        prisma.property_applications.update({
+          where: { id: appId },
+          data: {
+            status: 'cancelled',
+            is_deleted_by_tenant: true,
+          },
+        })
+      );
+    } else {
+      // Just soft delete if not pending
+      updates.push(
+        prisma.property_applications.update({
+          where: { id: appId },
+          data: {
+            is_deleted_by_tenant: true,
+          },
+        })
+      );
+    }
   }
 
-  const results = await prisma.$transaction(deletions);
+  const results = await prisma.$transaction(updates);
+
   return {
-    deleted: results.map(a => ({ application_id: a.id })),
-    message: `${results.length} application(s) permanently deleted`,
+    deleted: results.map(a => ({
+      application_id: a.id,
+      status: a.status,
+      is_deleted: a.is_deleted_by_tenant, 
+    })),
+    message: `${results.length} application(s) deleted`,
   };
 };
-
 
 export default {
   applicationRequest,

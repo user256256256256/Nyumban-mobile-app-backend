@@ -50,29 +50,17 @@ export const unsavePropertyHandler = async (req, res) => {
   }
 };
 
-export const getLikedPropertiesHandler = async (req, res) => {
+export const viewPropertyHandler = async (req, res) => {
   try {
+    const { propertyId } = req.params;
     const userId = req.user.id;
-    const { offset = 0, limit = 10 } = req.query;
 
-    const result = await PropertyEngagementService.getUserEngagedProperties(userId, 'liked', Number(offset), Number(limit));
-    return success(res, result, 'Liked properties fetched successfully');
+    const result = await PropertyEngagementService.viewProperty(userId, propertyId);
+    return success(res, result, 'Property viewed successfully');
   } catch (error) {
-    return handleControllerError(res, error, 'FETCH_LIKED_PROPERTIES_FAILED', 'Failed to fetch liked properties');
+    return handleControllerError(res, error, 'VIEW_PROPERTY_FAILED', 'Failed to view property');
   }
-};
-
-export const getSavedPropertiesHandler = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { offset = 0, limit = 10 } = req.query;
-
-    const result = await PropertyEngagementService.getUserEngagedProperties(userId, 'saved', Number(offset), Number(limit));
-    return success(res, result, 'Saved properties fetched successfully');
-  } catch (error) {
-    return handleControllerError(res, error, 'FETCH_SAVED_PROPERTIES_FAILED', 'Failed to fetch saved properties');
-  }
-};
+}
 
 export const getDistanceToPropertyHandler = async (req, res) => {
   try {

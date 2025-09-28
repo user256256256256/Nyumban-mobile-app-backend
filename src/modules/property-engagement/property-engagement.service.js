@@ -1,6 +1,7 @@
 import prisma from '../../prisma-client.js';
 import { calculateDistaceService } from './calculate-distance.service.js';
 import { AuthError, NotFoundError } from '../../common/services/errors-builder.service.js';
+import { triggerNotification } from '../notifications/notification.service.js';
 
 const getPropertyOrThrow = async (propertyId) => {
   const property = await prisma.properties.findUnique({ where: { id: propertyId } });
@@ -11,7 +12,7 @@ const getPropertyOrThrow = async (propertyId) => {
 const deleteEngagementIfEmpty = async (userId, propertyId) => {
   const engagement = await prisma.property_engagements.findUnique({
     where: { user_id_property_id: { user_id: userId, property_id: propertyId } },
-    select: { liked: true, saved: true, views: true }
+    select: { liked: true, saved: true, }
   });
 
   if (engagement && !engagement.liked && !engagement.saved && (engagement.views || 0) === 0) {
@@ -20,28 +21,6 @@ const deleteEngagementIfEmpty = async (userId, propertyId) => {
     });
   }
 };
-
-// ✅ Track property view
-export const viewProperty = async (userId, propertyId) => {
-  // Ensure the property exists
-  await getPropertyOrThrow(propertyId);
-
-  // Upsert engagement: increment if exists, create if not
-  const engagement = await prisma.property_engagements.upsert({
-    where: { user_id_property_id: { user_id: userId, property_id: propertyId } },
-    update: { views: { increment: 1 } },
-    create: { user_id: userId, property_id: propertyId, views: 1 }
-  });
-
-  // Increment total property views in the properties table
-  await prisma.properties.update({
-    where: { id: propertyId },
-    data: { views: { increment: 1 } }
-  });
-
-  return engagement;
-};
-
 
 export const likeProperty = async (userId, propertyId) => {
   const property = await getPropertyOrThrow(propertyId);
@@ -69,7 +48,7 @@ export const likeProperty = async (userId, propertyId) => {
     try {
       await triggerNotification(
         property.owner_id,
-        'PROPERTY_LIKED',
+        'user',
         'Your property was liked',
         `A tenant liked your property: ${property.title || 'Property'}`
       );
@@ -157,51 +136,36 @@ export const unsaveProperty = async (userId, propertyId) => {
   return result[0];
 };
 
-export const getUserEngagedProperties = async (userId, type, offset, limit) => {
-  const filter = type === 'liked' ? { liked: true } : { saved: true };
 
-  const engagements = await prisma.property_engagements.findMany({
-    where: { user_id: userId, ...filter },
-    skip: offset,
-    take: limit,
-    include: {
-      property: {
-        select: {
-          id: true,
-          property_name: true,
-          property_type: true,
-          price: true,
-          currency: true,
-          bedrooms: true,
-          bathrooms: true,
-          year_built: true,
-          address: true,
-          is_verified: true,
-          has_units: true,
-          likes: true,
-          saves: true,
-          views: true, 
-          status: true,
-          is_promoted: true,
-          created_at: true,
-          property_images: {
-            take: 1,
-            orderBy: { created_at: 'asc' },
-            select: { id: true, image_url: true, caption: true },
-          },
-          users: {
-            select: {
-              email: true,
-              phone_number: true,
-            },
-          },
-        }
-      }
-    }
+export const viewProperty = async (userId, propertyId) => {
+  const property = await getPropertyOrThrow(propertyId);
+
+  // Check if the user has already viewed the property
+  const existingEngagement = await prisma.property_engagements.findUnique({
+    where: { user_id_property_id: { user_id: userId, property_id: propertyId } },
   });
 
-  return engagements.map(e => e.property);
+  if (existingEngagement) {
+    // User already viewed; just return current views
+    return { views: property.views ?? 0 };
+  }
+
+  // Otherwise, create engagement and increment views
+  await prisma.$transaction([
+    prisma.property_engagements.create({
+      data: { user_id: userId, property_id: propertyId, liked: false, saved: false },
+    }),
+    prisma.properties.update({
+      where: { id: propertyId },
+      data: { views: { increment: 1 } },
+    }),
+  ]);
+
+  // Return the updated views
+  const updatedProperty = await prisma.properties.findUnique({ where: { id: propertyId } });
+  return { views: updatedProperty?.views ?? 0 };
 };
+
 
 /* 
 * POSTPONED TO V2 
@@ -251,6 +215,5 @@ export default {
   saveProperty,
   unsaveProperty,
   viewProperty, 
-  getUserEngagedProperties,
   getDistanceToProperty,
 };
