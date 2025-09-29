@@ -22,10 +22,15 @@ const proofDocFilter = (req, file, cb) => {
     'application/pdf',
     'application/msword', // .doc
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/vnd.ms-word.document.macroEnabled.12', // some systems report this for .docx
+    'application/octet-stream', // fallback when mimetype is missing
     'image/jpeg',
     'image/png',
-    'text/plain', // allow .txt
+    'text/plain',
   ];
+
+  console.log('Uploaded file type:', file.mimetype, 'name:', file.originalname);
+
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);

@@ -59,7 +59,7 @@ export const submitVerificationRequest = async (userId, comment, file) => {
 
   const existingRequest = await prisma.account_verification_requests.findFirst({
     where: {
-      user_id,
+      user_id: userId,
       status: { in: ['pending', 'rejected'] },
       is_deleted: false
     },
