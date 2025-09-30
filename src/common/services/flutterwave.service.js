@@ -58,15 +58,13 @@ export const simulateFlutterwaveRentPayment = async ({
       payment_type: 'RENT_PAYMENT',
       transaction_id: `FW_RENT_${Date.now()}`,
       currency,
-      metadata: {
-        agreementId,
-        ...metadata,
-      },
+      metadata: JSON.stringify({ agreementId, ...metadata }), // <-- stringify the object
     },
   });
 
   return payment;
 };
+
 
 
 export const simulateSecurityDepositRefund = async ({ tenantId, propertyId, amount, reason }) => {

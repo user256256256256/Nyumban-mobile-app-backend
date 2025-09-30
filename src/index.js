@@ -13,6 +13,7 @@ import supportRoutes from './modules/support/support.route.js'
 import analyticsRoutes from './modules/analytics/analytics.routes.js'
 import tourRequestRoutes from './modules/tour-request/tour-request.route.js'
 import addPropertyRoutes from './modules/add-property/add-propery.routes.js'
+import rentPaymentRoutes from './modules/rent-payments/rent-payments.routes.js'
 import notificationRoutes from './modules/notifications/notification.routes.js'
 import tenantProfileRoutes from './modules/tenant-profile/tenant-profile.routes.js'
 import rentManagementRoutes from './modules/rent-management/rent-management.routes.js'
@@ -49,6 +50,7 @@ app.use(`${BASE_ROUTE_VERSION_1}/device`, deviceRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/support`, supportRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/analytics`, analyticsRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/add-property`, addPropertyRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/rent-payments`, rentPaymentRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/tour-request`, tourRequestRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/notification`, notificationRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/property-mngt`, propertyMngtRoutes);

@@ -2,7 +2,7 @@ import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 import { applyToDues, createAdvancePayments} from './payment-allocation.util.js';
-import { notifyTenant, notifyLandlord, notifyTenantInitialRentPayment, notifyLandlordInitialRentPayment } from './payment-notifications.service.js';
+import { notifyTenant, notifyLandlord, notifyTenantManualInitialRentPayment, notifyLandlordManualInitialRentPayment } from './payment-notifications.service.js';
 import { generatePeriodCovered } from './generate-rent-period.util.js';
 import { validateAgreement, validateAgreementIntialRentPayment, fetchPendingDues, determineLastDueDate, createPartialPayment, determineStatusAndType } from './payment-utils.service.js';
 
@@ -191,7 +191,7 @@ export const markManualInitialRentPayment = async ({
   });
 
   // 6. Notifications
-  void notifyTenantInitialRentPayment({
+  void notifyTenantManualInitialRentPayment({
     tenantId: agreement.tenant_id,
     rentAmount,
     securityDeposit,
@@ -203,7 +203,7 @@ export const markManualInitialRentPayment = async ({
     partialPayment,
   });
 
-  void notifyLandlordInitialRentPayment({
+  void notifyLandlordManualInitialRentPayment({
     landlordId: agreement.owner_id || landlordId,
     tenantName: agreement.users_rental_agreements_tenant_idTousers?.username || '',
     rentAmount,

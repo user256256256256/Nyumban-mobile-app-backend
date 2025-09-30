@@ -34,6 +34,20 @@ export async function validateAgreementIntialRentPayment(landlordId, agreementId
   return agreement;
 }
 
+export async function validateTenantAgreementInitialPayment(tenantId, agreementId, options) {
+  const agreement = await prisma.rental_agreements.findUnique({
+    where: { id: agreementId },
+    ...options,
+  });
+  if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
+  if (agreement.tenant_id !== tenantId) throw new AuthError('Unauthorized tenant', { field: 'Tenant ID' });
+  if (agreement.status !== 'pending_payment') throw new ForbiddenError('Agreement is not pending payment');
+  if (!agreement.tenant_accepted_agreement) throw new ForbiddenError('Tenant must accept the agreement first');
+
+  return agreement;
+}
+
+
 /**
  * Fetch unpaid or partial rent payments for a tenant
  */

@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 
 const token = jwt.sign(
-  { id: '4d4fa30b-02c0-4cfe-b161-672dd9d6847a', role: 'admin' },
+  { id: '56140da1-9010-4466-a9b2-8b80d0bff87b', role: 'tenant' },
   'my_ultra_secret_jwt_key',
   { expiresIn: '30d' }
 );
