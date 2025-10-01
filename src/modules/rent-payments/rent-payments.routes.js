@@ -13,7 +13,7 @@ import { initialRentPaymentSchema, rentPaymentSchema  } from './rent-payments.va
 
 const router = express.Router();
 
-router.post('/rent-payment', authenticate, authorizeRoles('tenant'), validate(rentPaymentSchema), rentPaymentHandler);
+router.post('/:agreementId/rent-payment', authenticate, authorizeRoles('tenant'), validate(rentPaymentSchema), rentPaymentHandler);
 router.post('/:agreementId/initial-payment', authenticate, authorizeRoles('tenant'), validate(initialRentPaymentSchema), initialRentPaymentHandler);
 
 export default router;

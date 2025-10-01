@@ -1,6 +1,8 @@
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
-import { generatePeriodCovered } from './generate-rent-period.util.js';
+import dayjs from 'dayjs';
+import { formatPeriodString, buildPeriodObject } from '../utils/generate-rent-period.util.js';
+
 import {
   NotFoundError,
   AuthError,
@@ -11,7 +13,7 @@ import {
 /**
  * Validate agreement and return it
  */
-export async function validateAgreement(landlordId, agreementId) {
+export async function validateAgreementManualPayment(landlordId, agreementId) {
   const agreement = await prisma.rental_agreements.findUnique({ where: { id: agreementId } });
   if (!agreement) throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
   if (agreement.status !== 'active') throw new AuthError('Agreement is not active', { field: 'Agreement ID' });
@@ -47,6 +49,31 @@ export async function validateTenantAgreementInitialPayment(tenantId, agreementI
   return agreement;
 }
 
+export async function validateAgreement(tenantId, agreementId) {
+  const agreement = await prisma.rental_agreements.findUnique({
+    where: { id: agreementId },
+  });
+
+  if (!agreement) {
+    throw new NotFoundError('Agreement not found', { field: 'Agreement ID' });
+  }
+
+  if (agreement.status !== 'active') {
+    throw new AuthError('Agreement is not active', { field: 'Agreement ID' });
+  }
+
+  if (agreement.tenant_id !== tenantId) {
+    throw new ForbiddenError('Unauthorized tenant', { field: 'Tenant ID' });
+  }
+  const monthlyRent = parseFloat(agreement.monthly_rent?.toString() || '0');
+  if (!monthlyRent || monthlyRent <= 0) {
+    throw new ServerError('Monthly rent invalid for agreement.');
+  }
+
+  return agreement;
+}
+
+
 
 /**
  * Fetch unpaid or partial rent payments for a tenant
@@ -73,21 +100,24 @@ export async function determineLastDueDate(tenantId, duePayments, agreement) {
 /**
  * Create a new partial payment for leftover amount
  */
-export async function createPartialPayment(tx, agreement, tenantId, monthlyRent, remaining, method, notes, nextDueDate, now) {
-  return tx.rent_payments.create({
+export async function createPartialPayment(tx, agreement, tenantId, monthlyRent, remaining, method, notes, nextStartDate, now, days = 30) {
+  const start = dayjs(nextStartDate);
+  const periodString = formatPeriodString(start, days);
+
+  const rec = await tx.rent_payments.create({
     data: {
       id: uuidv4(),
       rental_agreement_id: agreement.id,
       tenant_id: tenantId,
       property_id: agreement.property_id,
       unit_id: agreement.unit_id,
-      due_date: nextDueDate.toDate(),
+      due_date: start.toDate(),
       due_amount: monthlyRent,
       amount_paid: remaining,
       method,
       payment_date: now,
       transaction_id: `MANUAL-${uuidv4()}`,
-      period_covered: generatePeriodCovered(nextDueDate),
+      period_covered: periodString,
       status: 'partial',
       notes,
       is_deleted: false,
@@ -95,7 +125,10 @@ export async function createPartialPayment(tx, agreement, tenantId, monthlyRent,
       updated_at: now,
     },
   });
+
+  return { record: rec, period: buildPeriodObject(start, days) };
 }
+
 
 /**
  * Determine final status and notification type

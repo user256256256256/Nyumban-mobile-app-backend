@@ -1,11 +1,24 @@
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
-import { applyToDues, createAdvancePayments} from './payment-allocation.util.js';
-import { notifyTenant, notifyLandlord, notifyTenantManualInitialRentPayment, notifyLandlordManualInitialRentPayment } from './payment-notifications.service.js';
-import { generatePeriodCovered } from './generate-rent-period.util.js';
-import { validateAgreement, validateAgreementIntialRentPayment, fetchPendingDues, determineLastDueDate, createPartialPayment, determineStatusAndType } from './payment-utils.service.js';
+import { applyToDues, createAdvancePayments } from '../../common/utils/payment-allocation.util.js';
+import { 
+  notifyTenantManualRentPayment, 
+  notifyLandlordManualRentPayment, 
+  notifyTenantManualInitialRentPayment, 
+  notifyLandlordManualInitialRentPayment 
+} from './payment-notifications.service.js';
 
+import { 
+  validateAgreementManualPayment, 
+  validateAgreementIntialRentPayment, 
+  fetchPendingDues, 
+  determineLastDueDate, 
+  createPartialPayment, 
+  determineStatusAndType 
+} from '../../common/services/payment-utils.service.js';
+
+import { formatPeriodString, buildPeriodObject } from '../../common/utils/generate-rent-period.util.js';
 import {
   NotFoundError,
   ForbiddenError,
@@ -45,15 +58,14 @@ export const markManualInitialRentPayment = async ({
 
   const now = new Date();
   const transactionId = `MANUAL-${uuidv4()}`;
-  const coveredPeriods = []; // track full and partial coverage
+  const coveredPeriods = [];
   let partialPayment = null;
-
   let remaining = amount;
   let lastPaymentId = null;
   let completedCount = 0;
 
   const results = await prisma.$transaction(async (tx) => {
-    // 2. Initial Rent Payment
+    // 2. Initial Rent Payment (first 30-day block)
     const rentPayment = await tx.rent_payments.create({
       data: {
         id: uuidv4(),
@@ -67,7 +79,7 @@ export const markManualInitialRentPayment = async ({
         payment_date: now,
         method,
         transaction_id: transactionId,
-        period_covered: generatePeriodCovered(now),
+        period_covered: formatPeriodString(now, 30), // ✅ DB storage
         status: 'completed',
         type: 'rent',
         notes,
@@ -80,11 +92,7 @@ export const markManualInitialRentPayment = async ({
     remaining -= rentAmount;
     completedCount += 1;
 
-    coveredPeriods.push({
-      start: dayjs(now).startOf('month').toDate(),
-      end: dayjs(now).endOf('month').toDate(),
-      partial: false,
-    });
+    coveredPeriods.push({ ...buildPeriodObject(now, 30), partial: false });
 
     // 3. Security Deposit
     const deposit = await tx.security_deposits.create({
@@ -103,7 +111,7 @@ export const markManualInitialRentPayment = async ({
     remaining -= securityDeposit;
 
     // 4. Overpayment → Advance + Partial
-    let nextDueDate = dayjs(now).add(1, 'month');
+    let nextDueDate = dayjs(now).add(30, 'day'); // ✅ advance by 30-day blocks
     const advancePaymentsList = [];
     if (remaining > 0) {
       const { remaining: afterAdvance, nextDueDate: afterDueDate, advancePayments } =
@@ -121,22 +129,14 @@ export const markManualInitialRentPayment = async ({
           () => completedCount++
         );
 
-      // Merge advancePayments to coveredPeriods
       advancePayments.forEach((p) => {
-        coveredPeriods.push({
-          start: dayjs(p.due_date).startOf('month').toDate(),
-          end: dayjs(p.due_date).endOf('month').toDate(),
-          partial: false,
-        });
+        coveredPeriods.push({ ...buildPeriodObject(p.due_date, 30), partial: false });
       });
 
       remaining = afterAdvance;
       nextDueDate = afterDueDate;
-
-      // Keep track of advance payments for final response
       advancePaymentsList.push(...advancePayments);
 
-      // Partial payment
       if (remaining > 0) {
         const partial = await createPartialPayment(
           tx,
@@ -153,17 +153,10 @@ export const markManualInitialRentPayment = async ({
 
         partialPayment = {
           amount: remaining,
-          period: {
-            start: dayjs(nextDueDate).startOf('month').toDate(),
-            end: dayjs(nextDueDate).endOf('month').toDate(),
-          },
+          period: buildPeriodObject(nextDueDate, 30),
         };
 
-        coveredPeriods.push({
-          start: dayjs(nextDueDate).startOf('month').toDate(),
-          end: dayjs(nextDueDate).endOf('month').toDate(),
-          partial: true,
-        });
+        coveredPeriods.push({ ...partialPayment.period, partial: true });
 
         remaining = 0;
       }
@@ -228,11 +221,12 @@ export const markManualInitialRentPayment = async ({
   };
 };
 
+
 export const markManualPayment = async ({ landlordId, tenantId, amount, method, notes, agreementId }) => {
   console.log('[markManualPayment] Input:', { landlordId, tenantId, amount, method, notes, agreementId });
 
   // 1. Validate agreement
-  const agreement = await validateAgreement(landlordId, agreementId);
+  const agreement = await validateAgreementManualPayment(landlordId, agreementId);
   console.log('[markManualPayment] Agreement validated. Monthly Rent:', agreement.monthly_rent);
 
   // 2. Fetch pending dues
@@ -246,7 +240,7 @@ export const markManualPayment = async ({ landlordId, tenantId, amount, method, 
   let remaining = amount;
   let lastPaymentId = null;
   let completedCount = 0;
-  const coveredPeriods = []; // Track full and partial coverage
+  const coveredPeriods = [];
   let partialPayment = null;
 
   // 4. Transaction flow
@@ -256,18 +250,25 @@ export const markManualPayment = async ({ landlordId, tenantId, amount, method, 
       () => completedCount++
     );
 
+    // Advance payments
     const { remaining: afterAdvance, nextDueDate, lastAdvanceId, advancePayments } = await createAdvancePayments(
-      tx, agreement, tenantId, parseFloat(agreement.monthly_rent), remaining, method, notes, now,
-      dayjs(lastDueDate).add(1, 'month'),
+      tx,
+      agreement,
+      tenantId,
+      parseFloat(agreement.monthly_rent),
+      remaining,
+      method,
+      notes,
+      now,
+      dayjs(lastDueDate).add(30, 'day'), // ✅ advance by 30-day blocks
       (id) => lastPaymentId = id,
       () => completedCount++
     );
 
-    // Track advance payments for coveredPeriods
+    // Track advance payments
     advancePayments?.forEach(p => {
       coveredPeriods.push({
-        start: dayjs(p.due_date).startOf('month').toDate(),
-        end: dayjs(p.due_date).endOf('month').toDate(),
+        ...buildPeriodObject(p.due_date, 30),
         partial: false
       });
     });
@@ -275,29 +276,32 @@ export const markManualPayment = async ({ landlordId, tenantId, amount, method, 
     remaining = afterAdvance;
     if (lastAdvanceId) lastPaymentId = lastAdvanceId;
 
+    // Partial payment
     if (remaining > 0) {
-      const partial = await createPartialPayment(tx, agreement, tenantId, parseFloat(agreement.monthly_rent), remaining, method, notes, nextDueDate, now);
+      const partial = await createPartialPayment(
+        tx,
+        agreement,
+        tenantId,
+        parseFloat(agreement.monthly_rent),
+        remaining,
+        method,
+        notes,
+        nextDueDate,
+        now
+      );
       lastPaymentId = partial.id;
 
       partialPayment = {
         amount: remaining,
-        period: {
-          start: dayjs(nextDueDate).startOf('month').toDate(),
-          end: dayjs(nextDueDate).endOf('month').toDate(),
-        },
+        period: buildPeriodObject(nextDueDate, 30),
       };
 
-      coveredPeriods.push({
-        start: partialPayment.period.start,
-        end: partialPayment.period.end,
-        partial: true,
-      });
-
+      coveredPeriods.push({ ...partialPayment.period, partial: true });
       remaining = 0;
     }
   });
 
-  // 5. Fetch last payment with proper relations
+  // 5. Fetch last payment
   const lastPayment = lastPaymentId
     ? await prisma.rent_payments.findUnique({
         where: { id: lastPaymentId },
@@ -310,7 +314,7 @@ export const markManualPayment = async ({ landlordId, tenantId, amount, method, 
       })
     : null;
 
-  // 6. Determine final status and payment type
+  // 6. Determine final status
   const { status, paymentType } = determineStatusAndType(lastPayment, remaining, completedCount, duePayments);
   console.log('[markManualPayment] Final status:', status, 'PaymentType:', paymentType, 'Months covered:', completedCount);
 
@@ -321,7 +325,7 @@ export const markManualPayment = async ({ landlordId, tenantId, amount, method, 
   const remainingBalance = Math.max(0, parseFloat(agreement.monthly_rent) - remaining);
 
   // 7. Notifications
-  void notifyTenant({
+  void notifyTenantManualRentPayment({
     tenantId,
     amount,
     paymentType,
@@ -334,7 +338,7 @@ export const markManualPayment = async ({ landlordId, tenantId, amount, method, 
     remainingBalance
   });
 
-  void notifyLandlord({
+  void notifyLandlordManualRentPayment({
     landlordId: landlordIdFromAgreement,
     tenantName,
     amount,
@@ -347,7 +351,7 @@ export const markManualPayment = async ({ landlordId, tenantId, amount, method, 
     paymentDate: now
   });
 
-  // 8. Return enriched API response
+  // 8. Return enriched response
   return {
     rent_payment_id: lastPayment.id,
     agreement_status: agreement.status || 'active',
@@ -360,7 +364,6 @@ export const markManualPayment = async ({ landlordId, tenantId, amount, method, 
     payment_status: status,
     payment_type: paymentType
   };
-  
 };
 
 export default {

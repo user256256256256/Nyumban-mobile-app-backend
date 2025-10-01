@@ -5,12 +5,15 @@ import { handleControllerError } from '../../common/utils/handle-controller-erro
 export const rentPaymentHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { payment_method, amount } = req.body;
+    const { amount, method, notes, } = req.body;
+    const  { agreementId } = req.params
 
     const result = await RentPaymentService.rentPayment({
       userId,
-      payment_method,
+      agreementId,
       amount,
+      method,
+      notes
     });
 
     return success(res, result, 'Rent payment made successfully');

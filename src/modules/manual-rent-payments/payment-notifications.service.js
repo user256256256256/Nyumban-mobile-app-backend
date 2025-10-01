@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 /**
  * Send tenant notification
  */
-export async function notifyTenant({
+export async function notifyTenantManualRentPayment({
   tenantId,
   amount,
   paymentType,
@@ -54,7 +54,7 @@ ${paymentType !== 'advance' ? `- Remaining Balance: $${remainingBalance.toFixed(
 /**
  * Send landlord notification
  */
-export async function notifyLandlord({
+export async function notifyLandlordManualRentPayment({
   landlordId,
   tenantName,
   amount,
@@ -301,5 +301,118 @@ The rental agreement is now active.
     await triggerNotification(landlordId, 'user', 'Tenant Initial Rent Payment Confirmed', message.trim());
   } catch (err) {
     console.error('[notifyLandlordInitialRentPayment] Failed:', err);
+  }
+}
+
+/**
+ * Send tenant notification (confirmation of their payment)
+ */
+export async function notifyTenant({
+  tenantId,
+  amount,
+  paymentType,
+  monthsCovered,
+  propertyName,
+  unitNumber,
+  paymentMethod,
+  coveredPeriods,
+  paymentDate,
+  remainingBalance,
+}) {
+  try {
+    const formattedDate = dayjs(paymentDate).format('MMM D, YYYY');
+    let statusText =
+      paymentType === 'advance'
+        ? `covering ${monthsCovered} month(s) in advance`
+        : paymentType === 'paid'
+        ? 'Full (completed)'
+        : 'Partial';
+
+    const periodsText = coveredPeriods?.length
+      ? coveredPeriods
+          .map(
+            (p) =>
+              `- ${dayjs(p.start).format('MMM D, YYYY')} to ${dayjs(p.end).format('MMM D, YYYY')}${
+                p.partial ? ' (Partial)' : ''
+              }`
+          )
+          .join('\n')
+      : 'N/A';
+
+    const message = `
+Hello,
+
+Your rent payment for Unit ${unitNumber}, ${propertyName} was successfully processed.
+
+Payment Details:
+- Amount Paid: $${amount.toFixed(2)}
+- Payment Date: ${formattedDate}
+- Payment Method: ${paymentMethod}
+- Period Covered:
+${periodsText}
+- Payment Status: ${statusText}
+${paymentType !== 'advance' ? `- Remaining Balance: $${remainingBalance.toFixed(2)}` : ''}
+`;
+
+    console.log('[notifyTenant] Sending notification:', message.trim());
+    await triggerNotification(tenantId, 'user', 'Rent Payment Successful', message.trim());
+  } catch (err) {
+    console.error('[notifyTenant] Failed:', err);
+  }
+}
+
+/**
+ * Send landlord notification (tenant made a payment)
+ */
+export async function notifyLandlord({
+  landlordId,
+  tenantName,
+  amount,
+  paymentType,
+  monthsCovered,
+  propertyName,
+  unitNumber,
+  paymentMethod,
+  coveredPeriods,
+  paymentDate,
+}) {
+  try {
+    const formattedDate = dayjs(paymentDate).format('MMM D, YYYY');
+    let statusText =
+      paymentType === 'advance'
+        ? `covering ${monthsCovered} month(s) in advance`
+        : paymentType === 'paid'
+        ? 'Full (completed)'
+        : 'Partial';
+
+    const periodsText = coveredPeriods?.length
+      ? coveredPeriods
+          .map(
+            (p) =>
+              `- ${dayjs(p.start).format('MMM D, YYYY')} to ${dayjs(p.end).format('MMM D, YYYY')}${
+                p.partial ? ' (Partial)' : ''
+              }`
+          )
+          .join('\n')
+      : 'N/A';
+
+    const message = `
+Hello,
+
+Tenant ${tenantName} has successfully made a rent payment for Unit ${unitNumber}, ${propertyName}.
+
+Payment Details:
+- Amount Paid: $${amount.toFixed(2)}
+- Payment Date: ${formattedDate}
+- Payment Method: ${paymentMethod}
+- Period Covered:
+${periodsText}
+- Payment Status: ${statusText}
+`;
+
+    console.log('[notifyLandlord] Sending notification:', message.trim());
+    await triggerNotification(landlordId, 'user', 'Tenant Rent Payment Received', message.trim());
+  } catch (err) {
+    console.error('[notifyLandlord] Failed:', err);
   }
 }

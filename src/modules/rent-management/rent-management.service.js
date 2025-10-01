@@ -53,7 +53,7 @@ export const getPaymentHistory = async ({ userId, month, year, status, limit = 1
     results: slicedPayments.map((payment) => ({
       property_name: payment.properties?.property_name || 'N/A',
       unit: payment.property_units?.unit_number || '',
-      period_covered: formatMonthlyPeriod(payment.due_date),
+      period_covered: payment.due_date,
       payment_date: payment.payment_date?.toISOString(),
       amount_paid: parseFloat(payment.amount_paid || 0),
       method: payment.method || 'N/A',
