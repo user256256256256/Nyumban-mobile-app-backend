@@ -1,7 +1,7 @@
 import prisma from '../../prisma-client.js';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
-import { applyToDues, createAdvancePayments } from '../../common/utils/payment-allocation.util.js';
+import { applyToDues, createAdvancePayments, createPartialPayment, } from '../../common/utils/payment-allocation.util.js';
 import { 
   notifyTenantManualRentPayment, 
   notifyLandlordManualRentPayment, 
@@ -14,7 +14,6 @@ import {
   validateAgreementIntialRentPayment, 
   fetchPendingDues, 
   determineLastDueDate, 
-  createPartialPayment, 
   determineStatusAndType 
 } from '../../common/services/payment-utils.service.js';
 
@@ -81,7 +80,6 @@ export const markManualInitialRentPayment = async ({
         transaction_id: transactionId,
         period_covered: formatPeriodString(now, 30), // ✅ DB storage
         status: 'completed',
-        type: 'rent',
         notes,
         created_at: now,
         updated_at: now,

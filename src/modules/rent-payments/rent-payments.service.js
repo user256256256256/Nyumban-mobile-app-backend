@@ -4,9 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 import { simulateFlutterwaveRentPayment } from '../../common/services/flutterwave.service.js';
 import { formatPeriodString, buildPeriodObject } from '../../common/utils/generate-rent-period.util.js';
-import { createAdvancePayments, applyToDues } from '../../common/utils/payment-allocation.util.js';
+import { createAdvancePayments, applyToDues, createPartialPayment, } from '../../common/utils/payment-allocation.util.js';
 import { notifyTenant, notifyLandlord, notifyTenantInitialRentPayment, notifyLandlordInitialRentPayment } from '../manual-rent-payments/payment-notifications.service.js';
-import { validateTenantAgreementInitialPayment, createPartialPayment, validateAgreement, fetchPendingDues, determineLastDueDate, determineStatusAndType } from '../../common/services/payment-utils.service.js';
+import { validateTenantAgreementInitialPayment, validateAgreement, fetchPendingDues, determineLastDueDate, determineStatusAndType } from '../../common/services/payment-utils.service.js';
 import { ForbiddenError } from '../../common/services/errors-builder.service.js';
 
 export const rentPayment = async ({ userId, agreementId, amount, method = 'Flutterwave', notes }) => {
@@ -22,7 +22,6 @@ export const rentPayment = async ({ userId, agreementId, amount, method = 'Flutt
   // 2. Fetch pending dues
   const duePayments = await fetchPendingDues(userId);
   console.log('[rentPayment] Due payments found:', duePayments.length);
-  if (!duePayments.length) throw new NotFoundError('No due rent payments found');
 
   // 3. Determine last due date
   const lastDueDate = await determineLastDueDate(userId, duePayments, agreement);
@@ -260,7 +259,6 @@ export const initialRentPayment = async ({
         transaction_id: payment.transaction_id,
         period_covered: formatPeriodString(now, 30), // ✅ new util
         status: 'completed',
-        type: 'rent',
         notes: notes || 'Initial rent payment via Flutterwave',
         created_at: now,
         updated_at: now,
@@ -344,7 +342,7 @@ export const initialRentPayment = async ({
     // Update agreement + property/unit
     await tx.rental_agreements.update({
       where: { id: agreement.id },
-      data: { status: 'active', start_date: now, updated_at: now },
+      data: { status: 'active', start_date: now, updated_at: now }, 
     });
 
     if (agreement.properties?.has_units) {

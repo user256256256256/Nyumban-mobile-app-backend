@@ -31,8 +31,9 @@ import reviewAndFeedbackRoutes from './modules/reviews-and-feedback/reviews-and-
 import manualRentPaymentRoutes from './modules/manual-rent-payments/manual-rent-payments.routes.js'
 import accountVerificationRoutes from './modules/account-verification/account-verification.routes.js'
 import tourRequestResolutionRoutes from './modules/tour-request-resolution/tour-request-resolution.routes.js'
-import agreementManagementTenantRoutes from './modules/agreement-management-tenant/agreement-management-tenant.routes.js'
+import registerTenantsManually from './modules/register-tenants-manually/register-tenants-manually.routes.js'
 import draftingRentalAgreementRoutes from './modules/drafting-rental-agreement/drafting-rental-agreement.routes.js'
+import agreementManagementTenantRoutes from './modules/agreement-management-tenant/agreement-management-tenant.routes.js'
 import agreementManagementLandlordRoutes from './modules/agreement-management-landlord/agreement-management-landlord.routes.js'
 import applicationRequestResolutionRoutes from './modules/application-request-resolution/application-request-resolution.routes.js'
 
@@ -68,6 +69,7 @@ app.use(`${BASE_ROUTE_VERSION_1}/application-request`, applicationRequestRoutes)
 app.use(`${BASE_ROUTE_VERSION_1}/reviews-and-feedback`, reviewAndFeedbackRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/manual-rent-payments`, manualRentPaymentRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/account-verification`, accountVerificationRoutes);
+app.use(`${BASE_ROUTE_VERSION_1}/register-tenants-manually`, registerTenantsManually);
 app.use(`${BASE_ROUTE_VERSION_1}/tour-request-resolution`, tourRequestResolutionRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/drafting-rental-agreement`, draftingRentalAgreementRoutes);
 app.use(`${BASE_ROUTE_VERSION_1}/agreement-management-tenant`, agreementManagementTenantRoutes);

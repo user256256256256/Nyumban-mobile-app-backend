@@ -404,10 +404,12 @@ export const permanentlyDeleteSelectedProperties = async (userId, propertyIds = 
     const property = await prisma.properties.findUnique({
       where: { id: propertyId },
       select: { owner_id: true, is_deleted: true },
+      
     });
 
     if (!property || !property.is_deleted) continue;
     if (property.owner_id !== userId) continue;
+
 
     const deleted = await prisma.properties.delete({ where: { id: propertyId } });
     deletedResults.push({ property_id: deleted.id });

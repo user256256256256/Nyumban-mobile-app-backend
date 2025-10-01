@@ -97,38 +97,6 @@ export async function determineLastDueDate(tenantId, duePayments, agreement) {
   return lastPaymentRecord?.due_date || agreement.start_date || new Date();
 }
 
-/**
- * Create a new partial payment for leftover amount
- */
-export async function createPartialPayment(tx, agreement, tenantId, monthlyRent, remaining, method, notes, nextStartDate, now, days = 30) {
-  const start = dayjs(nextStartDate);
-  const periodString = formatPeriodString(start, days);
-
-  const rec = await tx.rent_payments.create({
-    data: {
-      id: uuidv4(),
-      rental_agreement_id: agreement.id,
-      tenant_id: tenantId,
-      property_id: agreement.property_id,
-      unit_id: agreement.unit_id,
-      due_date: start.toDate(),
-      due_amount: monthlyRent,
-      amount_paid: remaining,
-      method,
-      payment_date: now,
-      transaction_id: `MANUAL-${uuidv4()}`,
-      period_covered: periodString,
-      status: 'partial',
-      notes,
-      is_deleted: false,
-      created_at: now,
-      updated_at: now,
-    },
-  });
-
-  return { record: rec, period: buildPeriodObject(start, days) };
-}
-
 
 /**
  * Determine final status and notification type
