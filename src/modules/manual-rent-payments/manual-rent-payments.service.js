@@ -219,7 +219,6 @@ export const markManualInitialRentPayment = async ({
   };
 };
 
-
 export const markManualPayment = async ({ landlordId, tenantId, amount, method, notes, agreementId }) => {
   console.log('[markManualPayment] Input:', { landlordId, tenantId, amount, method, notes, agreementId });
 

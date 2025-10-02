@@ -1,16 +1,16 @@
-import Joi from 'joi';
-import { REFUND_REASONS } from '../../common/constants/refund-reasons.constants.js';
+import Joi from "joi";
 
-export const refundSchema = {
-  params: Joi.object({
-    agreementId: Joi.string().uuid().required().label('Agreement ID'),
+export const refundSchema = Joi.object({
+    params: Joi.object({
+      agreementId: Joi.string().uuid().required().label('Agreement ID'),
+    }),
+    body: Joi.object({
+        action: Joi.string().valid('refund', 'partial_refund', 'forfeit').required(),
+        amount: Joi.number().positive().when('action', {
+        is: 'partial_refund',
+        then: Joi.required(),
+        otherwise: Joi.forbidden()
+    }),
+    notes: Joi.string().allow('').optional(),
   }),
-  body: Joi.object({
-    landlordPhone: Joi.string().required().label('Landlord Phone Number'),
-    reason: Joi.string()
-      .valid(...Object.values(REFUND_REASONS))
-      .required()
-      .label('Refund Reason'),
-    description: Joi.string().max(500).optional().label('Refund Description'),
-  }),
-};
+});

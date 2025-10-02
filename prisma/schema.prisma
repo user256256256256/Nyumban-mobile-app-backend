@@ -627,6 +627,7 @@ enum rent_payment_status {
   overdued
   partial
   cancelled
+  refunded
 }
 
 enum review_target_type {
@@ -685,6 +686,7 @@ enum security_deposit_status {
   held
   refunded
   forfeited
+  partially_refunded
 }
 
 enum forum_post_category_enum {
